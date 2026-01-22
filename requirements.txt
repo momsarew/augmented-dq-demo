@@ -1,0 +1,67 @@
+# Framework Probabiliste DQ - Streamlit App
+
+# Interface Streamlit
+streamlit==1.29.0
+
+# Data Processing
+pandas==2.1.3
+numpy==1.26.2
+openpyxl==3.1.2
+
+# Statistical Computing
+scipy==1.11.4
+
+# Visualisation
+plotly==5.18.0
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.18.1
+
+# LLM Integration
+anthropic==0.18.0
+
+# LLM API
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM API
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.39.0
+python-dotenv==1.0.0
+
+# LLM Integration
+anthropic==0.39.0
+
+# LLM Integration
+anthropic==0.39.0
