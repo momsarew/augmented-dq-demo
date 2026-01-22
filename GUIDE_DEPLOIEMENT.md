@@ -92,7 +92,7 @@ App URL (optional): framework-dq-demo (ou choisis ton nom)
 2. Dans la section **"Secrets"**, colle ceci :
 
 ```toml
-ANTHROPIC_API_KEY = "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"
+ANTHROPIC_API_KEY = "VOTRE_CLE_ICI"
 ```
 
 3. Clique **"Save"**
