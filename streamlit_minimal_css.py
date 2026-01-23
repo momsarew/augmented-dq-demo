@@ -449,6 +449,52 @@ def apply_minimal_css():
     }
 
     /* ============================================
+       CUSTOM BOXES (success, warning, danger)
+       ============================================ */
+
+    .success-box {
+        background: #E8F5E9 !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        border: 1px solid #81C784 !important;
+        border-left: 4px solid #66BB6A !important;
+        margin: 1rem 0 !important;
+    }
+
+    .success-box,
+    .success-box * {
+        color: var(--text-black) !important;
+    }
+
+    .warning-box {
+        background: #FFF3E0 !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        border: 1px solid #FFB74D !important;
+        border-left: 4px solid #FFA726 !important;
+        margin: 1rem 0 !important;
+    }
+
+    .warning-box,
+    .warning-box * {
+        color: var(--text-black) !important;
+    }
+
+    .danger-box {
+        background: #FFEBEE !important;
+        padding: 1.25rem !important;
+        border-radius: 8px !important;
+        border: 1px solid #E57373 !important;
+        border-left: 4px solid #EF5350 !important;
+        margin: 1rem 0 !important;
+    }
+
+    .danger-box,
+    .danger-box * {
+        color: var(--text-black) !important;
+    }
+
+    /* ============================================
        SCROLLBAR
        ============================================ */
 

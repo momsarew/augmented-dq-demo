@@ -602,8 +602,6 @@ with col_theme:
         st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
         st.rerun()
 
-st.markdown('<div class="main-header">🎯 Framework Probabiliste DQ</div>', unsafe_allow_html=True)
-
 st.title("📊 Framework Probabiliste DQ")
 
 # Descriptif projet
@@ -2581,20 +2579,20 @@ Ton rôle est d'aider l'utilisateur à définir les pondérations optimales pour
         st.markdown("---")
         st.markdown("### 📧 Simulation Alerte Email")
         
-        # Email mockup
+        # Email mockup - version épurée
         st.markdown("""
-        <div style="background: #1e1e1e; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #ff0000;">
-            <p style="color: #aaa; margin: 0;"><strong>De:</strong> monitoring@framework-dq.ai</p>
-            <p style="color: #aaa; margin: 0;"><strong>À:</strong> data-steward@entreprise.fr</p>
-            <p style="color: #aaa; margin: 0;"><strong>Date:</strong> 13/01/2025 08:30</p>
-            <p style="color: #aaa; margin: 0;"><strong>Objet:</strong> 🚨 ALERTE CRITIQUE - Dégradation qualité détectée</p>
-            <hr style="border-color: #444;">
-            <h3 style="color: #ff4444; margin-top: 1rem;">⚠️ ALERTE CRITIQUE</h3>
-            <p style="color: #fff;"><strong>Attribut:</strong> Ancienneté</p>
-            <p style="color: #fff;"><strong>Usage:</strong> Paie réglementaire</p>
-            <p style="color: #fff;"><strong>Dimension affectée:</strong> [DP] Data Processing</p>
-            <p style="color: #fff;"><strong>Risque:</strong> <span style="color: #ff4444;">46.3% → 62.3%</span> (+16 points)</p>
-            <p style="color: #fff;"><strong>Sévérité:</strong> <span style="background: #ff0000; padding: 2px 8px; border-radius: 4px;">CRITIQUE</span></p>
+        <div style="background: #ffffff; padding: 1.5rem; border-radius: 8px; border: 2px solid #E57373; border-left: 4px solid #ef4444;">
+            <p style="color: #000000; margin: 0; font-size: 0.9rem;"><strong>De:</strong> monitoring@framework-dq.ai</p>
+            <p style="color: #000000; margin: 0; font-size: 0.9rem;"><strong>À:</strong> data-steward@entreprise.fr</p>
+            <p style="color: #000000; margin: 0; font-size: 0.9rem;"><strong>Date:</strong> 13/01/2025 08:30</p>
+            <p style="color: #000000; margin: 0; font-size: 0.9rem;"><strong>Objet:</strong> 🚨 ALERTE CRITIQUE - Dégradation qualité détectée</p>
+            <hr style="border-color: #d2d2d7; margin: 1rem 0;">
+            <h3 style="color: #ef4444; margin-top: 0.5rem; font-size: 1.3rem;">⚠️ ALERTE CRITIQUE</h3>
+            <p style="color: #000000; margin: 0.3rem 0;"><strong>Attribut:</strong> Ancienneté</p>
+            <p style="color: #000000; margin: 0.3rem 0;"><strong>Usage:</strong> Paie réglementaire</p>
+            <p style="color: #000000; margin: 0.3rem 0;"><strong>Dimension affectée:</strong> [DP] Data Processing</p>
+            <p style="color: #000000; margin: 0.3rem 0;"><strong>Risque:</strong> <span style="color: #ef4444; font-weight: 600;">46.3% → 62.3%</span> (+16 points)</p>
+            <p style="color: #000000; margin: 0.3rem 0;"><strong>Sévérité:</strong> <span style="background: #FFEBEE; color: #ef4444; padding: 4px 12px; border-radius: 4px; border: 1px solid #E57373; font-weight: 600;">CRITIQUE</span></p>
         </div>
         """, unsafe_allow_html=True)
         
