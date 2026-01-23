@@ -1,9 +1,8 @@
 """
-app_V11_ULTRA_MODERNE.py
-Interface Premium pour Framework Data Quality Probabiliste
+Framework Data Quality Probabiliste
+Interface Premium Streamlit
 
-Design inspiré de : Stripe, Linear, Vercel, Zeenea
-Déploiement : Streamlit Cloud (GRATUIT)
+Déploiement : Streamlit Cloud
 """
 
 import streamlit as st
@@ -12,6 +11,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 import json
+
 # Import CSS premium V13
 from streamlit_premium_css_v13 import apply_ultra_modern_css_with_theme
 
@@ -27,17 +27,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Appliquer CSS ultra-moderne avec theme
+# Appliquer CSS ultra-moderne
 apply_ultra_modern_css_with_theme(st.session_state.theme)
-
-# ============================================================================
-# CSS PREMIUM ULTRA-MODERNE
-# ============================================================================
-
 
 # ============================================================================
 # COMPOSANTS RÉUTILISABLES
 # ============================================================================
+
 # Toggle theme
 col_theme, col_main = st.columns([1, 11])
 with col_theme:
@@ -168,8 +164,6 @@ if 'analysis_results' not in st.session_state:
 # ============================================================================
 # APPLICATION PRINCIPALE
 # ============================================================================
-
-
 
 # Header
 render_header()
@@ -331,7 +325,7 @@ st.markdown("<div style='height: 4rem;'></div>", unsafe_allow_html=True)
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: var(--text-muted); padding: 2rem;">
-    <p>Framework Data Quality Probabiliste • R&D Big 4 Consulting</p>
+    <p>Framework Data Quality Probabiliste • Recherche Appliquée</p>
     <p style="font-size: 0.875rem; margin-top: 0.5rem;">
         Made with ❤️ using Streamlit Cloud
     </p>
