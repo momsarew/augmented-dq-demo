@@ -51,41 +51,64 @@ class DAMACalculator:
         series = df[column]
         total = len(series)
         
-        # Complétude
+        # ============================================================================
+        # COMPLÉTUDE (Completeness) - CALCULABLE ✅
+        # ============================================================================
+        # Formule : 1 - (nb_valeurs_nulles / nb_total)
         completeness = 1 - (series.isnull().sum() / total) if total > 0 else 0.0
         
-        # Cohérence (format uniforme)
-        consistency = 1.0  # Placeholder - détection formats mixtes
-        if series.dtype == 'object':
-            # Check formats
-            sample = series.dropna().astype(str).head(100)
-            formats = set([len(x) for x in sample])  # Simplifié
-            consistency = 1.0 / len(formats) if len(formats) > 0 else 1.0
+        # ============================================================================
+        # COHÉRENCE (Consistency) - NON CALCULABLE sans règles métier ❌
+        # ============================================================================
+        # Nécessite : règles de cohérence définies (ex: format date cohérent)
+        # Sans règles métier explicites, impossible à évaluer rigoureusement
+        consistency = None
         
-        # Exactitude (pas d'erreurs parsing)
-        accuracy = 0.80  # Estimé - nécessiterait règles métier
+        # ============================================================================
+        # EXACTITUDE (Accuracy) - NON CALCULABLE sans valeurs de référence ❌
+        # ============================================================================
+        # Nécessite : valeurs de référence (ground truth) pour comparer
+        accuracy = None
         
-        # Fraîcheur (données récentes)
-        timeliness = 1.0  # Placeholder - nécessiterait timestamps
+        # ============================================================================
+        # FRAÎCHEUR (Timeliness) - NON CALCULABLE sans règle de fraîcheur ❌
+        # ============================================================================
+        # Nécessite : règle de fraîcheur définie (ex: "données < 24h")
+        timeliness = None
         
-        # Validité (respect contraintes)
-        validity = 0.88  # Estimé - validation domaine
+        # ============================================================================
+        # VALIDITÉ (Validity) - NON CALCULABLE sans domaine de valeurs ❌
+        # ============================================================================
+        # Nécessite : domaine de valeurs valides défini (ex: liste pays ISO)
+        # Heuristiques basiques (longueur) ne sont PAS de la validation DAMA
+        validity = None
         
-        # Unicité
+        # ============================================================================
+        # UNICITÉ (Uniqueness) - CALCULABLE ✅
+        # ============================================================================
+        # Formule : nb_valeurs_uniques / nb_total
         uniqueness = series.nunique() / total if total > 0 else 0.0
         
-        # Score global DAMA: moyenne simple
-        dimensions = [completeness, consistency, accuracy, timeliness, validity, uniqueness]
-        score_global = np.mean(dimensions)
+        # ============================================================================
+        # SCORE GLOBAL : Moyenne UNIQUEMENT des dimensions calculables
+        # ============================================================================
+        dimensions_calculables = [
+            v for v in [completeness, consistency, accuracy, timeliness, validity, uniqueness] 
+            if v is not None
+        ]
+        score_global = np.mean(dimensions_calculables) if dimensions_calculables else 0.0
         
         return {
             "completeness": round(completeness, 4),
-            "consistency": round(consistency, 4),
-            "accuracy": round(accuracy, 4),
-            "timeliness": round(timeliness, 4),
-            "validity": round(validity, 4),
+            "consistency": consistency,  # None - pas calculable
+            "accuracy": accuracy,  # None - pas calculable
+            "timeliness": timeliness,  # None - pas calculable
+            "validity": validity,  # None - pas calculable
             "uniqueness": round(uniqueness, 4),
-            "score_global": round(score_global, 4)
+            "score_global": round(score_global, 4),
+            "dimensions_calculables": len(dimensions_calculables),
+            "dimensions_total": 6,
+            "note": "Seulement Completeness et Uniqueness calculables sans métadonnées supplémentaires"
         }
     
     def compute_all_dama_scores(self,
