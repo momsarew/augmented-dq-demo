@@ -1,15 +1,15 @@
 """
 streamlit_minimal_css.py
-CSS minimaliste style Apple pour Framework Data Quality
+CSS inspiré du site Apple - Style épuré et élégant
 
-Caractéristiques:
-- Menus/Tabs : Fond NOIR avec texte BLANC
-- Boutons : Fond bleu très clair (#E3F2FD) avec texte NOIR
-- Fond général : BLANC
-- Texte normal : NOIR (#000000)
-- Texte secondaire : Gris (#6e6e73)
-- Pas de dégradés, pas de couleurs fancy
-- Style minimaliste et épuré
+Caractéristiques Apple:
+- Typographie SF Pro / -apple-system
+- Fond blanc pur (#ffffff) ou gris très clair (#f5f5f7)
+- Texte noir (#1d1d1f) et gris (#6e6e73)
+- Boutons bleu Apple (#0071e3)
+- Espacements généreux
+- Ombres très subtiles
+- Minimalisme extrême
 
 Usage:
     from streamlit_minimal_css import apply_minimal_css
@@ -20,401 +20,408 @@ import streamlit as st
 
 def apply_minimal_css():
     """
-    Applique un CSS minimaliste style Apple
-    Sans dégradés, sans animations, épuré et propre
+    Applique un CSS vraiment inspiré d'Apple.com
+    Épuré, aéré, élégant
     """
 
     st.markdown('''
     <style>
-    /* Import Police Apple-like */
+    /* Import Police Apple */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Variables CSS */
+    /* Variables Apple */
     :root {
-        /* Couleurs principales */
-        --bg-white: #ffffff;
-        --bg-light: #f5f5f7;
-        --black: #000000;
-        --text-black: #000000;
-        --text-gray: #6e6e73;
-        --button-blue: #E3F2FD;
-        --border-gray: #d2d2d7;
-        --hover-gray: #f5f5f7;
+        /* Couleurs Apple officielles */
+        --apple-white: #ffffff;
+        --apple-gray-light: #f5f5f7;
+        --apple-gray-medium: #d2d2d7;
+        --apple-black: #1d1d1f;
+        --apple-gray: #6e6e73;
+        --apple-blue: #0071e3;
+        --apple-blue-hover: #0077ed;
+
+        /* Espacements Apple (généreux) */
+        --spacing-xs: 0.5rem;
+        --spacing-sm: 1rem;
+        --spacing-md: 2rem;
+        --spacing-lg: 3rem;
+        --spacing-xl: 4rem;
+
+        /* Ombres subtiles */
+        --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.04);
+        --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
 
-    /* Base - Police et lissage */
+    /* ============================================
+       BASE - TYPOGRAPHIE APPLE
+       ============================================ */
+
     * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
 
-    /* Fond général BLANC */
+    /* Fond général blanc pur */
     .stApp {
-        background: var(--bg-white) !important;
-        color: var(--text-black) !important;
+        background: var(--apple-white) !important;
+        color: var(--apple-black) !important;
     }
 
-    /* Cacher éléments Streamlit */
+    /* Cache éléments Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
     /* ============================================
-       FORCE TEXTE NOIR PARTOUT (sauf tabs noirs)
+       TYPOGRAPHIE - STYLE APPLE
        ============================================ */
 
-    /* Main content - TOUT EN NOIR */
-    .main, .main * {
-        color: var(--text-black) !important;
-    }
-
-    /* Titres - Texte NOIR */
-    h1, h2, h3, h4, h5, h6 {
-        color: var(--text-black) !important;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-    }
-
     h1 {
-        font-size: 2.5rem;
+        font-size: 3rem;
         font-weight: 700;
+        letter-spacing: -0.015em;
+        color: var(--apple-black) !important;
+        margin-bottom: var(--spacing-md);
+        line-height: 1.1;
     }
 
     h2 {
-        font-size: 2rem;
+        font-size: 2.25rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--apple-black) !important;
+        margin-bottom: var(--spacing-sm);
+        line-height: 1.2;
     }
 
     h3 {
-        font-size: 1.5rem;
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        color: var(--apple-black) !important;
+        margin-bottom: var(--spacing-sm);
+        line-height: 1.3;
     }
 
-    /* Paragraphes, labels, spans - TOUT EN NOIR */
+    h4, h5, h6 {
+        font-weight: 600;
+        color: var(--apple-black) !important;
+        letter-spacing: -0.003em;
+    }
+
     p, span, div, label {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
+        line-height: 1.6;
+        font-size: 1.0625rem;
     }
 
-    /* Labels de formulaires */
-    [data-testid="stWidgetLabel"],
-    .stTextInput label,
-    .stSelectbox label,
-    .stMultiselect label,
-    .stNumberInput label {
-        color: var(--text-black) !important;
-    }
-
-    /* Texte dans markdown */
-    [data-testid="stMarkdownContainer"],
-    [data-testid="stMarkdownContainer"] * {
-        color: var(--text-black) !important;
-    }
-
-    /* Instructions et helper text */
-    .stTextInput small,
-    .stSelectbox small,
-    [data-baseweb="caption"] {
-        color: var(--text-gray) !important;
+    /* Texte secondaire */
+    .secondary-text {
+        color: var(--apple-gray) !important;
+        font-size: 1rem;
     }
 
     /* ============================================
-       TABS - Fond NOIR avec texte BLANC
+       TABS - STYLE APPLE (PAS DE FOND NOIR !)
        ============================================ */
 
     [data-testid="stTabs"] {
-        background: var(--black);
-        border-radius: 12px;
-        padding: 0.5rem;
-        margin-bottom: 2rem;
-        border: none;
+        background: transparent !important;
+        border-bottom: 1px solid var(--apple-gray-medium);
+        padding: 0;
+        margin-bottom: var(--spacing-md);
     }
 
     [data-testid="stTabs"] button {
-        background: transparent;
-        color: var(--bg-white);
-        border: none;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        font-size: 0.9375rem;
-        border-radius: 8px;
-        transition: background 0.2s ease;
+        background: transparent !important;
+        color: var(--apple-gray) !important;
+        border: none !important;
+        border-bottom: 2px solid transparent !important;
+        padding: var(--spacing-sm) var(--spacing-md) !important;
+        font-weight: 500 !important;
+        font-size: 1rem !important;
+        transition: all 0.3s ease !important;
+        border-radius: 0 !important;
     }
 
     [data-testid="stTabs"] button:hover {
-        background: rgba(255, 255, 255, 0.1);
+        color: var(--apple-black) !important;
     }
 
     [data-testid="stTabs"] button[aria-selected="true"] {
-        background: var(--bg-white);
-        color: var(--black);
-        font-weight: 600;
+        color: var(--apple-black) !important;
+        border-bottom-color: var(--apple-blue) !important;
+        font-weight: 600 !important;
     }
 
     /* ============================================
-       BOUTONS - Fond bleu clair avec texte NOIR
+       BOUTONS - BLEU APPLE
        ============================================ */
 
     .stButton > button {
-        background: var(--button-blue);
-        color: var(--text-black);
-        border: 1px solid var(--border-gray);
-        border-radius: 8px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        font-size: 0.9375rem;
-        transition: all 0.2s ease;
-        box-shadow: none;
+        background: var(--apple-blue) !important;
+        color: var(--apple-white) !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-weight: 500 !important;
+        font-size: 1rem !important;
+        transition: background 0.2s ease !important;
+        box-shadow: none !important;
+        letter-spacing: -0.01em;
     }
 
     .stButton > button:hover {
-        background: #BBDEFB;
-        border-color: #90CAF9;
+        background: var(--apple-blue-hover) !important;
+        transform: none !important;
     }
 
     .stButton > button:active {
-        transform: scale(0.98);
+        transform: scale(0.98) !important;
     }
 
     /* ============================================
-       METRICS CARDS
+       METRICS - STYLE APPLE ÉPURÉ
        ============================================ */
 
     [data-testid="stMetric"] {
-        background: var(--bg-white);
-        border: 1px solid var(--border-gray);
-        border-radius: 12px;
-        padding: 1.25rem;
-        transition: border-color 0.2s ease;
+        background: var(--apple-white) !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: var(--spacing-md) !important;
+        box-shadow: var(--shadow-soft) !important;
+        transition: box-shadow 0.3s ease !important;
     }
 
     [data-testid="stMetric"]:hover {
-        border-color: var(--text-gray);
+        box-shadow: var(--shadow-medium) !important;
     }
 
     [data-testid="stMetricLabel"] {
-        color: var(--text-gray) !important;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: var(--apple-gray) !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+        text-transform: none !important;
+        letter-spacing: 0 !important;
+        margin-bottom: 0.5rem !important;
     }
 
     [data-testid="stMetricValue"] {
-        color: var(--text-black) !important;
-        font-size: 2rem;
-        font-weight: 600;
+        color: var(--apple-black) !important;
+        font-size: 2.5rem !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.02em !important;
     }
 
     [data-testid="stMetricDelta"] {
-        color: var(--text-black) !important;
+        color: var(--apple-gray) !important;
+        font-size: 0.9375rem !important;
     }
 
     /* ============================================
-       DATAFRAMES
+       DATAFRAMES - ÉPURÉ
        ============================================ */
 
     [data-testid="stDataFrame"] {
-        border: 1px solid var(--border-gray);
-        border-radius: 8px;
-        overflow: hidden;
+        border: 1px solid var(--apple-gray-medium) !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: var(--shadow-soft) !important;
     }
 
     [data-testid="stDataFrame"] thead tr {
-        background: var(--bg-light);
+        background: var(--apple-gray-light) !important;
     }
 
     [data-testid="stDataFrame"] thead th {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
         font-weight: 600 !important;
         font-size: 0.875rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 0.875rem 1rem !important;
-        border-bottom: 1px solid var(--border-gray) !important;
+        text-transform: none !important;
+        letter-spacing: 0 !important;
+        padding: 1rem !important;
+        border-bottom: 1px solid var(--apple-gray-medium) !important;
     }
 
     [data-testid="stDataFrame"] tbody tr {
-        border-bottom: 1px solid var(--border-gray);
-        transition: background 0.15s ease;
+        border-bottom: 1px solid var(--apple-gray-medium) !important;
+        transition: background 0.2s ease !important;
     }
 
     [data-testid="stDataFrame"] tbody tr:hover {
-        background: var(--hover-gray);
+        background: var(--apple-gray-light) !important;
     }
 
     [data-testid="stDataFrame"] tbody td {
-        color: var(--text-black) !important;
-        padding: 0.75rem 1rem !important;
+        color: var(--apple-black) !important;
+        padding: 0.875rem 1rem !important;
+        font-size: 1rem !important;
     }
 
     /* ============================================
-       EXPANDERS - FORCE TEXTE NOIR
+       EXPANDERS - STYLE APPLE
        ============================================ */
 
     [data-testid="stExpander"] {
-        background: var(--bg-white);
-        border: 1px solid var(--border-gray);
-        border-radius: 8px;
-        transition: border-color 0.2s ease;
-    }
-
-    [data-testid="stExpander"]:hover {
-        border-color: var(--text-gray);
-    }
-
-    /* Force texte noir dans expanders */
-    [data-testid="stExpander"],
-    [data-testid="stExpander"] *,
-    [data-testid="stExpander"] p,
-    [data-testid="stExpander"] span,
-    [data-testid="stExpander"] div {
-        color: var(--text-black) !important;
+        background: var(--apple-white) !important;
+        border: 1px solid var(--apple-gray-medium) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--shadow-soft) !important;
+        margin-bottom: var(--spacing-sm) !important;
+        overflow: hidden !important;
     }
 
     [data-testid="stExpander"] summary {
-        color: var(--text-black) !important;
-        font-weight: 500;
-        padding: 1rem 1.25rem;
+        color: var(--apple-black) !important;
+        font-weight: 500 !important;
+        padding: var(--spacing-sm) var(--spacing-md) !important;
+        background: var(--apple-white) !important;
     }
 
     [data-testid="stExpander"] summary:hover {
-        background: var(--hover-gray);
+        background: var(--apple-gray-light) !important;
+    }
+
+    [data-testid="stExpander"] *,
+    [data-testid="stExpander"] p,
+    [data-testid="stExpander"] span {
+        color: var(--apple-black) !important;
     }
 
     /* ============================================
-       ALERTS - FORCE TEXTE NOIR
+       ALERTS - STYLE APPLE DISCRET
        ============================================ */
 
     [data-testid="stAlert"] {
-        border-radius: 8px;
-        border: 1px solid;
-        padding: 1rem 1.25rem;
-        margin-bottom: 1rem;
+        border-radius: 12px !important;
+        border: 1px solid var(--apple-gray-medium) !important;
+        padding: var(--spacing-sm) var(--spacing-md) !important;
+        margin-bottom: var(--spacing-sm) !important;
+        box-shadow: var(--shadow-soft) !important;
     }
 
-    /* FORCE texte noir dans tous les messages */
     [data-testid="stAlert"],
     [data-testid="stAlert"] *,
-    [data-testid="stAlert"] p,
-    [data-testid="stAlert"] span,
-    [data-testid="stAlert"] div {
-        color: var(--text-black) !important;
+    [data-testid="stAlert"] p {
+        color: var(--apple-black) !important;
     }
 
-    /* Info - Bleu */
+    /* Info - Bleu très léger */
     [data-testid="stAlert"][data-baseweb="notification-info"] {
-        background: #E3F2FD !important;
-        border-color: #90CAF9 !important;
+        background: #f0f8ff !important;
+        border-color: #cfe4ff !important;
     }
 
-    /* Success - Vert */
+    /* Success - Vert très léger */
     [data-testid="stAlert"][data-baseweb="notification-success"] {
-        background: #E8F5E9 !important;
-        border-color: #81C784 !important;
+        background: #f0fdf4 !important;
+        border-color: #d1fae5 !important;
     }
 
-    /* Warning - Orange */
+    /* Warning - Jaune très léger */
     [data-testid="stAlert"][data-baseweb="notification-warning"] {
-        background: #FFF3E0 !important;
-        border-color: #FFB74D !important;
+        background: #fffbeb !important;
+        border-color: #fde68a !important;
     }
 
-    /* Error - Rouge */
+    /* Error - Rouge très léger */
     [data-testid="stAlert"][data-baseweb="notification-error"] {
-        background: #FFEBEE !important;
-        border-color: #E57373 !important;
+        background: #fef2f2 !important;
+        border-color: #fecaca !important;
     }
 
     /* ============================================
-       FILE UPLOADER - FORCE TEXTE NOIR
+       FILE UPLOADER - STYLE APPLE
        ============================================ */
 
     [data-testid="stFileUploader"] {
-        background: var(--bg-light);
-        border: 2px dashed var(--border-gray);
-        border-radius: 12px;
-        padding: 2rem;
-        transition: border-color 0.2s ease;
+        background: var(--apple-gray-light) !important;
+        border: 2px dashed var(--apple-gray-medium) !important;
+        border-radius: 16px !important;
+        padding: var(--spacing-lg) !important;
+        transition: all 0.3s ease !important;
     }
 
     [data-testid="stFileUploader"]:hover {
-        border-color: var(--text-gray);
+        border-color: var(--apple-blue) !important;
+        background: var(--apple-white) !important;
     }
 
-    /* Force texte noir dans file uploader */
     [data-testid="stFileUploader"],
-    [data-testid="stFileUploader"] *,
-    [data-testid="stFileUploader"] p,
-    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] * {
+        color: var(--apple-black) !important;
+    }
+
     [data-testid="stFileUploader"] small {
-        color: var(--text-black) !important;
+        color: var(--apple-gray) !important;
     }
 
     /* ============================================
-       SELECT BOXES & INPUTS
+       INPUTS & SELECT - STYLE APPLE
        ============================================ */
 
     [data-baseweb="select"],
     [data-baseweb="input"] {
-        background: var(--bg-white) !important;
-        border: 1px solid var(--border-gray) !important;
+        background: var(--apple-white) !important;
+        border: 1px solid var(--apple-gray-medium) !important;
         border-radius: 8px !important;
-        transition: border-color 0.2s ease !important;
-        color: var(--text-black) !important;
+        transition: all 0.2s ease !important;
     }
 
-    /* Force texte noir dans les inputs */
     [data-baseweb="select"] *,
     [data-baseweb="input"] *,
     [data-baseweb="select"] input,
     [data-baseweb="input"] input {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     [data-baseweb="select"]:hover,
-    [data-baseweb="input"]:hover,
+    [data-baseweb="input"]:hover {
+        border-color: var(--apple-blue) !important;
+    }
+
     [data-baseweb="select"]:focus,
     [data-baseweb="input"]:focus {
-        border-color: var(--text-gray) !important;
+        border-color: var(--apple-blue) !important;
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1) !important;
+    }
+
+    /* Labels */
+    [data-testid="stWidgetLabel"],
+    .stTextInput label,
+    .stSelectbox label,
+    .stMultiselect label {
+        color: var(--apple-black) !important;
+        font-weight: 500 !important;
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem !important;
     }
 
     /* ============================================
-       SIDEBAR - FORCE TOUT EN NOIR
+       SIDEBAR - FOND GRIS LÉGER APPLE
        ============================================ */
 
     [data-testid="stSidebar"] {
-        background: var(--bg-light) !important;
-        border-right: 1px solid var(--border-gray);
+        background: var(--apple-gray-light) !important;
+        border-right: 1px solid var(--apple-gray-medium) !important;
     }
 
-    /* FORCE tous les éléments de la sidebar en NOIR */
     [data-testid="stSidebar"],
     [data-testid="stSidebar"] *,
     [data-testid="stSidebar"] p,
     [data-testid="stSidebar"] span,
     [data-testid="stSidebar"] div,
     [data-testid="stSidebar"] label {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3,
     [data-testid="stSidebar"] h4 {
-        color: var(--text-black) !important;
-    }
-
-    /* Labels de formulaires dans sidebar */
-    [data-testid="stSidebar"] [data-testid="stWidgetLabel"],
-    [data-testid="stSidebar"] .stTextInput label,
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stMultiselect label {
-        color: var(--text-black) !important;
-    }
-
-    /* Messages d'info dans sidebar */
-    [data-testid="stSidebar"] [data-testid="stAlert"],
-    [data-testid="stSidebar"] [data-testid="stAlert"] * {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     /* ============================================
@@ -422,20 +429,20 @@ def apply_minimal_css():
        ============================================ */
 
     code {
-        background: var(--bg-light) !important;
-        color: var(--text-black) !important;
-        border: 1px solid var(--border-gray) !important;
-        border-radius: 4px !important;
-        padding: 0.2rem 0.4rem !important;
-        font-size: 0.875rem !important;
-        font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace !important;
+        background: var(--apple-gray-light) !important;
+        color: var(--apple-black) !important;
+        border: 1px solid var(--apple-gray-medium) !important;
+        border-radius: 6px !important;
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.9375rem !important;
+        font-family: 'SF Mono', 'Monaco', 'Menlo', monospace !important;
     }
 
     pre {
-        background: var(--bg-light) !important;
-        border: 1px solid var(--border-gray) !important;
-        border-radius: 8px !important;
-        padding: 1rem !important;
+        background: var(--apple-gray-light) !important;
+        border: 1px solid var(--apple-gray-medium) !important;
+        border-radius: 12px !important;
+        padding: var(--spacing-sm) !important;
     }
 
     /* ============================================
@@ -443,77 +450,77 @@ def apply_minimal_css():
        ============================================ */
 
     .stProgress > div > div {
-        background: var(--text-black);
-        border-radius: 8px;
-        height: 8px;
+        background: var(--apple-blue) !important;
+        border-radius: 8px !important;
+        height: 6px !important;
     }
 
     /* ============================================
-       CUSTOM BOXES (success, warning, danger)
+       CUSTOM BOXES - VERSION APPLE SUBTILE
        ============================================ */
 
     .success-box {
-        background: #E8F5E9 !important;
-        padding: 1.25rem !important;
-        border-radius: 8px !important;
-        border: 1px solid #81C784 !important;
-        border-left: 4px solid #66BB6A !important;
-        margin: 1rem 0 !important;
+        background: var(--apple-white) !important;
+        padding: var(--spacing-md) !important;
+        border-radius: 12px !important;
+        border-left: 4px solid #34c759 !important;
+        box-shadow: var(--shadow-soft) !important;
+        margin: var(--spacing-sm) 0 !important;
     }
 
     .success-box,
     .success-box * {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     .warning-box {
-        background: #FFF3E0 !important;
-        padding: 1.25rem !important;
-        border-radius: 8px !important;
-        border: 1px solid #FFB74D !important;
-        border-left: 4px solid #FFA726 !important;
-        margin: 1rem 0 !important;
+        background: var(--apple-white) !important;
+        padding: var(--spacing-md) !important;
+        border-radius: 12px !important;
+        border-left: 4px solid #ff9500 !important;
+        box-shadow: var(--shadow-soft) !important;
+        margin: var(--spacing-sm) 0 !important;
     }
 
     .warning-box,
     .warning-box * {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     .danger-box {
-        background: #FFEBEE !important;
-        padding: 1.25rem !important;
-        border-radius: 8px !important;
-        border: 1px solid #E57373 !important;
-        border-left: 4px solid #EF5350 !important;
-        margin: 1rem 0 !important;
+        background: var(--apple-white) !important;
+        padding: var(--spacing-md) !important;
+        border-radius: 12px !important;
+        border-left: 4px solid #ff3b30 !important;
+        box-shadow: var(--shadow-soft) !important;
+        margin: var(--spacing-sm) 0 !important;
     }
 
     .danger-box,
     .danger-box * {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     /* ============================================
-       SCROLLBAR
+       SCROLLBAR - STYLE APPLE
        ============================================ */
 
     ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-        background: var(--bg-light);
+        background: transparent;
     }
 
     ::-webkit-scrollbar-thumb {
-        background: var(--border-gray);
-        border-radius: 5px;
+        background: var(--apple-gray-medium);
+        border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: var(--text-gray);
+        background: var(--apple-gray);
     }
 
     /* ============================================
@@ -521,13 +528,14 @@ def apply_minimal_css():
        ============================================ */
 
     .js-plotly-plot {
-        border: 1px solid var(--border-gray);
-        border-radius: 8px;
-        overflow: hidden;
+        border: 1px solid var(--apple-gray-medium) !important;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: var(--shadow-soft) !important;
     }
 
     /* ============================================
-       CHECKBOX & RADIO - FORCE TEXTE NOIR
+       CHECKBOX & RADIO
        ============================================ */
 
     [data-testid="stCheckbox"],
@@ -536,18 +544,18 @@ def apply_minimal_css():
     [data-testid="stRadio"],
     [data-testid="stRadio"] *,
     [data-testid="stRadio"] label {
-        color: var(--text-black) !important;
-        font-weight: 500;
+        color: var(--apple-black) !important;
+        font-weight: 400 !important;
     }
 
     /* ============================================
-       SLIDERS - FORCE TEXTE NOIR
+       SLIDERS
        ============================================ */
 
     [data-testid="stSlider"],
     [data-testid="stSlider"] *,
     [data-testid="stSlider"] label {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
     /* ============================================
@@ -555,7 +563,7 @@ def apply_minimal_css():
        ============================================ */
 
     .stSpinner > div {
-        border-top-color: var(--text-black) !important;
+        border-top-color: var(--apple-blue) !important;
     }
 
     /* ============================================
@@ -572,30 +580,23 @@ def apply_minimal_css():
         }
 
         [data-testid="stMetricValue"] {
-            font-size: 1.5rem;
+            font-size: 2rem;
         }
     }
 
     /* ============================================
-       RÈGLE GLOBALE DE SECOURS
-       Force TOUT le texte en NOIR sauf tabs
+       RÈGLE GLOBALE - TEXTE NOIR PARTOUT
        ============================================ */
 
-    /* TOUS les éléments : texte noir par défaut */
     body, body * {
-        color: var(--text-black) !important;
+        color: var(--apple-black) !important;
     }
 
-    /* Exception : tabs avec fond noir = texte blanc */
-    [data-testid="stTabs"] [data-baseweb="tab"],
-    [data-testid="stTabs"] [data-baseweb="tab"] * {
-        color: var(--bg-white) !important;
-    }
-
-    /* Exception : tab sélectionné avec fond blanc = texte noir */
-    [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"],
-    [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] * {
-        color: var(--black) !important;
+    /* Exceptions pour texte secondaire */
+    small,
+    [data-baseweb="caption"],
+    .caption {
+        color: var(--apple-gray) !important;
     }
 
     </style>
