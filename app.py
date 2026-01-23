@@ -46,6 +46,9 @@ from backend.engine import (
     compare_dama_vs_probabiliste
 )
 
+# Import système détection anomalies
+from streamlit_anomaly_detection import render_anomaly_detection_tab
+
 
 # ============================================================================
 # CONFIGURATION PAGE
@@ -1218,8 +1221,9 @@ with st.sidebar:
 if st.session_state.analysis_done and st.session_state.results:
     results = st.session_state.results
     
-    # ONGLETS
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    # ONGLETS - SCAN EN PREMIER !
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+        "🔍 Scan Anomalies",  # ← NOUVEAU 1ER !
         "📊 Dashboard",
         "🎯 Vecteurs 4D",
         "⚠️ Priorités",
@@ -1231,9 +1235,15 @@ if st.session_state.analysis_done and st.session_state.results:
     ])
     
     # ========================================================================
-    # TAB 1 : DASHBOARD
+    # TAB 1 : SCAN ANOMALIES (NOUVEAU PREMIER ONGLET)
     # ========================================================================
     with tab1:
+        render_anomaly_detection_tab()
+    
+    # ========================================================================
+    # TAB 2 : DASHBOARD (ancien tab1)
+    # ========================================================================
+    with tab3:
         st.header("📊 Dashboard Qualité")
         
         # Boutons Export en haut
@@ -1333,7 +1343,7 @@ if st.session_state.analysis_done and st.session_state.results:
     # ========================================================================
     # TAB 2 : VECTEURS 4D
     # ========================================================================
-    with tab2:
+    with tab3:
         st.header("🎯 Vecteurs Qualité 4D")
         
         for attr, vector in results['vecteurs_4d'].items():
@@ -1397,7 +1407,7 @@ if st.session_state.analysis_done and st.session_state.results:
     # ========================================================================
     # TAB 3 : PRIORITÉS
     # ========================================================================
-    with tab3:
+    with tab4:
         st.header("⚠️ Top Priorités Actions")
         
         for i, priority in enumerate(results['top_priorities'][:3], 1):  # Top 3 seulement avec bouton IA
@@ -1464,7 +1474,7 @@ if st.session_state.analysis_done and st.session_state.results:
     # ========================================================================
     # TAB 4 : LINEAGE AVEC SCÉNARIOS RÉALISTES
     # ========================================================================
-    with tab4:
+    with tab5:
         st.header("🔄 Propagation Risque Lineage")
         
         st.markdown("""
@@ -2165,7 +2175,7 @@ Style : Technique mais accessible, pédagogique, avec exemples concrets."""
     # ========================================================================
     # TAB 5 : COMPARAISON DAMA
     # ========================================================================
-    with tab5:
+    with tab6:
         st.header("📈 Comparaison DAMA vs Probabiliste")
         
         # SECTION EXPLICATIVE EN HAUT
@@ -2405,7 +2415,7 @@ Unicité        : {"✅ " + f"{dama_score.get('uniqueness', 0)*100:.1f}%" if dam
     # ========================================================================
     # TAB 6 : ÉLICITATION IA (VRAIE LLM)
     # ========================================================================
-    with tab6:
+    with tab7:
         st.header("💬 Élicitation Assistée par IA")
         
         st.markdown("""
@@ -2669,7 +2679,7 @@ Ton rôle est d'aider l'utilisateur à définir les pondérations optimales pour
     # ========================================================================
     # TAB 7 : SURVEILLANCE
     # ========================================================================
-    with tab7:
+    with tab8:
         st.header("🔔 Surveillance Proactive")
         
         st.markdown("""
@@ -2857,7 +2867,7 @@ anciennete = float(value)  # Bug: virgule non gérée
     # ========================================================================
     # TAB 8 : RESTITUTION ADAPTATIVE
     # ========================================================================
-    with tab8:
+    with tab9:
         st.header("📋 Restitution Adaptative")
         
         st.markdown("""
@@ -3570,7 +3580,10 @@ Exemples de sections possibles selon profil :
             
             🚀 **Prochaine version** : Export PDF/Excel/PPTX directement intégré !
             """)
-
+    
+    # ========================================================================
+    # TAB 9 : DÉTECTION ANOMALIES
+    # ========================================================================
 else:
     # MESSAGE ACCUEIL
     st.info("👈 **Upload TON dataset CSV/Excel dans la barre latérale pour commencer l'analyse !**")

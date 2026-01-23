@@ -16,6 +16,13 @@ from datetime import datetime, timedelta
 import time
 import json
 
+# Import CSS premium V13
+from streamlit_premium_css_v13 import apply_ultra_modern_css_with_theme
+
+# Theme session state
+if 'theme' not in st.session_state:
+    st.session_state.theme = 'dark'
+
 # Import Anthropic pour LLM
 try:
     import anthropic
@@ -51,45 +58,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS Custom
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        background: linear-gradient(90deg, #00d4ff, #0099ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background: #1e1e1e;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 4px solid #00d4ff;
-        margin: 1rem 0;
-    }
-    .success-box {
-        background: #0f3d0f;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #00ff00;
-    }
-    .warning-box {
-        background: #3d2a0f;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #ff9900;
-    }
-    .danger-box {
-        background: #3d0f0f;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #ff0000;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Appliquer CSS ultra-moderne
+apply_ultra_modern_css_with_theme(st.session_state.theme)
+
 
 
 # ============================================================================
@@ -619,6 +590,18 @@ def create_heatmap(scores: Dict) -> go.Figure:
 # ============================================================================
 # HEADER
 # ============================================================================
+
+
+# ============================================================================
+# TOGGLE THEME
+# ============================================================================
+
+col_theme, col_main = st.columns([1, 11])
+with col_theme:
+    theme_icon = "🌙" if st.session_state.theme == 'light' else "☀️"
+    if st.button(theme_icon, key="theme_toggle", help="Changer thème"):
+        st.session_state.theme = 'light' if st.session_state.theme == 'dark' else 'dark'
+        st.rerun()
 
 st.markdown('<div class="main-header">🎯 Framework Probabiliste DQ</div>', unsafe_allow_html=True)
 

@@ -1,0 +1,77 @@
+{
+  "DB#1": {
+    "detection_count": 5,
+    "scan_count": 5,
+    "frequency": 1.0
+  },
+  "DB#2": {
+    "detection_count": 3,
+    "scan_count": 5,
+    "frequency": 0.6
+  },
+  "DB#3": {
+    "detection_count": 3,
+    "scan_count": 3,
+    "frequency": 1.0
+  },
+  "DB#4": {
+    "detection_count": 0,
+    "scan_count": 3,
+    "frequency": 0.0
+  },
+  "DB#5": {
+    "detection_count": 0,
+    "scan_count": 2,
+    "frequency": 0.0
+  },
+  "DP#1": {
+    "detection_count": 0,
+    "scan_count": 3,
+    "frequency": 0.0
+  },
+  "DP#2": {
+    "detection_count": 0,
+    "scan_count": 2,
+    "frequency": 0.0
+  },
+  "DP#3": {
+    "detection_count": 0,
+    "scan_count": 0,
+    "frequency": 0.0
+  },
+  "BR#1": {
+    "detection_count": 0,
+    "scan_count": 3,
+    "frequency": 0.0
+  },
+  "BR#2": {
+    "detection_count": 5,
+    "scan_count": 5,
+    "frequency": 1.0
+  },
+  "BR#3": {
+    "detection_count": 0,
+    "scan_count": 3,
+    "frequency": 0.0
+  },
+  "BR#4": {
+    "detection_count": 0,
+    "scan_count": 3,
+    "frequency": 0.0
+  },
+  "UP#1": {
+    "detection_count": 3,
+    "scan_count": 3,
+    "frequency": 1.0
+  },
+  "UP#2": {
+    "detection_count": 0,
+    "scan_count": 0,
+    "frequency": 0.0
+  },
+  "UP#3": {
+    "detection_count": 0,
+    "scan_count": 0,
+    "frequency": 0.0
+  }
+}
