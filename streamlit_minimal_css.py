@@ -51,8 +51,8 @@ def apply_minimal_css():
 
     /* Fond général BLANC */
     .stApp {
-        background: var(--bg-white);
-        color: var(--text-black);
+        background: var(--bg-white) !important;
+        color: var(--text-black) !important;
     }
 
     /* Cacher éléments Streamlit */
@@ -60,9 +60,18 @@ def apply_minimal_css():
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
+    /* ============================================
+       FORCE TEXTE NOIR PARTOUT (sauf tabs noirs)
+       ============================================ */
+
+    /* Main content - TOUT EN NOIR */
+    .main, .main * {
+        color: var(--text-black) !important;
+    }
+
     /* Titres - Texte NOIR */
     h1, h2, h3, h4, h5, h6 {
-        color: var(--text-black);
+        color: var(--text-black) !important;
         font-weight: 600;
         letter-spacing: -0.02em;
     }
@@ -80,15 +89,31 @@ def apply_minimal_css():
         font-size: 1.5rem;
     }
 
-    /* Paragraphes - Texte NOIR et GRIS */
-    p, span, div {
-        color: var(--text-black);
+    /* Paragraphes, labels, spans - TOUT EN NOIR */
+    p, span, div, label {
+        color: var(--text-black) !important;
     }
 
-    /* Texte secondaire - GRIS */
-    [data-testid="stMarkdownContainer"] p:not(:first-child),
-    .stMarkdown small {
-        color: var(--text-gray);
+    /* Labels de formulaires */
+    [data-testid="stWidgetLabel"],
+    .stTextInput label,
+    .stSelectbox label,
+    .stMultiselect label,
+    .stNumberInput label {
+        color: var(--text-black) !important;
+    }
+
+    /* Texte dans markdown */
+    [data-testid="stMarkdownContainer"],
+    [data-testid="stMarkdownContainer"] * {
+        color: var(--text-black) !important;
+    }
+
+    /* Instructions et helper text */
+    .stTextInput small,
+    .stSelectbox small,
+    [data-baseweb="caption"] {
+        color: var(--text-gray) !important;
     }
 
     /* ============================================
@@ -166,7 +191,7 @@ def apply_minimal_css():
     }
 
     [data-testid="stMetricLabel"] {
-        color: var(--text-gray);
+        color: var(--text-gray) !important;
         font-size: 0.8125rem;
         font-weight: 500;
         text-transform: uppercase;
@@ -174,9 +199,13 @@ def apply_minimal_css():
     }
 
     [data-testid="stMetricValue"] {
-        color: var(--text-black);
+        color: var(--text-black) !important;
         font-size: 2rem;
         font-weight: 600;
+    }
+
+    [data-testid="stMetricDelta"] {
+        color: var(--text-black) !important;
     }
 
     /* ============================================
@@ -218,7 +247,7 @@ def apply_minimal_css():
     }
 
     /* ============================================
-       EXPANDERS
+       EXPANDERS - FORCE TEXTE NOIR
        ============================================ */
 
     [data-testid="stExpander"] {
@@ -232,8 +261,17 @@ def apply_minimal_css():
         border-color: var(--text-gray);
     }
 
+    /* Force texte noir dans expanders */
+    [data-testid="stExpander"],
+    [data-testid="stExpander"] *,
+    [data-testid="stExpander"] p,
+    [data-testid="stExpander"] span,
+    [data-testid="stExpander"] div {
+        color: var(--text-black) !important;
+    }
+
     [data-testid="stExpander"] summary {
-        color: var(--text-black);
+        color: var(--text-black) !important;
         font-weight: 500;
         padding: 1rem 1.25rem;
     }
@@ -243,7 +281,7 @@ def apply_minimal_css():
     }
 
     /* ============================================
-       ALERTS
+       ALERTS - FORCE TEXTE NOIR
        ============================================ */
 
     [data-testid="stAlert"] {
@@ -253,36 +291,41 @@ def apply_minimal_css():
         margin-bottom: 1rem;
     }
 
+    /* FORCE texte noir dans tous les messages */
+    [data-testid="stAlert"],
+    [data-testid="stAlert"] *,
+    [data-testid="stAlert"] p,
+    [data-testid="stAlert"] span,
+    [data-testid="stAlert"] div {
+        color: var(--text-black) !important;
+    }
+
     /* Info - Bleu */
     [data-testid="stAlert"][data-baseweb="notification-info"] {
-        background: #E3F2FD;
-        border-color: #90CAF9;
-        color: var(--text-black);
+        background: #E3F2FD !important;
+        border-color: #90CAF9 !important;
     }
 
     /* Success - Vert */
     [data-testid="stAlert"][data-baseweb="notification-success"] {
-        background: #E8F5E9;
-        border-color: #81C784;
-        color: var(--text-black);
+        background: #E8F5E9 !important;
+        border-color: #81C784 !important;
     }
 
     /* Warning - Orange */
     [data-testid="stAlert"][data-baseweb="notification-warning"] {
-        background: #FFF3E0;
-        border-color: #FFB74D;
-        color: var(--text-black);
+        background: #FFF3E0 !important;
+        border-color: #FFB74D !important;
     }
 
     /* Error - Rouge */
     [data-testid="stAlert"][data-baseweb="notification-error"] {
-        background: #FFEBEE;
-        border-color: #E57373;
-        color: var(--text-black);
+        background: #FFEBEE !important;
+        border-color: #E57373 !important;
     }
 
     /* ============================================
-       FILE UPLOADER
+       FILE UPLOADER - FORCE TEXTE NOIR
        ============================================ */
 
     [data-testid="stFileUploader"] {
@@ -297,6 +340,15 @@ def apply_minimal_css():
         border-color: var(--text-gray);
     }
 
+    /* Force texte noir dans file uploader */
+    [data-testid="stFileUploader"],
+    [data-testid="stFileUploader"] *,
+    [data-testid="stFileUploader"] p,
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] small {
+        color: var(--text-black) !important;
+    }
+
     /* ============================================
        SELECT BOXES & INPUTS
        ============================================ */
@@ -307,6 +359,15 @@ def apply_minimal_css():
         border: 1px solid var(--border-gray) !important;
         border-radius: 8px !important;
         transition: border-color 0.2s ease !important;
+        color: var(--text-black) !important;
+    }
+
+    /* Force texte noir dans les inputs */
+    [data-baseweb="select"] *,
+    [data-baseweb="input"] *,
+    [data-baseweb="select"] input,
+    [data-baseweb="input"] input {
+        color: var(--text-black) !important;
     }
 
     [data-baseweb="select"]:hover,
@@ -317,22 +378,43 @@ def apply_minimal_css():
     }
 
     /* ============================================
-       SIDEBAR
+       SIDEBAR - FORCE TOUT EN NOIR
        ============================================ */
 
     [data-testid="stSidebar"] {
-        background: var(--bg-light);
+        background: var(--bg-light) !important;
         border-right: 1px solid var(--border-gray);
     }
 
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-        color: var(--text-black);
+    /* FORCE tous les éléments de la sidebar en NOIR */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label {
+        color: var(--text-black) !important;
     }
 
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: var(--text-black);
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] h4 {
+        color: var(--text-black) !important;
+    }
+
+    /* Labels de formulaires dans sidebar */
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"],
+    [data-testid="stSidebar"] .stTextInput label,
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] .stMultiselect label {
+        color: var(--text-black) !important;
+    }
+
+    /* Messages d'info dans sidebar */
+    [data-testid="stSidebar"] [data-testid="stAlert"],
+    [data-testid="stSidebar"] [data-testid="stAlert"] * {
+        color: var(--text-black) !important;
     }
 
     /* ============================================
@@ -399,21 +481,27 @@ def apply_minimal_css():
     }
 
     /* ============================================
-       CHECKBOX & RADIO
+       CHECKBOX & RADIO - FORCE TEXTE NOIR
        ============================================ */
 
+    [data-testid="stCheckbox"],
+    [data-testid="stCheckbox"] *,
     [data-testid="stCheckbox"] label,
+    [data-testid="stRadio"],
+    [data-testid="stRadio"] *,
     [data-testid="stRadio"] label {
-        color: var(--text-black);
+        color: var(--text-black) !important;
         font-weight: 500;
     }
 
     /* ============================================
-       SLIDERS
+       SLIDERS - FORCE TEXTE NOIR
        ============================================ */
 
-    [data-testid="stSlider"] {
-        color: var(--text-black);
+    [data-testid="stSlider"],
+    [data-testid="stSlider"] *,
+    [data-testid="stSlider"] label {
+        color: var(--text-black) !important;
     }
 
     /* ============================================
@@ -440,6 +528,28 @@ def apply_minimal_css():
         [data-testid="stMetricValue"] {
             font-size: 1.5rem;
         }
+    }
+
+    /* ============================================
+       RÈGLE GLOBALE DE SECOURS
+       Force TOUT le texte en NOIR sauf tabs
+       ============================================ */
+
+    /* TOUS les éléments : texte noir par défaut */
+    body, body * {
+        color: var(--text-black) !important;
+    }
+
+    /* Exception : tabs avec fond noir = texte blanc */
+    [data-testid="stTabs"] [data-baseweb="tab"],
+    [data-testid="stTabs"] [data-baseweb="tab"] * {
+        color: var(--bg-white) !important;
+    }
+
+    /* Exception : tab sélectionné avec fond blanc = texte noir */
+    [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"],
+    [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] * {
+        color: var(--black) !important;
     }
 
     </style>
