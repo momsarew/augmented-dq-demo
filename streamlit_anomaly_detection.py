@@ -45,11 +45,7 @@ def render_anomaly_detection_tab():
     with sub_tab1:
         st.subheader("Scanner Dataset")
         
-        st.info("""
-        ✅ **15 détecteurs réels** opérationnels (60 catalogués)
-        🧠 **Apprentissage adaptatif** : Le moteur s'améliore à chaque scan
-        ⚡ **3 budgets** : QUICK (top 5) | STANDARD (top 10) | DEEP (tous)
-        """)
+        st.info("15 détecteurs opérationnels | 3 budgets : QUICK / STANDARD / DEEP")
         
         # Vérifier si dataset déjà chargé dans session_state
         if 'df' in st.session_state and st.session_state.df is not None:
@@ -402,19 +398,7 @@ def render_anomaly_detection_tab():
                     else:
                         # TODO: Implémenter ajout avec détecteur
                         st.warning("⚠️ Fonction ajout en cours d'implémentation - Nécessite création détecteur Python")
-                        st.info(f"""
-                        Pour ajouter {new_id}, créer fonction détecteur :
-                        
-                        ```python
-                        def detect_{new_id.lower().replace('#', '_')}(df, **params):
-                            # Logique détection
-                            return {{
-                                'detected': True/False,
-                                'affected_rows': count,
-                                'sample': []
-                            }}
-                        ```
-                        """)
+                        st.info("Créer une fonction détecteur Python pour ajouter cette anomalie.")
     
     # ========================================================================
     # TAB 3 : APPRENTISSAGE
@@ -423,12 +407,7 @@ def render_anomaly_detection_tab():
     with sub_tab3:
         st.subheader("📈 Apprentissage Adaptatif")
         
-        st.info("""
-        🧠 Le moteur **apprend** des scans passés pour **optimiser** les suivants :
-        - Fréquence : Quelles anomalies sont souvent détectées ?
-        - Priorisation : Score = Fréquence × Impact / Complexité
-        - Adaptation : Budget QUICK cible les top anomalies
-        """)
+        st.info("Apprentissage adaptatif : Score = Fréquence × Impact / Complexité")
         
         # Stats apprentissage
         stats_df = engine.get_learning_stats()

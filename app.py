@@ -16,12 +16,8 @@ from datetime import datetime, timedelta
 import time
 import json
 
-# Import CSS premium V13
-from streamlit_premium_css_v13 import apply_ultra_modern_css_with_theme
-
-# Theme session state
-if 'theme' not in st.session_state:
-    st.session_state.theme = 'dark'
+# Import CSS minimaliste Apple
+from streamlit_minimal_css import apply_minimal_css
 
 # Import Anthropic pour LLM
 try:
@@ -61,8 +57,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Appliquer CSS ultra-moderne
-apply_ultra_modern_css_with_theme(st.session_state.theme)
+# Appliquer CSS minimaliste
+apply_minimal_css()
 
 
 
@@ -608,102 +604,16 @@ with col_theme:
 
 st.markdown('<div class="main-header">🎯 Framework Probabiliste DQ</div>', unsafe_allow_html=True)
 
-st.markdown("""
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; margin-bottom: 2rem;">
-    <h2 style="color: white; margin: 0 0 1rem 0;">📊 Démo Interactive - Proof of Concept</h2>
-    <p style="color: white; font-size: 1.1rem; margin: 0;">
-        <strong>De 240h d'Assessment manuel à 30 min de Dialogue IA — Gain 480×</strong>
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.title("📊 Framework Probabiliste DQ")
 
 # Descriptif projet
-with st.expander("📋 À propos de cette démo", expanded=False):
+with st.expander("📋 À propos", expanded=False):
     st.markdown("""
-    ### 🎯 Contexte du Projet
-    
-    Cette démo présente un **framework révolutionnaire de Data Quality** développé dans le cadre d'un projet de recherche appliquée. 
-    L'objectif : **transformer radicalement l'approche traditionnelle d'assessment qualité données**.
-    
-    ### 🔬 Problématique adressée
-    
-    **Approches traditionnelles (DAMA-DMBOK, ISO 8000)** :
-    - ⏱️ **240 heures** d'élicitation manuelle des règles métier par usage
-    - 🎯 **Règles binaires** (Pass/Fail) inadaptées aux données imparfaites
-    - 📊 **Scores moyennés** qui masquent les problèmes critiques
-    - 🔍 **Détection réactive** : 3 semaines pour identifier un incident
-    - 💰 **ROI faible** : ratio coût/bénéfice défavorable
-    
-    ### 💡 Notre Solution : Framework Probabiliste
-    
-    **Paradigme Bayésien + Sciences de la Décision** :
-    - 🎲 **Distributions Beta** au lieu de scores binaires → Modélisation incertitude
-    - 📐 **4 dimensions causales** (DB-DP-BR-UP) au lieu de 6 génériques
-    - 🎯 **Contextualisation usage** : scores différenciés par usage métier
-    - 🤖 **IA conversationnelle** : élicitation assistée en 12 minutes
-    - 🔔 **Surveillance proactive** : détection incidents en 9 heures
-    
-    ### 👥 Acteurs Engagés
-    
-    **Équipe Projet** :
-    - **Porteur de projet** : Thierno Diaw
-    - **Partenaire technique** : Aziza (experte Data Qualité)
-    
-    ### 🎯 Objectifs de la Démo
-    
-    **Prouver 3 hypothèses** :
-    1. ⏱️ **Gain temps** : Élicitation IA 30 min vs 240h manuelle (ratio 480×)
-    2. 💰 **Gain ROI** : 8-18× vs approches traditionnelles (Great Expectations, Soda, etc.)
-    3. 🎯 **Gain précision** : -70% faux positifs, détection proactive 9h vs 3 semaines réactive
-    
-    ### 📊 Domaines d'Application
-    
-    **Framework universel** applicable à tous secteurs :
-    - 🏥 **Santé** : Dossiers patients, conformité RGPD/HDS
-    - 🏦 **Finance** : Transactions, reporting réglementaire (Bâle III, Solvency II)
-    - 🏭 **Industrie** : IoT, qualité produit, supply chain
-    - 👥 **RH** : Paie, CSE, analytics mobilité
-    - 🛒 **Retail** : CRM, segmentation clients, omnicanal
-    - 📱 **Telecom** : Données clients, facturation, réseau
-    
-    **→ Upload TON dataset et teste le framework sur TES données !**
-    
-    ### 🚀 Navigation Démo
-    
-    **7 onglets interactifs** :
-    1. **📊 Dashboard** : Analyse complète avec export Excel/CSV
-    2. **🎯 Vecteurs 4D** : Distributions Beta par dimension
-    3. **⚠️ Priorités** : Top 5 actions classées par ROI
-    4. **🔄 Lineage** : Propagation risque le long des pipelines
-    5. **📈 Comparaison DAMA** : Benchmark vs méthodes traditionnelles
-    6. **💬 Élicitation IA** : Dialogue interactif 12 minutes
-    7. **🔔 Surveillance** : Détection proactive incidents 9h
-    
-    ### 📈 Résultats Attendus
-    
-    **Gains opérationnels** :
-    - 🎯 **-70% faux positifs** (précision contextualisée)
-    - ⏱️ **-60% temps assessment** (automatisation + IA)
-    - 💰 **8-18× ROI** vs méthodes actuelles
-    - 🔔 **-95% temps détection** incidents (9h vs 3 semaines)
-    
-    **Livrables démo** :
-    - ✅ Application Streamlit fonctionnelle (cette démo)
-    - ✅ Dataset RH réel anonymisé (687 lignes)
-    - ✅ 3 scénarios interactifs (Dashboard, Élicitation, Surveillance)
-    - ✅ Export Excel avec 6 onglets de calculs détaillés
-    - ✅ Documentation technique complète
-    
-    ### 🎓 Publications Académiques
-    
-    **Article académique** :
-    - Titre : *"Bayesian Framework for Context-Aware Data Quality Assessment"*
-    
-    ### 📞 Contact
-    
-    Pour plus d'informations sur le framework ou déploiement en production :
-    - **Contact** : Thierno DIAW
-    - **LinkedIn** : Thierno Diaw - Senior Manager Data Governance
+    Framework probabiliste de Data Quality basé sur des distributions Beta.
+
+    **Dimensions** : DB (Database), DP (Data Processing), BR (Business Rules), UP (Usage-fit)
+
+    **Contact** : Thierno DIAW
     """)
 
 st.markdown("---")
@@ -743,14 +653,7 @@ with st.sidebar:
         if 'anthropic_api_key' not in st.session_state:
             st.warning("⚠️ Onglet Élicitation IA nécessite une clé API")
             with st.expander("💡 Comment obtenir une clé ?"):
-                st.markdown("""
-                1. Va sur https://console.anthropic.com/
-                2. Créer un compte (gratuit)
-                3. Dans "API Keys", clique "Create Key"
-                4. Copie la clé et colle-la ci-dessus
-                
-                **Crédit gratuit** : 5$ offerts pour tester !
-                """)
+                st.markdown("Obtenir une clé API sur https://console.anthropic.com/")
     
     st.markdown("---")
     
@@ -2264,19 +2167,10 @@ Style : Technique mais accessible, pédagogique, avec exemples concrets."""
                     f"{score_global:.1%}",
                     help=f"""**Calcul** : ({formule}) / {nb_calculables} = {score_global:.1%}
 
-Moyenne de {nb_calculables}/{nb_total} dimensions DAMA calculables
+Dimensions DAMA : {nb_calculables}/{nb_total} calculables
 
-✅ **Calculables** (avec ce dataset) :
-- **Completeness** : 1 - (nb_null / total)
-- **Uniqueness** : nb_unique / total
-
-❌ **Non calculables** (métadonnées manquantes) :
-- **Consistency** : nécessite règles de cohérence définies
-- **Accuracy** : nécessite valeurs de référence (ground truth)
-- **Timeliness** : nécessite règle de fraîcheur définie
-- **Validity** : nécessite domaine de valeurs valides
-
-⚠️ **Limite DAMA** : Sans contexte métier complet, seules 2/6 dimensions évaluables !
+✅ Completeness, Uniqueness
+❌ Consistency, Accuracy, Timeliness, Validity (métadonnées manquantes)
 """
                 )
             
@@ -2430,12 +2324,7 @@ Unicité        : {"✅ " + f"{dama_score.get('uniqueness', 0)*100:.1f}%" if dam
         # Vérifier clé API
         if 'anthropic_api_key' not in st.session_state or not st.session_state.anthropic_api_key:
             st.error("🔑 **Clé API Claude manquante**")
-            st.info("""
-            Pour utiliser le dialogue IA :
-            1. Entre ta clé API dans la sidebar (section "🔑 API Claude")
-            2. Si tu n'as pas de clé, obtiens-en une gratuitement sur https://console.anthropic.com/
-            3. Crédit gratuit de 5$ offert pour tester !
-            """)
+            st.info("Configure ta clé API Claude dans la sidebar pour activer cette fonctionnalité.")
             st.stop()
         
         # Initialiser client Anthropic
@@ -2856,13 +2745,7 @@ anciennete = float(value)  # Bug: virgule non gérée
         st.plotly_chart(fig_surveillance, use_container_width=True, key="surveillance_chart")
         
         st.markdown("---")
-        st.success("""
-        **💡 Gains surveillance proactive** :
-        - ⏱️ **Détection 9h** au lieu de 3 semaines (approche DAMA réactive)
-        - 🎯 **Cause racine identifiée** automatiquement (commit ETL)
-        - 💰 **135k€ incidents évités/an** (estimation basée sur cas réels)
-        - 📉 **-79% faux positifs** vs alertes rule-based traditionnelles
-        """)
+        st.success("Détection 9h vs 3 semaines | -79% faux positifs")
     
     # ========================================================================
     # TAB 8 : RESTITUTION ADAPTATIVE
@@ -2963,23 +2846,11 @@ anciennete = float(value)  # Bug: virgule non gérée
             
             # Message initial si historique vide
             if len(st.session_state.restitution_history) == 0:
-                initial_msg = f"""👋 Bonjour ! Je vais te générer un **rapport personnalisé** sur l'analyse de qualité des données.
+                initial_msg = f"""**Attribut** : {incident_data['attribut_critique']}
+**Risque** : {incident_data['risque_pourcent']}% - {incident_data['severite']}
+**Records** : {incident_data['impact_records']}/{incident_data['total_records']}
 
-**Attribut analysé** : {incident_data['attribut_critique']}
-**Niveau de risque** : {incident_data['risque_pourcent']}% - {incident_data['severite']}
-**Records affectés** : {incident_data['impact_records']}/{incident_data['total_records']}
-
-Pour que ce soit vraiment utile, dis-moi en quelques mots :
-
-1. **Ton rôle** (CFO, Data Engineer, DRH, Auditeur, Manager...)
-2. **Ce qui t'intéresse** dans cette analyse :
-   - Impact financier et décisions budgétaires ?
-   - Détails techniques pour corriger ?
-   - Conformité et traçabilité audit ?
-   - Communication équipe/direction ?
-   - Autre chose ?
-
-💡 **Ou décris simplement ton besoin en 1-2 phrases !**"""
+Ton rôle et besoins ?"""
                 
                 st.session_state.restitution_history.append({
                     "role": "assistant",
@@ -3572,14 +3443,6 @@ Exemples de sections possibles selon profil :
                     st.rerun()
             
             st.markdown("---")
-            st.info("""
-            💡 **Formats additionnels (PDF, Excel, PowerPoint)** :
-            - Export PDF : Copie le rapport dans Google Docs/Word → Export PDF
-            - Export Excel : Crée un tableau avec les chiffres clés du rapport
-            - Export PowerPoint : Structure le rapport en slides (3-6 slides selon format)
-            
-            🚀 **Prochaine version** : Export PDF/Excel/PPTX directement intégré !
-            """)
     
     # ========================================================================
     # TAB 9 : DÉTECTION ANOMALIES
@@ -3588,184 +3451,6 @@ else:
     # MESSAGE ACCUEIL
     st.info("👈 **Upload TON dataset CSV/Excel dans la barre latérale pour commencer l'analyse !**")
     
-    st.markdown("""
-    ## 🎯 Bienvenue dans la Démo Interactive !
-    
-    ### 📊 Framework Probabiliste pour Data Quality
-    
-    Cette application démontre une **approche révolutionnaire** de la qualité des données, 
-    basée sur les **sciences de la décision** et le **raisonnement probabiliste bayésien**.
-    
-    ---
-    
-    ### 🚀 Démarrage Rapide (2 minutes)
-    
-    **Upload TON dataset** 📁
-    1. Dans la **barre latérale** (à gauche), clique **"Browse files"**
-    2. Upload ton **CSV/Excel** (RH, Finance, Marketing, Supply Chain, IoT, CRM...)
-    3. Sélectionne les **colonnes critiques** à analyser (3-10 colonnes recommandées)
-    4. Configure tes **usages métier** ou utilise les templates fournis
-    5. Clique **"🚀 LANCER ANALYSE"** (en bas de la sidebar)
-    6. Attends 5-10 secondes → **Résultats affichés** avec 8 onglets interactifs !
-    
-    💡 **Astuce** : Commence avec un petit échantillon (50-200 lignes) pour tester rapidement.
-    
-    ---
-    
-    ### 🎯 Ce que cette Démo Prouve
-    
-    #### 1️⃣ **Gain Temps : 480×** ⏱️
-    
-    **Avant (méthodes traditionnelles)** :
-    - 240 heures d'élicitation manuelle par usage
-    - Ateliers interminables avec experts métier
-    - Règles figées, difficiles à maintenir
-    
-    **Après (notre framework)** :
-    - 30 minutes de dialogue IA assisté
-    - Questions ciblées, ajustements dynamiques
-    - **→ Onglet 💬 "Élicitation IA"** pour voir la démo !
-    
-    #### 2️⃣ **Gain Précision : -70% faux positifs** 🎯
-    
-    **Avant** :
-    - Scores moyennés qui masquent problèmes critiques
-    - Alertes binaires (Pass/Fail) inadaptées
-    - Même règle pour tous les contextes
-    
-    **Après** :
-    - Distributions Beta modélisant l'incertitude
-    - Scores contextualisés par usage métier
-    - Propagation causale le long des pipelines
-    - **→ Onglet 📊 "Dashboard"** pour voir les scores !
-    
-    #### 3️⃣ **Gain Réactivité : 9h vs 3 semaines** 🔔
-    
-    **Avant** :
-    - Détection réactive (utilisateur se plaint)
-    - 3 semaines pour identifier cause racine
-    - Impact business déjà matérialisé
-    
-    **Après** :
-    - Surveillance continue automatisée
-    - Alerte proactive dès dégradation détectée
-    - Cause racine identifiée (commit ETL précis)
-    - **→ Onglet 🔔 "Surveillance"** pour voir la simulation !
-    
-    ---
-    
-    ### 📚 Parcours Démo Guidé (15 minutes)
-    
-    **Étape 1 : Configuration** (3 min)
-    - Charge dataset démo ou upload tes données
-    - Explore la section "Usages métier"
-    - **Bonus** : Crée un usage personnalisé (bouton ➕)
-    
-    **Étape 2 : Analyse** (2 min)
-    - Lance l'analyse (bouton 🚀)
-    - Explore l'onglet **📊 Dashboard**
-    - Télécharge l'export Excel (6 onglets détaillés)
-    
-    **Étape 3 : Comprendre les Vecteurs** (3 min)
-    - Onglet **🎯 Vecteurs 4D**
-    - Voir distributions Beta par dimension
-    - Comprendre DB-DP-BR-UP
-    
-    **Étape 4 : Dialogue IA** (4 min)
-    - Onglet **💬 Élicitation IA**
-    - Suivre le dialogue interactif
-    - Observer comment l'IA affine les pondérations
-    
-    **Étape 5 : Surveillance** (3 min)
-    - Onglet **🔔 Surveillance**
-    - Timeline incident simulée
-    - Cliquer sur "Rollback ETL" pour résoudre
-    
-    ---
-    
-    ### 🎓 Fondements Scientifiques
-    
-    **Théorie de la Décision** (Savage, de Finetti)
-    - Probabilités subjectives vs fréquentistes
-    - Distributions conjuguées (Beta-Binomial)
-    - Mise à jour bayésienne continue
-    
-    **Économie Comportementale** (Kahneman, Tversky)
-    - Biais producteurs de données modélisés
-    - Prospect Theory appliquée au risque DQ
-    - Fonction valeur asymétrique
-    
-    **AHP Multi-Critères** (Saaty)
-    - Élicitation pondérations par comparaisons pairées
-    - Cohérence vecteur propre
-    - Convergence itérative
-    
-    ---
-    
-    ### 💼 Applications Business
-    
-    **Cas d'usage validés** :
-    - ✅ **RH** : Paie, CSE, Analytics mobilité
-    - ✅ **Finance** : Reporting réglementaire, Consolidation
-    - ✅ **Marketing** : CRM, Segmentation clients
-    - ✅ **Supply Chain** : Prévisions, Inventory management
-    
-    **Secteurs cibles** :
-    - 🏦 Banque & Assurance (conformité Bâle III, Solvency II)
-    - 🏥 Santé (RGPD, HDS, traçabilité)
-    - 🏭 Industrie (qualité produit, IoT)
-    - 🛒 Retail (données clients, omnicanal)
-    
-    ---
-    
-    ### 📊 Métriques de Succès
-    
-    **Gains mesurés sur 3 POCs clients** :
-    
-    | Métrique | Avant | Après | Gain |
-    |----------|-------|-------|------|
-    | ⏱️ Temps élicitation | 240h | 30min | **480×** |
-    | 🎯 Faux positifs | 45% | 13% | **-70%** |
-    | 🔔 Temps détection | 3 sem | 9h | **-95%** |
-    | 💰 ROI annuel | Baseline | +135k€ | **8-18×** |
-    
-    ---
-    
-    ### 🛠️ Stack Technique
-    
-    **Backend (Calculs)** :
-    - Python 3.11+ (NumPy, SciPy, Pandas)
-    - Distributions Beta (scipy.stats.beta)
-    - Propagation bayésienne (convolution)
-    
-    **Frontend (Interface)** :
-    - Streamlit 1.29+ (cette démo)
-    - Plotly (graphiques interactifs)
-    - Session state (persistance données)
-    
-    **Production (roadmap)** :
-    - FastAPI (API REST)
-    - Microsoft Fabric (lakehouse)
-    - Power BI (dashboards)
-    - Azure ML (modèles prédictifs)
-    
-    ---
-    
-    ### 🎬 Prêt à Commencer ?
-    
-    **👈 Va dans la barre latérale et upload TON dataset :**
-    - 📁 CSV ou Excel de ton choix (tous secteurs acceptés)
-    - 💡 Commence petit (50-200 lignes) pour tester rapidement
-    - 🎯 Sélectionne 3-10 colonnes critiques à analyser
-    
-    **Questions ? Bugs ? Feedback ?**
-    - Utilise le bouton 👎 en bas de chaque réponse
-    - Ou contacte : **Thierno DIAW**
-    
-    ---
-    
-    🚀 **Bonne exploration ! Cette démo va changer ta vision de la Data Quality.**
-    """)
     
     # Supprimer vidéo placeholder
     # st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
