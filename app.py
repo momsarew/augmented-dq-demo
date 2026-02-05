@@ -31,6 +31,40 @@ try:
 except:
     def get_gray_css(): return ""
 
+# SÉCURITÉ
+try:
+    from backend.security import (
+        escape_html,
+        sanitize_for_html,
+        sanitize_column_name,
+        sanitize_dict_for_html,
+        validate_uploaded_file,
+        sanitize_dataframe,
+        sanitize_user_input,
+        sanitize_filename,
+        validate_api_key,
+        safe_error_message,
+        mask_api_key,
+        MAX_FILE_SIZE_MB
+    )
+    SECURITY_OK = True
+except ImportError:
+    SECURITY_OK = False
+    # Fallbacks de sécurité minimaux
+    import html
+    def escape_html(text): return html.escape(str(text)) if text else ""
+    def sanitize_for_html(text, max_length=500): return html.escape(str(text)[:max_length]) if text else ""
+    def sanitize_column_name(name): return html.escape(str(name)[:100]) if name else ""
+    def sanitize_dict_for_html(d): return d
+    def validate_uploaded_file(f): return True, "", None
+    def sanitize_dataframe(df): return df
+    def sanitize_user_input(text, max_length=500, allow_newlines=False): return str(text)[:max_length] if text else ""
+    def sanitize_filename(f): return f.replace('/', '_').replace('\\', '_')[:100] if f else "file"
+    def validate_api_key(k): return bool(k and k.startswith('sk-')), ""
+    def safe_error_message(e, c=""): return f"Erreur: {str(e)[:100]}"
+    def mask_api_key(k): return f"{k[:7]}***" if k and len(k) > 7 else "***"
+    MAX_FILE_SIZE_MB = 50
+
 # IMPORTS ENGINE
 ENGINE_OK = False
 try:
@@ -289,14 +323,28 @@ with st.sidebar:
     st.markdown("---")
 
     st.subheader("1️⃣ Dataset")
+    st.caption(f"📏 Taille max: {MAX_FILE_SIZE_MB} MB")
     up = st.file_uploader("📁 CSV/Excel", type=["csv", "xlsx"])
     if up:
-        try:
-            df = pd.read_csv(up) if up.name.endswith(".csv") else pd.read_excel(up)
+        # Validation sécurisée du fichier uploadé
+        is_valid, error_msg, validated_df = validate_uploaded_file(up)
+
+        if is_valid and validated_df is not None:
+            # Sanitiser le DataFrame
+            df = sanitize_dataframe(validated_df)
             st.session_state.df = df
-            st.success(f"✅ {len(df)} lignes")
-        except Exception as e:
-            st.error(f"❌ {e}")
+            st.success(f"✅ {len(df)} lignes × {len(df.columns)} colonnes")
+        elif error_msg:
+            st.error(f"❌ {error_msg}")
+        else:
+            # Fallback: ancien comportement si module sécurité non chargé
+            try:
+                up.seek(0)
+                df = pd.read_csv(up) if up.name.endswith(".csv") else pd.read_excel(up)
+                st.session_state.df = df
+                st.success(f"✅ {len(df)} lignes")
+            except Exception as e:
+                st.error(f"❌ {safe_error_message(e, 'file_upload')}")
     
     if st.session_state.df is not None:
         st.subheader("2️⃣ Colonnes")
@@ -845,6 +893,8 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
 
             # Afficher chaque attribut dans une card
             for attr_name, attr_data in dama_scores.items():
+                # SÉCURITÉ: Échapper le nom d'attribut pour prévenir XSS
+                safe_attr_name = sanitize_column_name(attr_name)
                 st.markdown(f"""
                 <div style="
                     background: rgba(255,255,255,0.03);
@@ -854,7 +904,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                     margin-bottom: 1.5rem;
                 ">
                     <h3 style="color: white; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                        📌 {attr_name}
+                        📌 {safe_attr_name}
                     </h3>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1038,28 +1088,37 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 st.markdown("---")
                 st.markdown("**📝 Définir ton profil personnalisé**")
 
-                custom_titre = st.text_input(
+                custom_titre_raw = st.text_input(
                     "Intitulé du poste",
                     placeholder="Ex: Chief Data Officer, Analyste BI, Product Owner...",
-                    key="custom_profile_title"
+                    key="custom_profile_title",
+                    max_chars=100  # Limite de caractères
                 )
+                # SÉCURITÉ: Sanitiser l'input
+                custom_titre = sanitize_user_input(custom_titre_raw, max_length=100)
 
-                custom_description = st.text_area(
+                custom_description_raw = st.text_area(
                     "Description du rôle / Responsabilités",
                     placeholder="Ex: Responsable de la stratégie data, supervision des équipes analytics, reporting au COMEX...",
                     height=100,
-                    key="custom_profile_desc"
+                    key="custom_profile_desc",
+                    max_chars=500  # Limite de caractères
                 )
+                # SÉCURITÉ: Sanitiser l'input (autoriser les retours à la ligne)
+                custom_description = sanitize_user_input(custom_description_raw, max_length=500, allow_newlines=True)
 
-                custom_focus = st.text_input(
+                custom_focus_raw = st.text_input(
                     "Focus principal / Préoccupations clés",
                     placeholder="Ex: ROI des projets data, conformité RGPD, adoption des outils...",
-                    key="custom_profile_focus"
+                    key="custom_profile_focus",
+                    max_chars=200  # Limite de caractères
                 )
+                # SÉCURITÉ: Sanitiser l'input
+                custom_focus = sanitize_user_input(custom_focus_raw, max_length=200)
 
                 # Construire le profil personnalisé
                 if custom_titre:
-                    profils["custom"] = f"✏️ {custom_titre}"
+                    profils["custom"] = f"✏️ {escape_html(custom_titre)}"
 
         with col2:
             # Sélection attributs (multiselect)
@@ -1316,22 +1375,36 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             - 🧠 Synthèses intelligentes
             """)
 
+            # SÉCURITÉ: Utiliser st.secrets si disponible (Streamlit Cloud)
+            default_key = ""
+            try:
+                if hasattr(st, 'secrets') and 'ANTHROPIC_API_KEY' in st.secrets:
+                    default_key = st.secrets['ANTHROPIC_API_KEY']
+                elif os.getenv("ANTHROPIC_API_KEY"):
+                    default_key = os.getenv("ANTHROPIC_API_KEY")
+            except Exception:
+                pass
+
             api_key_input = st.text_input(
                 "Clé API Anthropic",
                 type="password",
-                value=st.session_state.get("anthropic_api_key", "") or os.getenv("ANTHROPIC_API_KEY", ""),
+                value=st.session_state.get("anthropic_api_key", "") or default_key,
                 placeholder="sk-ant-api03-...",
-                help="Ta clé reste locale et n'est jamais stockée sur un serveur"
+                help="Ta clé reste locale dans ta session et n'est jamais stockée sur un serveur",
+                max_chars=200  # Limite raisonnable
             )
 
-            # Validation et sauvegarde
+            # SÉCURITÉ: Validation stricte de la clé API
             if api_key_input:
                 api_key_clean = api_key_input.strip()
-                if api_key_clean.startswith("sk-ant-"):
+                is_valid, error_msg = validate_api_key(api_key_clean)
+
+                if is_valid:
                     st.session_state.anthropic_api_key = api_key_clean
-                    st.success("✅ Clé API valide et enregistrée")
+                    # Afficher la clé masquée pour confirmation
+                    st.success(f"✅ Clé API valide: {mask_api_key(api_key_clean)}")
                 else:
-                    st.error("❌ Format invalide (doit commencer par 'sk-ant-')")
+                    st.error(f"❌ {error_msg}")
                     st.session_state.anthropic_api_key = ""
             else:
                 st.session_state.anthropic_api_key = ""
