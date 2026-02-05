@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Data files (keep samples)
+exports/
+resultats_*.xlsx
+resultats_*.csv
+
+# Tests generated files
+tests/test_dataset_*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Environment variables (important pour ne pas commiter les clés API)
+.env
+.env.local
+.env.*.local
+
+# Claude transcript
+*.jsonl
