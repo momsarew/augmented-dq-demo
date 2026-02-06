@@ -35,5 +35,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# Streamlit secrets (IMPORTANT: contient la clé API)
+.streamlit/secrets.toml
+
 # Claude transcript
 *.jsonl

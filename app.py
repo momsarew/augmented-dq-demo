@@ -92,6 +92,15 @@ try:
 except:
     SCAN_OK = False
 
+# Audit Trail
+try:
+    from backend.audit_trail import get_audit_trail, AuditTrail
+    from streamlit_audit_tab import render_audit_tab
+    AUDIT_OK = True
+except Exception as e:
+    AUDIT_OK = False
+    print(f"Audit trail non disponible: {e}")
+
 # ============================================================================
 # CONFIG
 # ============================================================================
@@ -157,9 +166,23 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
             system=prompts.get(scope, prompts["global"]),
             messages=[{"role": "user", "content": json.dumps({"scope": scope, "data": data})}],
         )
-        st.session_state.ai_tokens_used += response.usage.input_tokens + response.usage.output_tokens
+        tokens_used = response.usage.input_tokens + response.usage.output_tokens
+        st.session_state.ai_tokens_used += tokens_used
         explanation = response.content[0].text
         st.session_state.ai_explanations[cache_key] = explanation
+        # Audit: Log requête IA
+        if AUDIT_OK:
+            try:
+                audit = get_audit_trail()
+                audit.log_ai_request(
+                    request_type=f"explanation_{scope}",
+                    prompt_summary=f"Explication pour {scope}",
+                    tokens_used=tokens_used,
+                    success=True,
+                    response_summary=explanation[:100] if explanation else None
+                )
+            except Exception:
+                pass
         return explanation
     except anthropic.AuthenticationError as e:
         return f"⚠️ Erreur authentification : Vérifie ta clé API dans la sidebar (doit être valide et active)"
@@ -314,11 +337,33 @@ if not ENGINE_OK:
 with st.sidebar:
     st.header("📊 Données")
 
+    # Charger la clé API automatiquement depuis secrets au démarrage
+    if "anthropic_api_key" not in st.session_state:
+        st.session_state.anthropic_api_key = ""
+        # Essayer de charger depuis secrets
+        try:
+            if hasattr(st, 'secrets'):
+                if 'api' in st.secrets and st.secrets['api'].get('ANTHROPIC_API_KEY'):
+                    key = st.secrets['api']['ANTHROPIC_API_KEY']
+                    if key and key.strip().startswith('sk-ant-'):
+                        st.session_state.anthropic_api_key = key.strip()
+                elif st.secrets.get('ANTHROPIC_API_KEY'):
+                    key = st.secrets['ANTHROPIC_API_KEY']
+                    if key and key.strip().startswith('sk-ant-'):
+                        st.session_state.anthropic_api_key = key.strip()
+        except Exception:
+            pass
+        # Fallback: variable d'environnement
+        if not st.session_state.anthropic_api_key:
+            env_key = os.getenv("ANTHROPIC_API_KEY", "")
+            if env_key and env_key.strip().startswith('sk-ant-'):
+                st.session_state.anthropic_api_key = env_key.strip()
+
     # Indicateur status API (discret)
     if st.session_state.get("anthropic_api_key"):
-        st.success("🔑 API configurée", icon="✅")
+        st.success("🤖 IA Active", icon="✅")
     else:
-        st.info("🔑 Configurer l'API dans l'onglet ⚙️", icon="ℹ️")
+        st.info("🤖 IA Inactive", icon="ℹ️")
 
     st.markdown("---")
 
@@ -334,6 +379,24 @@ with st.sidebar:
             df = sanitize_dataframe(validated_df)
             st.session_state.df = df
             st.success(f"✅ {len(df)} lignes × {len(df.columns)} colonnes")
+
+            # Audit: Log upload fichier
+            if AUDIT_OK:
+                try:
+                    audit = get_audit_trail()
+                    up.seek(0)
+                    file_hash = audit.compute_file_hash(up.read())
+                    up.seek(0)
+                    audit.log_file_upload(
+                        filename=up.name,
+                        file_size=up.size,
+                        file_hash=file_hash,
+                        rows=len(df),
+                        columns=len(df.columns),
+                        column_names=list(df.columns)
+                    )
+                except Exception:
+                    pass  # Ne pas bloquer si audit échoue
         elif error_msg:
             st.error(f"❌ {error_msg}")
         else:
@@ -384,6 +447,49 @@ with st.sidebar:
                         st.session_state.results = {"stats": stats, "vecteurs_4d": vecteurs, "weights": weights, "scores": scores, "top_priorities": priorities, "lineage": lineage, "comparaison": dama}
                         st.session_state.analysis_done = True
                         st.success("✅ OK")
+
+                        # Audit: Log analyse complète
+                        if AUDIT_OK:
+                            try:
+                                audit = get_audit_trail()
+                                # Log analyse dataset
+                                audit.log_analysis(
+                                    analysis_type="full_analysis",
+                                    columns_analyzed=sel_cols,
+                                    results_summary={
+                                        "nb_columns": len(sel_cols),
+                                        "nb_usages": len(usages),
+                                        "usages": [u["nom"] for u in usages]
+                                    }
+                                )
+                                # Log calculs vecteurs
+                                for col in sel_cols:
+                                    if col in vecteurs:
+                                        v = vecteurs[col]
+                                        audit.log_calculation(
+                                            calculation_type="beta_vectors",
+                                            column=col,
+                                            parameters={"usages": [u["nom"] for u in usages]},
+                                            results={
+                                                "P_DB": v.get("P_DB", 0),
+                                                "P_DP": v.get("P_DP", 0),
+                                                "P_BR": v.get("P_BR", 0),
+                                                "P_UP": v.get("P_UP", 0)
+                                            }
+                                        )
+                                # Log scores
+                                for col, col_scores in scores.items():
+                                    for usage, score_data in col_scores.items():
+                                        if isinstance(score_data, dict):
+                                            audit.log_score(
+                                                score_type="risk_score",
+                                                column=col,
+                                                score_value=score_data.get("score", 0),
+                                                weights=weights.get(usage, {}),
+                                                components=score_data
+                                            )
+                            except Exception:
+                                pass  # Ne pas bloquer si audit échoue
                     except Exception as e:
                         st.error(f"❌ {e}")
                         import traceback
@@ -399,10 +505,10 @@ if st.session_state.analysis_done:
     tab_names = []
     if SCAN_OK:
         tab_names.append("🔍 Scan")
-    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "⚙️ Paramètres", "❓ Aide"]
+    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
 else:
-    # Avant analyse : seulement Accueil, Paramètres et Aide
-    tab_names = ["🏠 Accueil", "⚙️ Paramètres", "❓ Aide"]
+    # Avant analyse : seulement Accueil, Paramètres, Historique et Aide
+    tab_names = ["🏠 Accueil", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
 
 tabs = st.tabs(tab_names)
 idx = 0
@@ -426,6 +532,13 @@ if st.session_state.analysis_done:
                 with open(out, "rb") as f:
                     st.download_button("💾 Télécharger", f, out, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 st.success(f"✅ {out}")
+                # Audit: Log export
+                if AUDIT_OK:
+                    try:
+                        audit = get_audit_trail()
+                        audit.log_export("results_excel", out, "xlsx", rows=len(r.get("vecteurs_4d", {})))
+                    except Exception:
+                        pass
             except Exception as e:
                 st.error(f"❌ {e}")
         
@@ -541,8 +654,16 @@ if st.session_state.analysis_done:
                 st.json({"w_DB": f"{w_db_norm:.2%}", "w_DP": f"{w_dp_norm:.2%}", "w_BR": f"{w_br_norm:.2%}", "w_UP": f"{w_up_norm:.2%}"})
                 
                 if st.button(f"💾 Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
-                    st.session_state.custom_weights[usage_nom] = {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}
+                    new_weights = {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}
+                    st.session_state.custom_weights[usage_nom] = new_weights
                     st.success(f"✅ Pondérations sauvegardées pour {usage_nom}. Relance analyse pour appliquer.")
+                    # Audit: Log pondérations AHP
+                    if AUDIT_OK:
+                        try:
+                            audit = get_audit_trail()
+                            audit.log_ahp_weights(usage_nom, new_weights)
+                        except Exception:
+                            pass
             
             with col2:
                 # Graphique pondérations moderne
@@ -688,7 +809,19 @@ if st.session_state.analysis_done:
                 """, unsafe_allow_html=True)
 
                 if st.button("Sélectionner", key=f"profil_{key}", use_container_width=True):
+                    old_profil = st.session_state.get("profil_risque", "equilibre")
                     st.session_state.profil_risque = key
+                    # Audit: Log changement profil
+                    if AUDIT_OK:
+                        try:
+                            audit = get_audit_trail()
+                            audit.log_profile_selection(
+                                profile_name=profil['nom'],
+                                profile_type=key,
+                                weights={"multiplicateur": profil['multiplicateur']}
+                            )
+                        except Exception:
+                            pass
                     st.rerun()
 
         # Afficher détails du profil sélectionné
@@ -1321,6 +1454,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                 attrs_str = ", ".join(attributs_focus[:3]) + ("..." if nb_attrs_rapport > 3 else "")
                 st.success(f"✅ Rapport généré pour : **{profil_affiche}** | {nb_attrs_rapport} attribut(s) : {attrs_str}")
 
+                # Audit: Log génération rapport
+                if AUDIT_OK:
+                    try:
+                        audit = get_audit_trail()
+                        audit.log_report_generation(
+                            report_type=f"rapport_{profil_select}",
+                            format="markdown",
+                            columns_included=nb_attrs_rapport
+                        )
+                    except Exception:
+                        pass
+
                 with st.expander("📄 Ton Rapport Personnalisé", expanded=True):
                     st.markdown(st.session_state.rapport_genere)
 
@@ -1341,10 +1486,78 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     idx += 1
 
     # ========================================================================
+    # TAB HISTORIQUE - Audit Trail
+    # ========================================================================
+    with tabs[idx]:
+        if AUDIT_OK:
+            render_audit_tab()
+        else:
+            st.header("📜 Historique")
+            st.warning("Module d'audit non disponible")
+
+    idx += 1
+
+    # ========================================================================
     # TAB PARAMÈTRES - Configuration API et préférences
     # ========================================================================
     with tabs[idx]:
         st.header("⚙️ Paramètres")
+
+        # =====================================================================
+        # CHARGEMENT AUTOMATIQUE DE LA CLÉ API DEPUIS SECRETS
+        # =====================================================================
+        # La clé est chargée depuis .streamlit/secrets.toml (local)
+        # ou depuis Streamlit Cloud Secrets (déployé)
+        # L'utilisateur normal ne peut PAS voir ou modifier la clé
+
+        def load_api_key_from_secrets():
+            """Charge la clé API depuis les secrets de manière sécurisée"""
+            try:
+                # Priorité 1: Streamlit secrets (fichier local ou Cloud)
+                if hasattr(st, 'secrets'):
+                    # Essayer le format nested (api.ANTHROPIC_API_KEY)
+                    if 'api' in st.secrets and 'ANTHROPIC_API_KEY' in st.secrets['api']:
+                        key = st.secrets['api']['ANTHROPIC_API_KEY']
+                        if key and key.strip():
+                            return key.strip()
+                    # Essayer le format flat (ANTHROPIC_API_KEY)
+                    if 'ANTHROPIC_API_KEY' in st.secrets:
+                        key = st.secrets['ANTHROPIC_API_KEY']
+                        if key and key.strip():
+                            return key.strip()
+            except Exception:
+                pass
+
+            # Priorité 2: Variable d'environnement
+            try:
+                key = os.getenv("ANTHROPIC_API_KEY", "")
+                if key and key.strip():
+                    return key.strip()
+            except Exception:
+                pass
+
+            return ""
+
+        def check_admin_password():
+            """Vérifie si le mot de passe admin est correct"""
+            try:
+                if hasattr(st, 'secrets') and 'admin' in st.secrets:
+                    return st.secrets['admin'].get('ADMIN_PASSWORD', '')
+            except Exception:
+                pass
+            return "admin"  # Mot de passe par défaut si pas configuré
+
+        # Charger la clé API automatiquement au démarrage
+        if "anthropic_api_key" not in st.session_state or not st.session_state.anthropic_api_key:
+            loaded_key = load_api_key_from_secrets()
+            if loaded_key:
+                is_valid, _ = validate_api_key(loaded_key)
+                if is_valid:
+                    st.session_state.anthropic_api_key = loaded_key
+
+        # =====================================================================
+        # AFFICHAGE POUR UTILISATEUR NORMAL
+        # =====================================================================
 
         st.markdown("""
         <div style="
@@ -1356,13 +1569,13 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         ">
             <h3 style="color: white; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
             <p style="color: rgba(255,255,255,0.8); margin: 0;">
-                Configure ici ta clé API et tes préférences pour l'assistance IA.
+                Statut de l'application et préférences utilisateur.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        # Section API Claude
-        st.subheader("🔑 API Claude (Anthropic)")
+        # Section Status API (lecture seule pour utilisateur normal)
+        st.subheader("🔑 Statut API Claude")
 
         col1, col2 = st.columns([2, 1])
 
@@ -1375,57 +1588,24 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             - 🧠 Synthèses intelligentes
             """)
 
-            # SÉCURITÉ: Utiliser st.secrets si disponible (Streamlit Cloud)
-            default_key = ""
-            try:
-                if hasattr(st, 'secrets') and 'ANTHROPIC_API_KEY' in st.secrets:
-                    default_key = st.secrets['ANTHROPIC_API_KEY']
-                elif os.getenv("ANTHROPIC_API_KEY"):
-                    default_key = os.getenv("ANTHROPIC_API_KEY")
-            except Exception:
-                pass
+            has_key = bool(st.session_state.get("anthropic_api_key"))
 
-            api_key_input = st.text_input(
-                "Clé API Anthropic",
-                type="password",
-                value=st.session_state.get("anthropic_api_key", "") or default_key,
-                placeholder="sk-ant-api03-...",
-                help="Ta clé reste locale dans ta session et n'est jamais stockée sur un serveur",
-                max_chars=200  # Limite raisonnable
-            )
-
-            # SÉCURITÉ: Validation stricte de la clé API
-            if api_key_input:
-                api_key_clean = api_key_input.strip()
-                is_valid, error_msg = validate_api_key(api_key_clean)
-
-                if is_valid:
-                    st.session_state.anthropic_api_key = api_key_clean
-                    # Afficher la clé masquée pour confirmation
-                    st.success(f"✅ Clé API valide: {mask_api_key(api_key_clean)}")
-                else:
-                    st.error(f"❌ {error_msg}")
-                    st.session_state.anthropic_api_key = ""
+            if has_key:
+                st.success("✅ L'API Claude est configurée et prête à l'emploi")
+                # Afficher consommation
+                tokens = st.session_state.get("ai_tokens_used", 0)
+                cost = (tokens / 1e6) * 9
+                st.metric("Tokens utilisés (session)", f"{tokens:,}", delta=f"≈ ${cost:.4f}")
             else:
-                st.session_state.anthropic_api_key = ""
-
-            st.markdown("---")
-
-            # Lien pour obtenir une clé
-            st.markdown("""
-            **📌 Comment obtenir une clé API ?**
-            1. Crée un compte sur [console.anthropic.com](https://console.anthropic.com)
-            2. Va dans **Settings** → **API Keys**
-            3. Clique sur **Create Key**
-            4. Copie la clé et colle-la ci-dessus
-            """)
+                st.warning("⚠️ L'API Claude n'est pas configurée")
+                st.info("💡 Contactez l'administrateur pour activer les fonctionnalités IA")
 
         with col2:
             # Status card
             has_key = bool(st.session_state.get("anthropic_api_key"))
             status_color = "#38ef7d" if has_key else "#eb3349"
-            status_text = "Configurée" if has_key else "Non configurée"
-            status_icon = "✅" if has_key else "❌"
+            status_text = "Active" if has_key else "Inactive"
+            status_icon = "✅" if has_key else "⏸️"
 
             st.markdown(f"""
             <div style="
@@ -1436,51 +1616,115 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                 text-align: center;
             ">
                 <div style="font-size: 3rem; margin-bottom: 0.5rem;">{status_icon}</div>
-                <div style="color: {status_color}; font-weight: 700; font-size: 1.2rem;">API {status_text}</div>
+                <div style="color: {status_color}; font-weight: 700; font-size: 1.2rem;">IA {status_text}</div>
             </div>
             """, unsafe_allow_html=True)
 
-            if has_key:
-                st.markdown("---")
-                # Consommation
-                tokens = st.session_state.get("ai_tokens_used", 0)
-                cost = (tokens / 1e6) * 9  # ~$9/M tokens pour Claude Sonnet
+        st.markdown("---")
 
-                st.markdown(f"""
-                <div style="
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    border-radius: 12px;
-                    padding: 1rem;
-                    text-align: center;
-                ">
-                    <p style="color: rgba(255,255,255,0.6); margin: 0 0 0.5rem 0; font-size: 0.8rem;">CONSOMMATION SESSION</p>
-                    <p style="color: white; margin: 0; font-size: 1.5rem; font-weight: 700;">{tokens:,}</p>
-                    <p style="color: rgba(255,255,255,0.5); margin: 0; font-size: 0.8rem;">tokens</p>
-                    <p style="color: #F2C94C; margin: 0.5rem 0 0 0; font-size: 1rem;">≈ ${cost:.4f}</p>
-                </div>
-                """, unsafe_allow_html=True)
+        # =====================================================================
+        # SECTION ADMIN (protégée par mot de passe)
+        # =====================================================================
+
+        with st.expander("🔐 Administration (accès restreint)", expanded=False):
+            st.warning("⚠️ Cette section est réservée à l'administrateur")
+
+            # Vérifier si déjà authentifié
+            if not st.session_state.get("admin_authenticated", False):
+                admin_pwd = st.text_input(
+                    "Mot de passe administrateur",
+                    type="password",
+                    key="admin_password_input",
+                    placeholder="Entrer le mot de passe admin..."
+                )
+
+                if st.button("🔓 Se connecter", type="primary"):
+                    correct_pwd = check_admin_password()
+                    if admin_pwd == correct_pwd:
+                        st.session_state.admin_authenticated = True
+                        st.rerun()
+                    else:
+                        st.error("❌ Mot de passe incorrect")
+
+            else:
+                # Admin authentifié - afficher les options de configuration
+                st.success("✅ Connecté en tant qu'administrateur")
+
+                if st.button("🚪 Se déconnecter"):
+                    st.session_state.admin_authenticated = False
+                    st.rerun()
+
+                st.markdown("---")
+                st.subheader("🔑 Configuration API Claude")
+
+                # Afficher la clé actuelle (masquée)
+                current_key = st.session_state.get("anthropic_api_key", "")
+                if current_key:
+                    st.info(f"Clé actuelle: {mask_api_key(current_key)}")
+
+                # Permettre de modifier la clé
+                new_api_key = st.text_input(
+                    "Nouvelle clé API Anthropic",
+                    type="password",
+                    placeholder="sk-ant-api03-...",
+                    help="Entrez une nouvelle clé pour remplacer l'existante",
+                    max_chars=200
+                )
+
+                if st.button("💾 Sauvegarder la clé", type="primary"):
+                    if new_api_key:
+                        clean_key = new_api_key.strip()
+                        is_valid, error_msg = validate_api_key(clean_key)
+
+                        if is_valid:
+                            st.session_state.anthropic_api_key = clean_key
+                            st.success(f"✅ Clé API mise à jour: {mask_api_key(clean_key)}")
+
+                            # Instructions pour rendre persistant
+                            st.info("""
+                            **Pour rendre cette clé persistante:**
+
+                            📁 **En local:** Modifiez le fichier `.streamlit/secrets.toml`:
+                            ```toml
+                            [api]
+                            ANTHROPIC_API_KEY = "votre-clé-ici"
+                            ```
+
+                            ☁️ **Sur Streamlit Cloud:** Allez dans Settings > Secrets et ajoutez:
+                            ```toml
+                            [api]
+                            ANTHROPIC_API_KEY = "votre-clé-ici"
+                            ```
+                            """)
+                        else:
+                            st.error(f"❌ {error_msg}")
+                    else:
+                        st.warning("Entrez une clé API")
+
+                st.markdown("---")
+
+                # Modifier le mot de passe admin
+                st.subheader("🔒 Sécurité")
+                st.caption("Pour modifier le mot de passe admin, éditez `.streamlit/secrets.toml`")
 
         st.markdown("---")
 
-        # Section Préférences
+        # Section Préférences (accessible à tous)
         st.subheader("🎨 Préférences d'affichage")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            # Langue des rapports (pour future implémentation)
             st.selectbox(
                 "🌍 Langue des rapports IA",
                 options=["Français", "English"],
                 index=0,
                 help="Langue utilisée pour la génération des rapports",
-                disabled=True  # Pour l'instant
+                disabled=True
             )
             st.caption("🔜 Bientôt disponible")
 
         with col2:
-            # Niveau de détail
             st.selectbox(
                 "📊 Niveau de détail par défaut",
                 options=["Synthétique", "Standard", "Détaillé"],
@@ -1851,9 +2095,19 @@ else:
             st.success("✅ **API configurée** - Toutes les fonctionnalités IA sont actives !")
 
     # ========================================================================
+    # ONGLET HISTORIQUE (avant analyse)
+    # ========================================================================
+    with tabs[1]:  # 📜 Historique
+        if AUDIT_OK:
+            render_audit_tab()
+        else:
+            st.header("📜 Historique")
+            st.warning("Module d'audit non disponible")
+
+    # ========================================================================
     # ONGLET PARAMÈTRES (avant analyse)
     # ========================================================================
-    with tabs[1]:  # ⚙️ Paramètres
+    with tabs[2]:  # ⚙️ Paramètres
         st.header("⚙️ Paramètres")
 
         st.markdown("""
@@ -1958,7 +2212,7 @@ else:
     # ========================================================================
     # ONGLET AIDE (avant analyse)
     # ========================================================================
-    with tabs[2]:  # ❓ Aide
+    with tabs[3]:  # ❓ Aide
         st.header("❓ Guide Utilisateur")
 
         st.markdown("""
