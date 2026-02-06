@@ -101,6 +101,15 @@ except Exception as e:
     AUDIT_OK = False
     print(f"Audit trail non disponible: {e}")
 
+# Data Contracts
+try:
+    from backend.data_contracts import DataContract, ContractValidator, ContractRepository
+    from streamlit_data_contracts import render_data_contracts_tab
+    CONTRACTS_OK = True
+except Exception as e:
+    CONTRACTS_OK = False
+    print(f"Data contracts non disponible: {e}")
+
 # ============================================================================
 # CONFIG
 # ============================================================================
@@ -505,10 +514,10 @@ if st.session_state.analysis_done:
     tab_names = []
     if SCAN_OK:
         tab_names.append("🔍 Scan")
-    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
+    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Contracts", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
 else:
-    # Avant analyse : seulement Accueil, Paramètres, Historique et Aide
-    tab_names = ["🏠 Accueil", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
+    # Avant analyse : seulement Accueil, Contracts, Historique, Paramètres et Aide
+    tab_names = ["🏠 Accueil", "📜 Contracts", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
 
 tabs = st.tabs(tab_names)
 idx = 0
@@ -1486,6 +1495,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     idx += 1
 
     # ========================================================================
+    # TAB DATA CONTRACTS
+    # ========================================================================
+    with tabs[idx]:
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("📜 Data Contracts")
+            st.warning("Module Data Contracts non disponible")
+
+    idx += 1
+
+    # ========================================================================
     # TAB HISTORIQUE - Audit Trail
     # ========================================================================
     with tabs[idx]:
@@ -2095,9 +2116,19 @@ else:
             st.success("✅ **API configurée** - Toutes les fonctionnalités IA sont actives !")
 
     # ========================================================================
+    # ONGLET DATA CONTRACTS (avant analyse)
+    # ========================================================================
+    with tabs[1]:  # 📜 Contracts
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("📜 Data Contracts")
+            st.warning("Module Data Contracts non disponible")
+
+    # ========================================================================
     # ONGLET HISTORIQUE (avant analyse)
     # ========================================================================
-    with tabs[1]:  # 📜 Historique
+    with tabs[2]:  # 📜 Historique
         if AUDIT_OK:
             render_audit_tab()
         else:
@@ -2107,7 +2138,7 @@ else:
     # ========================================================================
     # ONGLET PARAMÈTRES (avant analyse)
     # ========================================================================
-    with tabs[2]:  # ⚙️ Paramètres
+    with tabs[3]:  # ⚙️ Paramètres
         st.header("⚙️ Paramètres")
 
         st.markdown("""
@@ -2212,7 +2243,7 @@ else:
     # ========================================================================
     # ONGLET AIDE (avant analyse)
     # ========================================================================
-    with tabs[3]:  # ❓ Aide
+    with tabs[4]:  # ❓ Aide
         st.header("❓ Guide Utilisateur")
 
         st.markdown("""
