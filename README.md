@@ -4,30 +4,77 @@ Application Streamlit pour analyse qualité données avec approche probabiliste 
 
 ## 🚀 Installation Rapide
 
-### 1️⃣ Prérequis
+### Option A : Setup automatique Mac (recommande)
+
+```bash
+# Rend le script executable (une seule fois)
+chmod +x setup_mac.sh
+
+# Nettoyage complet + installation + lancement
+./setup_mac.sh
+```
+
+Le script `setup_mac.sh` nettoie tous les caches (Python, Streamlit, navigateur),
+recree un virtualenv propre, installe les dependances et lance l'app.
+
+Options du script :
+- `./setup_mac.sh --full` : Nettoyage + install + lancement (defaut)
+- `./setup_mac.sh --clean` : Nettoyage seul
+- `./setup_mac.sh --run` : Lancement seul (si deja installe)
+
+### Option B : Installation manuelle
+
+#### 1. Prerequis
 ```bash
 Python 3.9+
 pip
 ```
 
-### 2️⃣ Installation
+#### 2. Installation
 ```bash
-# Créer environnement virtuel
+# Supprimer ancien venv si existant
+rm -rf venv
+
+# Creer environnement virtuel
 python3 -m venv venv
 source venv/bin/activate  # Mac/Linux
 # OU
 venv\Scripts\activate  # Windows
 
-# Installer dépendances
+# Installer dependances
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Lancement
+#### 3. Lancement
 ```bash
+source venv/bin/activate
 streamlit run app.py
 ```
 
 L'application s'ouvre automatiquement dans votre navigateur sur `http://localhost:8501`
+
+### Probleme de cache / ancienne version ?
+
+Si l'application affiche une ancienne version :
+
+```bash
+# 1. Arreter Streamlit (Ctrl+C)
+
+# 2. Nettoyer tous les caches
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true
+rm -rf ~/.streamlit/cache .streamlit/cache
+
+# 3. Supprimer et recreer le venv
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 4. Vider le cache navigateur (Cmd+Shift+R dans Chrome/Safari)
+
+# 5. Relancer
+streamlit run app.py
+```
 
 ## 📁 Structure Projet
 
