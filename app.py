@@ -98,6 +98,14 @@ except Exception as e:
     AUDIT_OK = False
     print(f"Audit trail non disponible: {e}")
 
+# Data Contracts
+try:
+    from streamlit_data_contracts import render_data_contracts_tab
+    CONTRACTS_OK = True
+except Exception as e:
+    CONTRACTS_OK = False
+    print(f"Data contracts non disponible: {e}")
+
 # ============================================================================
 # CONFIG
 # ============================================================================
@@ -502,7 +510,7 @@ if st.session_state.analysis_done:
     tab_names = []
     if SCAN_OK:
         tab_names.append("🔍 Scan")
-    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
+    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Contracts", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
 else:
     # Avant analyse : seulement Accueil, Paramètres, Historique et Aide
     tab_names = ["🏠 Accueil", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
@@ -1479,6 +1487,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         
         else:
             st.warning("⚠️ Sélectionne au moins un usage ET un attribut pour générer un rapport")
+
+    idx += 1
+
+    # ========================================================================
+    # TAB DATA CONTRACTS
+    # ========================================================================
+    with tabs[idx]:
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("📜 Data Contracts")
+            st.warning("Module Data Contracts non disponible")
 
     idx += 1
 
