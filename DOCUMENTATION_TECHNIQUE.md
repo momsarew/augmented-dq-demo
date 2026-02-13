@@ -1,7 +1,7 @@
 # 📚 Documentation Technique - Framework Probabiliste DQ
 
-> **Version** : 1.0
-> **Date** : Février 2025
+> **Version** : 2.0
+> **Date** : Février 2026
 > **Auteur** : Framework DQ Team
 
 ---
@@ -11,14 +11,15 @@
 1. [Architecture globale](#1-architecture-globale)
 2. [Module analyzer.py](#2-module-analyzerpy)
 3. [Module beta_calculator.py](#3-module-beta_calculatorpy) ⭐ **IMPORTANT**
-4. [Catalogue d'anomalies](#4-catalogue-danomalies) ⭐ **NOUVEAU**
+4. [Catalogue d'anomalies](#4-catalogue-danomalies)
 5. [Module ahp_elicitor.py](#5-module-ahp_elicitorpy)
 6. [Module risk_scorer.py](#6-module-risk_scorerpy)
 7. [Module lineage_propagator.py](#7-module-lineage_propagatorpy)
 8. [Module comparator.py](#8-module-comparatorpy)
-9. [Application principale app.py](#9-application-principale-apppy)
-10. [Formules mathématiques](#10-formules-mathématiques)
-11. [Guide d'extension](#11-guide-dextension)
+9. [Module Data Contracts](#9-module-data-contracts) ⭐ **NOUVEAU v2.0**
+10. [Application principale app.py](#10-application-principale-apppy)
+11. [Formules mathématiques](#11-formules-mathématiques)
+12. [Guide d'extension](#12-guide-dextension)
 
 ---
 
@@ -28,21 +29,63 @@
 
 ```
 augmented-dq-demo/
-├── app.py                          # Application Streamlit principale
-├── streamlit_gray_css.py           # Styles CSS modernes
-├── streamlit_anomaly_detection.py  # Module détection anomalies (optionnel)
-├── requirements.txt                # Dépendances Python
-├── GUIDE_UTILISATEUR.md           # Guide utilisateur
-├── DOCUMENTATION_TECHNIQUE.md     # Ce fichier
+├── app.py                              # Orchestrateur principal (~370 lignes)
+├── streamlit_gray_css.py               # Styles CSS modernes
+├── streamlit_anomaly_detection.py      # Module détection anomalies (optionnel)
+├── streamlit_audit_tab.py              # Affichage audit trail
+├── setup_mac.sh                        # Script setup Mac automatique
+├── requirements.txt                    # Dépendances Python
+├── DOCUMENTATION_TECHNIQUE.md          # Ce fichier
 │
-└── backend/
-    └── engine/
-        ├── analyzer.py             # Analyse exploratoire des données
-        ├── beta_calculator.py      # Calculs distributions Beta
-        ├── ahp_elicitor.py         # Élicitation pondérations AHP
-        ├── risk_scorer.py          # Scoring de risque contextualisé
-        ├── lineage_propagator.py   # Propagation risque dans le lineage
-        └── comparator.py           # Comparaison DAMA vs Probabiliste
+├── frontend/                           # Couche présentation (v2.0)
+│   ├── __init__.py
+│   ├── components/                     # Composants partagés
+│   │   ├── __init__.py
+│   │   ├── theme.py                    # Couleurs et styles (get_risk_color)
+│   │   ├── charts.py                   # Graphiques Plotly (vecteur 4D, heatmap)
+│   │   ├── ai_explain.py              # Helper Claude API (explain_with_ai)
+│   │   └── export.py                   # Export Excel multi-feuilles
+│   └── tabs/                           # Un module par onglet
+│       ├── __init__.py
+│       ├── home.py                     # 🏠 Accueil
+│       ├── dashboard.py               # 📊 Dashboard global
+│       ├── vectors.py                  # 🎯 Vecteurs 4D détaillés
+│       ├── priorities.py               # ⚠️ Top priorités
+│       ├── elicitation.py              # 🎚️ Élicitation AHP
+│       ├── risk_profile.py             # 🎭 Profil de risque
+│       ├── lineage.py                  # 🔄 Propagation ETL
+│       ├── dama.py                     # 📈 Comparaison DAMA
+│       ├── reporting.py                # 📋 Rapports contextuels IA
+│       ├── data_contracts.py           # 📜 Data Contracts (v2.0)
+│       ├── settings.py                 # ⚙️ Paramètres et admin
+│       └── help.py                     # ❓ Guide utilisateur
+│
+├── backend/                            # Couche métier
+│   ├── __init__.py
+│   ├── security.py                     # Sécurité (XSS, validation, sanitization)
+│   ├── audit_trail.py                  # Audit trail complet
+│   ├── core_anomaly_catalog.py         # 15 anomalies de base
+│   ├── extended_anomaly_catalog.py     # 60 anomalies avec apprentissage
+│   ├── adaptive_scan_engine.py         # Scan adaptatif
+│   ├── scan_to_beta_connector.py       # Scan → Beta distribution
+│   └── engine/                         # Moteur de calcul
+│       ├── __init__.py
+│       ├── analyzer.py                 # Analyse exploratoire des données
+│       ├── beta_calculator.py          # Calculs distributions Beta
+│       ├── ahp_elicitor.py             # Élicitation pondérations AHP
+│       ├── risk_scorer.py              # Scoring de risque contextualisé
+│       ├── lineage_propagator.py       # Propagation risque dans le lineage
+│       └── comparator.py              # Comparaison DAMA vs Probabiliste
+│
+├── tests/                              # Tests pré-déploiement
+│   ├── test_comprehensive.py           # 32 tests (cohérence, edge cases, stress)
+│   ├── test_advanced.py                # 8 tests modules avancés
+│   ├── test_dama_complete.py           # Test complet DAMA vs 4D
+│   └── test_end_to_end.py             # Test pipeline bout en bout
+│
+└── docs/                               # Documentation architecture
+    ├── ARCHITECTURE.md                 # Architecture C4
+    └── ARCHITECTURE_DIAGRAMS.md        # Diagrammes Mermaid
 ```
 
 ### 1.2 Flux de données
@@ -1255,7 +1298,98 @@ def compare_approaches(
 
 ---
 
-## 9. Application principale app.py
+## 9. Module Data Contracts
+
+### 9.1 Description
+
+Module de gestion des contrats de qualité de données. Permet de définir des règles attendues pour chaque attribut et de valider automatiquement le dataset.
+
+**Fichier** : `frontend/tabs/data_contracts.py`
+
+### 9.2 Fonctions publiques
+
+#### `render_data_contracts_tab()`
+
+Point d'entrée Streamlit pour l'onglet Data Contracts. Affiche l'interface complète.
+
+### 9.3 Fonctions internes
+
+#### `_auto_generate_contracts(df: pd.DataFrame) -> dict`
+
+Génère automatiquement des contrats depuis un DataFrame.
+
+| Paramètre | Type | Description |
+|-----------|------|-------------|
+| `df` | `pd.DataFrame` | Dataset source |
+
+**Retourne** : `dict` - Contrats par colonne
+
+```python
+{
+    "nom_colonne": {
+        "expected_type": "string|integer|float|boolean|datetime",
+        "nullable": True/False,
+        "unique": True/False,
+        "rules": [
+            {
+                "name": "null_threshold|range_check|max_length|allowed_values|date_range",
+                "description": "Description lisible",
+                "type": "null_check|range|length|enum|date_range|info",
+                "threshold": 10.0,        # Pour null_check
+                "min": 0.0, "max": 100.0, # Pour range
+                "max_length": 255,         # Pour length
+                "values": ["A", "B"]       # Pour enum
+            }
+        ]
+    }
+}
+```
+
+**Règles générées automatiquement** :
+
+| Type colonne | Règles générées |
+|-------------|-----------------|
+| Numérique | `null_check` + `range_check` (intervalle 1-99%) + `sign_check` si négatifs |
+| Texte | `null_check` + `max_length` + `allowed_values` si ≤ 20 valeurs uniques |
+| Datetime | `null_check` + `date_range` |
+| Booléen | `null_check` |
+
+#### `_validate_contracts(df: pd.DataFrame, contracts: dict) -> dict`
+
+Valide un DataFrame contre les contrats et retourne les violations.
+
+**Retourne** : `dict` - Violations par colonne
+
+```python
+{
+    "nom_colonne": [
+        {
+            "rule": "nom_regle",
+            "message": "Description de la violation",
+            "severity": "ERROR|WARNING"
+        }
+    ]
+}
+```
+
+**Sévérité** :
+- `ERROR` : Taux de nulls > 50% ou colonne absente
+- `WARNING` : Autres violations (hors intervalle, longueur, valeurs non autorisées)
+
+### 9.4 Session State
+
+| Clé | Type | Description |
+|-----|------|-------------|
+| `data_contracts` | `dict` | Contrats générés (persisté entre reloads) |
+
+### 9.5 Export
+
+- **JSON** : Contrats complets avec version et timestamp
+- **Markdown** : Rapport de violations (si violations > 0)
+
+---
+
+## 10. Application principale app.py
 
 ### 8.1 Fonctions utilitaires
 
