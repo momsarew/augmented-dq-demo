@@ -189,11 +189,16 @@ def render_risk_profile_tab(r):
     # AI recommendations
     st.markdown("---")
     if st.button("🤖 Obtenir recommandations IA selon mon profil", type="primary"):
-        if st.session_state.get("anthropic_api_key"):
+        if not scores:
+            st.warning("⚠️ Aucun score disponible pour générer des recommandations.")
+        elif st.session_state.get("anthropic_api_key"):
             with st.spinner("🤖 Analyse en cours..."):
                 try:
                     import anthropic
                     client = anthropic.Anthropic(api_key=st.session_state.anthropic_api_key)
+
+                    nb_critique = len([s for s in scores_ajustes if "Critique" in s['niveau']])
+                    nb_eleve = len([s for s in scores_ajustes if "Élevé" in s['niveau']])
 
                     prompt_data = {
                         "profil_risque": profil_actuel['nom'],

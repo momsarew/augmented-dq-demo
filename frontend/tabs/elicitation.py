@@ -34,6 +34,8 @@ def render_elicitation_tab(r):
 
             if st.button(f"💾 Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
                 new_weights = {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}
+                if "custom_weights" not in st.session_state:
+                    st.session_state.custom_weights = {}
                 st.session_state.custom_weights[usage_nom] = new_weights
                 st.success(f"✅ Pondérations sauvegardées pour {usage_nom}. Relance analyse pour appliquer.")
                 try:

@@ -16,7 +16,11 @@ def export_excel(results):
         ]).to_excel(w, sheet_name="Vecteurs", index=False)
 
         pd.DataFrame([
-            {"Attribut": k.rsplit("_", 1)[0], "Usage": k.rsplit("_", 1)[1] if "_" in k else "Usage", "Score": float(v)}
+            {
+                "Attribut": k.rsplit("_", 1)[0] if "_" in k else k,
+                "Usage": k.rsplit("_", 1)[1] if "_" in k else "N/A",
+                "Score": float(v),
+            }
             for k, v in results.get("scores", {}).items()
         ]).to_excel(w, sheet_name="Scores", index=False)
 
