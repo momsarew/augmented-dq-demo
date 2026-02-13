@@ -103,15 +103,7 @@ try:
 except Exception as e:
     print(f"Audit trail non disponible: {e}")
 
-# 3. Data Contracts
-CONTRACTS_OK = False
-CONTRACTS_ERROR = ""
-try:
-    from streamlit_data_contracts import render_data_contracts_tab
-    CONTRACTS_OK = True
-except Exception as e:
-    CONTRACTS_ERROR = str(e)
-    print(f"Data contracts non disponible: {e}")
+# 3. Data Contracts - intégré directement (pas de fichier externe)
 
 # ============================================================================
 # CONFIG
@@ -1498,17 +1490,182 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     idx += 1
 
     # ========================================================================
-    # TAB DATA CONTRACTS
+    # TAB DATA CONTRACTS (intégré directement)
     # ========================================================================
     with tabs[idx]:
-        if CONTRACTS_OK:
-            render_data_contracts_tab()
+        st.header("📜 Data Contracts")
+
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        ">
+            <h3 style="color: white; margin: 0 0 0.5rem 0;">📜 Data Contracts - Contrats Qualité</h3>
+            <p style="color: rgba(255,255,255,0.8); margin: 0;">
+                Définissez des règles de qualité attendues pour chaque attribut et validez vos données automatiquement.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if "data_contracts" not in st.session_state:
+            st.session_state.data_contracts = {}
+
+        dc_df = st.session_state.get("df")
+
+        if dc_df is None:
+            st.info("📁 Chargez un dataset dans la sidebar pour commencer à définir des contrats.")
         else:
-            st.header("📜 Data Contracts")
-            st.warning("Module Data Contracts non disponible. Vérifiez l'installation.")
-            if CONTRACTS_ERROR:
-                st.error(f"Erreur: {CONTRACTS_ERROR}")
-            st.info("Vérifiez que le fichier `streamlit_data_contracts.py` est présent à la racine du projet.")
+            # Génération automatique
+            st.subheader("⚡ Génération automatique")
+
+            if st.button("🔄 Générer les contrats depuis le dataset", type="primary", use_container_width=True):
+                dc_contracts = {}
+                for dc_col in dc_df.columns:
+                    dc_series = dc_df[dc_col]
+                    dc_type = "string"
+                    if pd.api.types.is_integer_dtype(dc_series): dc_type = "integer"
+                    elif pd.api.types.is_float_dtype(dc_series): dc_type = "float"
+                    elif pd.api.types.is_bool_dtype(dc_series): dc_type = "boolean"
+                    elif pd.api.types.is_datetime64_any_dtype(dc_series): dc_type = "datetime"
+
+                    dc_contract = {
+                        "expected_type": dc_type,
+                        "nullable": bool(dc_series.isnull().any()),
+                        "unique": bool(dc_series.nunique() == len(dc_series.dropna())),
+                        "rules": []
+                    }
+
+                    dc_null_pct = dc_series.isnull().mean() * 100
+                    if dc_null_pct > 0:
+                        dc_contract["rules"].append({"name": "null_threshold", "description": f"Taux de valeurs nulles <= 10% (actuel: {dc_null_pct:.1f}%)", "type": "null_check", "threshold": 10.0})
+                    else:
+                        dc_contract["rules"].append({"name": "not_nullable", "description": "Aucune valeur nulle attendue", "type": "null_check", "threshold": 0.0})
+
+                    if pd.api.types.is_numeric_dtype(dc_series):
+                        dc_clean = dc_series.dropna()
+                        if len(dc_clean) > 0:
+                            dc_q1, dc_q3 = dc_clean.quantile(0.01), dc_clean.quantile(0.99)
+                            dc_contract["rules"].append({"name": "range_check", "description": f"Valeurs dans [{dc_q1:.2f}, {dc_q3:.2f}]", "type": "range", "min": float(dc_q1), "max": float(dc_q3)})
+                    elif pd.api.types.is_string_dtype(dc_series):
+                        dc_clean = dc_series.dropna()
+                        if len(dc_clean) > 0:
+                            dc_max_len = dc_clean.str.len().max()
+                            dc_contract["rules"].append({"name": "max_length", "description": f"Longueur max <= {int(dc_max_len)} caractères", "type": "length", "max_length": int(dc_max_len)})
+                            if dc_clean.nunique() <= 20:
+                                dc_vals = sorted(dc_clean.unique().tolist())
+                                dc_contract["rules"].append({"name": "allowed_values", "description": f"Valeurs autorisées: {', '.join(str(v) for v in dc_vals[:10])}", "type": "enum", "values": [str(v) for v in dc_vals]})
+
+                    dc_contracts[dc_col] = dc_contract
+                st.session_state.data_contracts = dc_contracts
+                st.success(f"✅ {len(dc_contracts)} contrats générés automatiquement")
+
+            if not st.session_state.data_contracts:
+                st.info("💡 Cliquez sur le bouton ci-dessus pour générer automatiquement les contrats depuis votre dataset.")
+            else:
+                dc_contracts = st.session_state.data_contracts
+
+                # Validation
+                dc_violations = {}
+                for dc_col_name, dc_contract in dc_contracts.items():
+                    dc_col_viols = []
+                    if dc_col_name not in dc_df.columns:
+                        dc_col_viols.append({"rule": "column_exists", "message": f"Colonne '{dc_col_name}' absente", "severity": "ERROR"})
+                        dc_violations[dc_col_name] = dc_col_viols
+                        continue
+                    dc_s = dc_df[dc_col_name]
+                    for dc_rule in dc_contract.get("rules", []):
+                        dc_rt = dc_rule.get("type")
+                        if dc_rt == "null_check":
+                            dc_np = dc_s.isnull().mean() * 100
+                            dc_th = dc_rule.get("threshold", 10.0)
+                            if dc_np > dc_th:
+                                dc_col_viols.append({"rule": dc_rule["name"], "message": f"Taux de nulls {dc_np:.1f}% > seuil {dc_th}%", "severity": "ERROR" if dc_np > 50 else "WARNING"})
+                        elif dc_rt == "range":
+                            dc_cl = dc_s.dropna()
+                            if len(dc_cl) > 0:
+                                dc_mn, dc_mx = dc_rule.get("min", float("-inf")), dc_rule.get("max", float("inf"))
+                                dc_out = ((dc_cl < dc_mn) | (dc_cl > dc_mx)).sum()
+                                if dc_out > 0:
+                                    dc_col_viols.append({"rule": dc_rule["name"], "message": f"{dc_out} valeurs hors [{dc_mn:.2f}, {dc_mx:.2f}]", "severity": "WARNING"})
+                        elif dc_rt == "length":
+                            dc_cl = dc_s.dropna()
+                            if len(dc_cl) > 0:
+                                dc_ml = dc_rule.get("max_length", 255)
+                                dc_tl = (dc_cl.str.len() > dc_ml).sum()
+                                if dc_tl > 0:
+                                    dc_col_viols.append({"rule": dc_rule["name"], "message": f"{dc_tl} valeurs > {dc_ml} car.", "severity": "WARNING"})
+                        elif dc_rt == "enum":
+                            dc_cl = dc_s.dropna()
+                            if len(dc_cl) > 0:
+                                dc_allowed = set(dc_rule.get("values", []))
+                                dc_inv = dc_cl[~dc_cl.astype(str).isin(dc_allowed)]
+                                if len(dc_inv) > 0:
+                                    dc_col_viols.append({"rule": dc_rule["name"], "message": f"{len(dc_inv)} valeurs non autorisées", "severity": "WARNING"})
+                    dc_violations[dc_col_name] = dc_col_viols
+
+                # Métriques
+                dc_total_rules = sum(len(c.get("rules", [])) for c in dc_contracts.values())
+                dc_total_viols = sum(len(v) for v in dc_violations.values())
+                dc_passing = len([c for c, v in dc_violations.items() if len(v) == 0])
+
+                mc1, mc2, mc3, mc4 = st.columns(4)
+                mc1.metric("📋 Attributs", len(dc_contracts))
+                mc2.metric("📏 Règles", dc_total_rules)
+                mc3.metric("✅ Conformes", f"{dc_passing}/{len(dc_contracts)}")
+                mc4.metric("⚠️ Violations", dc_total_viols)
+
+                st.markdown("---")
+                st.subheader("📋 Contrats par attribut")
+
+                for dc_col_name, dc_contract in dc_contracts.items():
+                    dc_col_viols = dc_violations.get(dc_col_name, [])
+                    dc_icon = "✅" if len(dc_col_viols) == 0 else "⚠️"
+                    dc_nr = len(dc_contract.get("rules", []))
+
+                    with st.expander(f"{dc_icon} **{dc_col_name}** — {dc_nr} règles, {len(dc_col_viols)} violation(s)", expanded=len(dc_col_viols) > 0):
+                        ec1, ec2, ec3 = st.columns(3)
+                        ec1.markdown(f"**Type:** `{dc_contract.get('expected_type', 'N/A')}`")
+                        ec2.markdown(f"**Nullable:** {'Oui' if dc_contract.get('nullable', True) else 'Non'}")
+                        ec3.markdown(f"**Unique:** {'Oui' if dc_contract.get('unique', False) else 'Non'}")
+
+                        if dc_contract.get("rules"):
+                            st.markdown("**Règles:**")
+                            for dc_rule in dc_contract["rules"]:
+                                dc_ri = "✅" if dc_rule["name"] not in [v["rule"] for v in dc_col_viols] else "❌"
+                                st.markdown(f"- {dc_ri} **{dc_rule['name']}**: {dc_rule['description']}")
+
+                        if dc_col_viols:
+                            st.markdown("**Violations:**")
+                            for dc_v in dc_col_viols:
+                                dc_sc = "#eb3349" if dc_v.get("severity") == "ERROR" else "#F2994A"
+                                st.markdown(f"""
+                                <div style="background: {dc_sc}15; border-left: 3px solid {dc_sc}; padding: 0.5rem 1rem; margin-bottom: 0.5rem; border-radius: 0 8px 8px 0;">
+                                    <span style="color: {dc_sc}; font-weight: 600;">{dc_v['rule']}</span>:
+                                    <span style="color: rgba(255,255,255,0.8);">{dc_v['message']}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                st.markdown("---")
+                st.subheader("📤 Export")
+
+                ex1, ex2 = st.columns(2)
+                with ex1:
+                    dc_json = json.dumps({"version": "1.0", "generated_at": datetime.now().isoformat(), "contracts": dc_contracts}, ensure_ascii=False, indent=2)
+                    st.download_button("📥 Contrats (JSON)", data=dc_json, file_name=f"data_contracts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True)
+                with ex2:
+                    if dc_total_viols > 0:
+                        dc_lines = [f"# Violations - {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"]
+                        for dc_cn, dc_cv in dc_violations.items():
+                            if dc_cv:
+                                dc_lines.append(f"\n## {dc_cn}")
+                                for dc_v in dc_cv:
+                                    dc_lines.append(f"- **{dc_v['rule']}**: {dc_v['message']}")
+                        st.download_button("📥 Violations (MD)", data="\n".join(dc_lines), file_name=f"violations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md", mime="text/markdown", use_container_width=True)
+                    else:
+                        st.success("Aucune violation")
 
     idx += 1
 
