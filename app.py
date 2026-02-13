@@ -99,11 +99,13 @@ except Exception as e:
     print(f"Audit trail non disponible: {e}")
 
 # Data Contracts
+CONTRACTS_OK = False
+CONTRACTS_ERROR = ""
 try:
     from streamlit_data_contracts import render_data_contracts_tab
     CONTRACTS_OK = True
 except Exception as e:
-    CONTRACTS_OK = False
+    CONTRACTS_ERROR = str(e)
     print(f"Data contracts non disponible: {e}")
 
 # ============================================================================
@@ -1498,7 +1500,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             render_data_contracts_tab()
         else:
             st.header("📜 Data Contracts")
-            st.warning("Module Data Contracts non disponible")
+            st.warning("Module Data Contracts non disponible. Vérifiez l'installation.")
+            if CONTRACTS_ERROR:
+                st.error(f"Erreur: {CONTRACTS_ERROR}")
+            st.info("Vérifiez que le fichier `streamlit_data_contracts.py` est présent à la racine du projet.")
 
     idx += 1
 
