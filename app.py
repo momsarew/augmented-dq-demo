@@ -97,7 +97,7 @@ from frontend.tabs.dama import render_dama_tab
 from frontend.tabs.reporting import render_reporting_tab
 from frontend.tabs.settings import render_settings_tab_full, render_settings_tab_init
 from frontend.tabs.help import render_help_tab
-from streamlit_data_contracts import render_data_contracts_tab
+from frontend.tabs.data_contracts import render_data_contracts_tab
 
 # ============================================================================
 # CONFIG & SESSION STATE
