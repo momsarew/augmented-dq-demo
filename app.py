@@ -68,9 +68,8 @@ except ImportError:
 # IMPORTS ENGINE
 ENGINE_OK = False
 try:
-    os.chdir(ENGINE_DIR)
-    import analyzer, beta_calculator, ahp_elicitor, risk_scorer, lineage_propagator, comparator
-    
+    from backend.engine import analyzer, beta_calculator, ahp_elicitor, risk_scorer, lineage_propagator, comparator
+
     analyze_dataset = analyzer.analyze_dataset
     compute_all_beta_vectors = beta_calculator.compute_all_beta_vectors
     AHPElicitor = ahp_elicitor.AHPElicitor
@@ -78,12 +77,10 @@ try:
     get_top_priorities = risk_scorer.get_top_priorities
     simulate_lineage = lineage_propagator.simulate_lineage
     compare_dama_vs_probabiliste = comparator.compare_dama_vs_probabiliste
-    
-    os.chdir(PROJECT_DIR)
+
     ENGINE_OK = True
 except Exception as e:
     ENGINE_ERROR = str(e)
-    os.chdir(PROJECT_DIR)
 
 # Modules optionnels
 try:

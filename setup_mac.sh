@@ -154,11 +154,10 @@ run_app() {
     echo -e "${YELLOW}  Ctrl+C pour arreter le serveur${NC}"
     echo ""
 
-    # Lancer avec cache desactive pour premier lancement
+    # Lancer l'app
     streamlit run "$PROJECT_DIR/app.py" \
         --server.port 8501 \
-        --server.headless false \
-        --global.dataFrameSerialization arrow
+        --server.headless false
 }
 
 # --- Main ---
