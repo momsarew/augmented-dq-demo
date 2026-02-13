@@ -82,23 +82,28 @@ try:
 except Exception as e:
     ENGINE_ERROR = str(e)
 
-# Modules optionnels
+# ============================================================================
+# MODULES OPTIONNELS - chaque import est isolé pour éviter les cascades
+# ============================================================================
+
+# 1. Scan (anomaly detection)
+SCAN_OK = False
 try:
     from streamlit_anomaly_detection import render_anomaly_detection_tab
     SCAN_OK = True
-except:
-    SCAN_OK = False
+except Exception as e:
+    print(f"Scan non disponible: {e}")
 
-# Audit Trail
+# 2. Audit Trail
+AUDIT_OK = False
 try:
     from backend.audit_trail import get_audit_trail, AuditTrail
     from streamlit_audit_tab import render_audit_tab
     AUDIT_OK = True
 except Exception as e:
-    AUDIT_OK = False
     print(f"Audit trail non disponible: {e}")
 
-# Data Contracts
+# 3. Data Contracts
 CONTRACTS_OK = False
 CONTRACTS_ERROR = ""
 try:
