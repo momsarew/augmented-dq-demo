@@ -9,10 +9,12 @@ Source: Base_d_anomalies_pour_les_dimensions_Risques__1_.xlsx
 """
 
 import re
+import uuid
 import streamlit as st
 import pandas as pd
 import numpy as np
 import json
+import yaml
 from datetime import datetime
 
 # Import du référentiel complet
@@ -250,6 +252,39 @@ def render_data_contracts_tab():
     # EXPORT
     # =====================================================================
     st.subheader("📤 Export")
+
+    # --- ODCS v3.1.0 (standard open source) ---
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, rgba(56, 239, 125, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%);
+        border: 1px solid rgba(56, 239, 125, 0.3);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    ">
+        <strong style="color: #38ef7d;">ODCS v3.1.0</strong>
+        <span style="color: rgba(255,255,255,0.7);"> — Open Data Contract Standard (Bitol / Linux Foundation)</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    dataset_name = st.session_state.get("uploaded_filename", "dataset")
+    if dataset_name and "." in dataset_name:
+        dataset_name = dataset_name.rsplit(".", 1)[0]
+
+    odcs_yaml = export_odcs_yaml(contracts, dama_scores, violations, dataset_name or "dataset")
+    st.download_button(
+        label="📥 Export ODCS v3.1.0 (YAML)", use_container_width=True,
+        data=odcs_yaml,
+        file_name=f"data_contract_{datetime.now().strftime('%Y%m%d_%H%M%S')}.odcs.yaml",
+        mime="application/x-yaml",
+        type="primary",
+    )
+
+    with st.expander("Aperçu ODCS YAML", expanded=False):
+        st.code(odcs_yaml[:3000] + ("\n# ... (tronqué)" if len(odcs_yaml) > 3000 else ""), language="yaml")
+
+    # --- Exports complémentaires ---
+    st.markdown("**Exports complémentaires :**")
     e1, e2 = st.columns(2)
     with e1:
         export_data = {
@@ -260,7 +295,7 @@ def render_data_contracts_tab():
             "dama_scores": {k: {dk: dv for dk, dv in v.items() if dv is not None} for k, v in dama_scores.items()},
         }
         st.download_button(
-            label="📥 Contrats JSON", use_container_width=True,
+            label="📥 Contrats JSON (format interne)", use_container_width=True,
             data=json.dumps(export_data, ensure_ascii=False, indent=2, default=str),
             file_name=f"data_contracts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -968,3 +1003,242 @@ def _check_derived_formula(df, sources, target, formula):
         mask = expected.notna() & actual.notna()
         return int((~np.isclose(expected[mask], actual[mask], rtol=0.01, atol=0.01)).sum())
     return 0
+
+
+# ============================================================================
+# EXPORT ODCS v3.1.0 (Open Data Contract Standard)
+# ============================================================================
+
+# Mapping des types internes vers les logicalType ODCS
+_TYPE_MAP = {
+    "string": "string",
+    "integer": "integer",
+    "float": "number",
+    "boolean": "boolean",
+    "datetime": "date-time",
+    "unknown": "string",
+}
+
+# Mapping des rule types internes vers les ODCS quality metric types
+_QUALITY_METRIC_MAP = {
+    "null_check": "nullValues",
+    "pk_unique": "duplicateValues",
+    "unique": "duplicateValues",
+    "exact_duplicates": "duplicateValues",
+    "enum": "invalidValues",
+    "range": "invalidValues",
+    "email_format": "invalidValues",
+    "type_mix": "invalidValues",
+    "no_negative": "invalidValues",
+    "no_zero": "invalidValues",
+    "overflow": "invalidValues",
+    "ratio_bounds": "invalidValues",
+    "null_legitimate": "nullValues",
+    "column_empty": "nullValues",
+    "fill_rate": "missingValues",
+}
+
+
+def _map_odcs_quality_type(rule_type: str) -> str:
+    """Map un type de règle interne vers un type quality ODCS."""
+    return _QUALITY_METRIC_MAP.get(rule_type, "custom")
+
+
+def _build_odcs_quality_entry(rule: dict) -> dict:
+    """Convertit une règle interne en entrée quality ODCS."""
+    metric_type = _map_odcs_quality_type(rule.get("type", ""))
+    entry = {
+        "type": metric_type,
+        "description": rule.get("description", ""),
+    }
+
+    # Ajouter les paramètres spécifiques selon le type
+    rt = rule.get("type", "")
+    if rt == "null_check":
+        entry["mustBeLessThan"] = rule.get("threshold", 10.0)
+        entry["mustBeLessThanUnit"] = "percent"
+    elif rt in ("range", "ratio_bounds"):
+        entry["mustBeBetween"] = {
+            "min": rule.get("min", 0),
+            "max": rule.get("max", 0),
+        }
+    elif rt == "enum":
+        entry["validValues"] = rule.get("values", [])
+    elif rt == "freshness":
+        entry["mustBeLessThan"] = rule.get("max_age_days", 365)
+        entry["mustBeLessThanUnit"] = "days"
+    elif rt == "length":
+        entry["mustBeLessThan"] = rule.get("max_length", 255)
+        entry["mustBeLessThanUnit"] = "characters"
+    elif rt == "fill_rate":
+        entry["mustBeGreaterThan"] = rule.get("min_fill_rate", 70)
+        entry["mustBeGreaterThanUnit"] = "percent"
+
+    # Enrichissements custom (Woodall, anomaly_id, etc.)
+    custom = {}
+    if rule.get("anomaly_id"):
+        custom["anomalyId"] = rule["anomaly_id"]
+    if rule.get("dimension"):
+        custom["causalDimension"] = rule["dimension"]
+    if rule.get("detection"):
+        custom["detectionMethod"] = rule["detection"]
+    if rule.get("criticality_ref"):
+        custom["criticality"] = rule["criticality_ref"]
+    if rule.get("woodall"):
+        custom["woodallClass"] = rule["woodall"]
+    if custom:
+        entry["customProperties"] = custom
+
+    return entry
+
+
+def convert_to_odcs(contracts: dict, dama_scores: dict, violations: dict,
+                    dataset_name: str = "dataset") -> dict:
+    """Convertit les contrats internes au format ODCS v3.1.0."""
+
+    ref_summary = get_summary()
+
+    # Properties ODCS pour chaque colonne
+    properties = []
+    for col_name, contract in contracts.items():
+        prop = {
+            "name": col_name,
+            "logicalType": _TYPE_MAP.get(contract.get("expected_type", "string"), "string"),
+            "nullable": contract.get("nullable", True),
+            "unique": contract.get("unique", False),
+        }
+
+        # Quality rules
+        quality = []
+        for rule in contract.get("rules", []):
+            quality.append(_build_odcs_quality_entry(rule))
+        if quality:
+            prop["quality"] = quality
+
+        # DAMA scores en customProperties de la property
+        col_dama = dama_scores.get(col_name, {})
+        dama_clean = {k: v for k, v in col_dama.items() if v is not None}
+        if dama_clean:
+            prop["customProperties"] = {
+                "damaScores": dama_clean,
+            }
+
+        properties.append(prop)
+
+    # Violations summary
+    total_violations = sum(len(v) for v in violations.values())
+    violation_summary = {}
+    for col_name, col_viols in violations.items():
+        if col_viols:
+            violation_summary[col_name] = [
+                {
+                    "rule": v.get("rule", ""),
+                    "anomalyId": v.get("anomaly_id", ""),
+                    "criticality": v.get("criticality", ""),
+                    "message": v.get("message", ""),
+                    "affectedRows": v.get("affected_rows", 0),
+                }
+                for v in col_viols
+            ]
+
+    # Construction du contrat ODCS complet
+    odcs = {
+        "apiVersion": "v3.1.0",
+        "kind": "DataContract",
+        "id": str(uuid.uuid4()),
+        "name": f"Data Contract — {dataset_name}",
+        "version": "1.0.0",
+        "status": "active",
+        "domain": "data-quality",
+        "description": {
+            "purpose": f"Contrat qualité généré automatiquement pour le dataset '{dataset_name}' "
+                       f"avec le référentiel de {ref_summary['total']} anomalies "
+                       f"(DB:{ref_summary['by_dimension']['DB']['total']}, "
+                       f"DP:{ref_summary['by_dimension']['DP']['total']}, "
+                       f"BR:{ref_summary['by_dimension']['BR']['total']}, "
+                       f"UP:{ref_summary['by_dimension']['UP']['total']}).",
+            "limitations": "Les règles 'Manuel' nécessitent une revue humaine. "
+                           "Les seuils Auto/Semi sont calibrés statistiquement sur les données observées.",
+        },
+        "schema": [
+            {
+                "name": dataset_name,
+                "logicalType": "object",
+                "properties": properties,
+            }
+        ],
+        "team": {
+            "members": [
+                {
+                    "name": "Augmented DQ Framework",
+                    "role": "generator",
+                }
+            ]
+        },
+        "tags": [
+            "data-quality",
+            "augmented-dq",
+            "dama-iso-8000",
+            "woodall-taxonomy",
+        ],
+        "customProperties": {
+            "framework": "Augmented DQ Demo",
+            "referential": {
+                "total": ref_summary["total"],
+                "byDimension": {
+                    dim: {
+                        "total": info["total"],
+                        "auto": info.get("Auto", 0),
+                        "semi": info.get("Semi", 0),
+                        "manuel": info.get("Manuel", 0),
+                    }
+                    for dim, info in ref_summary["by_dimension"].items()
+                },
+            },
+            "qualityFramework": "DAMA/ISO 8000",
+            "causalDimensions": ["DB (Database Integrity)", "DP (Data Processing)",
+                                 "BR (Business Rules)", "UP (Usage Appropriateness)"],
+            "damaDimensions": DAMA_DIMENSIONS,
+            "validationResults": {
+                "totalViolations": total_violations,
+                "violationsByColumn": violation_summary,
+            },
+        },
+        "contractCreatedTs": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+    return odcs
+
+
+def export_odcs_yaml(contracts: dict, dama_scores: dict, violations: dict,
+                     dataset_name: str = "dataset") -> str:
+    """Exporte le contrat au format ODCS v3.1.0 YAML."""
+    odcs = convert_to_odcs(contracts, dama_scores, violations, dataset_name)
+
+    # Custom YAML representer pour un rendu propre + types numpy
+    class _ODCSDumper(yaml.SafeDumper):
+        pass
+
+    def _str_representer(dumper, data):
+        if "\n" in data:
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+    def _numpy_float_representer(dumper, data):
+        return dumper.represent_float(float(data))
+
+    def _numpy_int_representer(dumper, data):
+        return dumper.represent_int(int(data))
+
+    def _numpy_bool_representer(dumper, data):
+        return dumper.represent_bool(bool(data))
+
+    _ODCSDumper.add_representer(str, _str_representer)
+    for np_float in (np.float64, np.float32, np.floating):
+        _ODCSDumper.add_representer(np_float, _numpy_float_representer)
+    for np_int in (np.int64, np.int32, np.intc, np.integer):
+        _ODCSDumper.add_representer(np_int, _numpy_int_representer)
+    _ODCSDumper.add_representer(np.bool_, _numpy_bool_representer)
+
+    return yaml.dump(odcs, Dumper=_ODCSDumper, default_flow_style=False,
+                     allow_unicode=True, sort_keys=False, width=120)
