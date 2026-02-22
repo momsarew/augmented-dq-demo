@@ -139,10 +139,10 @@ for k, v in defaults.items():
 
 def get_risk_color(s):
     """Couleurs modernes pour les niveaux de risque"""
-    if s >= 0.40: return "#eb3349"   # Rouge moderne
+    if s >= 0.40: return "#e53e3e"   # Rouge moderne
     if s >= 0.25: return "#F2994A"   # Orange moderne
     if s >= 0.15: return "#F2C94C"   # Jaune moderne
-    return "#38ef7d"                 # Vert moderne
+    return "#38a169"                 # Vert moderne
 
 def explain_with_ai(scope, data, cache_key, max_tokens=400):
     # Check cache
@@ -232,14 +232,14 @@ def create_vector_chart(v):
         margin=dict(l=40, r=40, t=60, b=40),
         xaxis=dict(
             showgrid=False,
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
+            tickfont=dict(color="#4a6fa5", size=12),
             title=None
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)",
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Probabilité (%)", font=dict(color="rgba(255,255,255,0.7)"))
+            gridcolor="rgba(44, 82, 130, 0.2)",
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Probabilité (%)", font=dict(color="#4a6fa5"))
         ),
         hoverlabel=dict(
             bgcolor="rgba(26,26,46,0.95)",
@@ -263,11 +263,11 @@ def create_heatmap(scores):
 
     # Palette de couleurs moderne
     custom_colorscale = [
-        [0.0, "#38ef7d"],    # Vert (faible risque)
+        [0.0, "#38a169"],    # Vert (faible risque)
         [0.25, "#F2C94C"],   # Jaune
         [0.5, "#F2994A"],    # Orange
         [0.75, "#f45c43"],   # Orange-rouge
-        [1.0, "#eb3349"]     # Rouge (haut risque)
+        [1.0, "#e53e3e"]     # Rouge (haut risque)
     ]
 
     fig = go.Figure(data=go.Heatmap(
@@ -277,7 +277,7 @@ def create_heatmap(scores):
         colorscale=custom_colorscale,
         colorbar=dict(
             title=dict(text="Risque (%)", font=dict(color="white")),
-            tickfont=dict(color="rgba(255,255,255,0.7)"),
+            tickfont=dict(color="#4a6fa5"),
             bgcolor="rgba(0,0,0,0)",
             borderwidth=0
         ),
@@ -298,12 +298,12 @@ def create_heatmap(scores):
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=100, r=40, t=60, b=60),
         xaxis=dict(
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Profils d'Usage", font=dict(color="rgba(255,255,255,0.7)"))
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Profils d'Usage", font=dict(color="#4a6fa5"))
         ),
         yaxis=dict(
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Attributs", font=dict(color="rgba(255,255,255,0.7)"))
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Attributs", font=dict(color="#4a6fa5"))
         ),
         hoverlabel=dict(
             bgcolor="rgba(26,26,46,0.95)",
@@ -329,7 +329,7 @@ def export_excel(results):
 st.markdown("""
 <div style="text-align: center; padding: 1rem 0 2rem 0;">
     <h1 style="margin-bottom: 0.5rem;">🎯 DataQualityLab</h1>
-    <p style="color: rgba(255,255,255,0.6); font-size: 1.1rem; margin: 0;">
+    <p style="color: #6b8bb5; font-size: 1.1rem; margin: 0;">
         Analyse de qualité des données basée sur les distributions Beta
     </p>
 </div>
@@ -681,7 +681,7 @@ if st.session_state.analysis_done:
                     x=dim_labels,
                     y=[w_db_norm*100, w_dp_norm*100, w_br_norm*100, w_up_norm*100],
                     marker=dict(
-                        color=["#667eea", "#764ba2", "#f093fb", "#38ef7d"],
+                        color=["#2c5282", "#2a4365", "#805ad5", "#38a169"],
                         line=dict(width=0),
                         opacity=0.9
                     ),
@@ -703,12 +703,12 @@ if st.session_state.analysis_done:
                     margin=dict(l=30, r=30, t=50, b=30),
                     xaxis=dict(
                         showgrid=False,
-                        tickfont=dict(color="rgba(255,255,255,0.7)", size=11)
+                        tickfont=dict(color="#4a6fa5", size=11)
                     ),
                     yaxis=dict(
                         showgrid=True,
-                        gridcolor="rgba(255,255,255,0.1)",
-                        tickfont=dict(color="rgba(255,255,255,0.7)", size=11)
+                        gridcolor="rgba(44, 82, 130, 0.2)",
+                        tickfont=dict(color="#4a6fa5", size=11)
                     ),
                     hoverlabel=dict(
                         bgcolor="rgba(26,26,46,0.95)",
@@ -741,14 +741,14 @@ if st.session_state.analysis_done:
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 Qu'est-ce que c'est ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">🎯 Qu'est-ce que c'est ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1rem;">
                 Ton <strong>profil de risque</strong> détermine comment les scores sont ajustés selon ton appétence au risque.
                 Un profil <strong>prudent</strong> amplifiera les alertes, tandis qu'un profil <strong>tolérant</strong> les atténuera.
             </p>
@@ -799,8 +799,8 @@ if st.session_state.analysis_done:
         for i, (key, profil) in enumerate(profils_risque.items()):
             with cols_profil[i]:
                 is_selected = st.session_state.profil_risque == key
-                border_color = "#667eea" if is_selected else "rgba(255,255,255,0.1)"
-                bg_color = "rgba(102, 126, 234, 0.2)" if is_selected else "rgba(255,255,255,0.03)"
+                border_color = "#2c5282" if is_selected else "rgba(44, 82, 130, 0.2)"
+                bg_color = "rgba(44, 82, 130, 0.15)" if is_selected else "rgba(44, 82, 130, 0.05)"
 
                 st.markdown(f"""
                 <div style="
@@ -812,8 +812,8 @@ if st.session_state.analysis_done:
                     min-height: 120px;
                 ">
                     <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{profil['nom'].split()[0]}</div>
-                    <div style="color: white; font-weight: 600; font-size: 0.85rem;">{profil['nom'].split(maxsplit=1)[1]}</div>
-                    <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-top: 0.25rem;">×{profil['multiplicateur']}</div>
+                    <div style="color: #1a365d; font-weight: 600; font-size: 0.85rem;">{profil['nom'].split(maxsplit=1)[1]}</div>
+                    <div style="color: #718096; font-size: 0.7rem; margin-top: 0.25rem;">×{profil['multiplicateur']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -885,7 +885,7 @@ if st.session_state.analysis_done:
                 # Déterminer le niveau selon les seuils ajustés
                 if score_ajuste >= seuils['critique']:
                     niveau = "🔴 Critique"
-                    color = "#eb3349"
+                    color = "#e53e3e"
                 elif score_ajuste >= seuils['eleve']:
                     niveau = "🟠 Élevé"
                     color = "#F2994A"
@@ -894,7 +894,7 @@ if st.session_state.analysis_done:
                     color = "#F2C94C"
                 else:
                     niveau = "🟢 Faible"
-                    color = "#38ef7d"
+                    color = "#38a169"
 
                 scores_ajustes.append({
                     "attribut": attr,
@@ -1018,10 +1018,10 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
             # Fonction pour obtenir la couleur selon le score
             def get_score_color(score):
                 if score is None: return "#6b7280"  # Gris pour N/A
-                if score >= 0.8: return "#38ef7d"   # Vert
+                if score >= 0.8: return "#38a169"   # Vert
                 if score >= 0.6: return "#F2C94C"   # Jaune
                 if score >= 0.4: return "#F2994A"   # Orange
-                return "#eb3349"                    # Rouge
+                return "#e53e3e"                    # Rouge
 
             # Mapping des dimensions DAMA avec icônes
             dim_info = {
@@ -1039,13 +1039,13 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 safe_attr_name = sanitize_column_name(attr_name)
                 st.markdown(f"""
                 <div style="
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(44, 82, 130, 0.05);
+                    border: 1px solid rgba(44, 82, 130, 0.15);
                     border-radius: 16px;
                     padding: 1.5rem;
                     margin-bottom: 1.5rem;
                 ">
-                    <h3 style="color: white; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <h3 style="color: #1a365d; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
                         📌 {safe_attr_name}
                     </h3>
                 </div>
@@ -1065,9 +1065,9 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                         value=score_global * 100,
                         number={"suffix": "%", "font": {"size": 36, "color": "white"}},
                         gauge={
-                            "axis": {"range": [0, 100], "tickcolor": "rgba(255,255,255,0.3)"},
+                            "axis": {"range": [0, 100], "tickcolor": "rgba(44, 82, 130, 0.3)"},
                             "bar": {"color": get_score_color(score_global)},
-                            "bgcolor": "rgba(255,255,255,0.1)",
+                            "bgcolor": "rgba(44, 82, 130, 0.2)",
                             "borderwidth": 0,
                             "steps": [
                                 {"range": [0, 40], "color": "rgba(235,51,73,0.2)"},
@@ -1076,7 +1076,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                                 {"range": [80, 100], "color": "rgba(56,239,125,0.2)"}
                             ]
                         },
-                        title={"text": "Score Global", "font": {"size": 14, "color": "rgba(255,255,255,0.7)"}}
+                        title={"text": "Score Global", "font": {"size": 14, "color": "#4a6fa5"}}
                     ))
                     fig_gauge.update_layout(
                         height=200,
@@ -1089,14 +1089,14 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 with col_info:
                     st.markdown(f"""
                     <div style="
-                        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                        background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
                         border-radius: 12px;
                         padding: 1rem;
                         margin-bottom: 0.5rem;
                     ">
-                        <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.85rem;">Dimensions analysables</p>
-                        <p style="color: white; margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 600;">
-                            {dims_calc} <span style="color: rgba(255,255,255,0.5); font-size: 1rem;">/ {dims_total}</span>
+                        <p style="color: #6b8bb5; margin: 0; font-size: 0.85rem;">Dimensions analysables</p>
+                        <p style="color: #1a365d; margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 600;">
+                            {dims_calc} <span style="color: #718096; font-size: 1rem;">/ {dims_total}</span>
                         </p>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1106,7 +1106,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                         st.caption(f"ℹ️ {note}")
 
                 # Grille des 6 dimensions DAMA
-                st.markdown("<p style='color: rgba(255,255,255,0.7); margin: 1rem 0 0.5rem 0; font-weight: 500;'>Dimensions DAMA</p>", unsafe_allow_html=True)
+                st.markdown("<p style='color: #4a6fa5; margin: 1rem 0 0.5rem 0; font-weight: 500;'>Dimensions DAMA</p>", unsafe_allow_html=True)
 
                 cols = st.columns(3)
                 dims_list = ["completeness", "consistency", "accuracy", "timeliness", "validity", "uniqueness"]
@@ -1139,9 +1139,9 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                             text-align: center;
                         ">
                             <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">{info['icon']}</div>
-                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">{info['label']}</div>
+                            <div style="color: #4a6fa5; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">{info['label']}</div>
                             <div style="color: {color}; font-size: 1.5rem; font-weight: 700; margin: 0.25rem 0;">{display_value}</div>
-                            <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">{info['desc']}</div>
+                            <div style="color: #718096; font-size: 0.7rem;">{info['desc']}</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1173,11 +1173,11 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                     template="plotly_dark",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    xaxis=dict(tickfont=dict(color="rgba(255,255,255,0.7)")),
+                    xaxis=dict(tickfont=dict(color="#4a6fa5")),
                     yaxis=dict(
-                        tickfont=dict(color="rgba(255,255,255,0.7)"),
-                        gridcolor="rgba(255,255,255,0.1)",
-                        title=dict(text="Score (%)", font=dict(color="rgba(255,255,255,0.7)"))
+                        tickfont=dict(color="#4a6fa5"),
+                        gridcolor="rgba(44, 82, 130, 0.2)",
+                        title=dict(text="Score (%)", font=dict(color="#4a6fa5"))
                     ),
                     hoverlabel=dict(bgcolor="rgba(26,26,46,0.95)", font_size=13)
                 )
@@ -1582,14 +1582,14 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
+            <p style="color: #2d4a7a; margin: 0;">
                 Statut de l'application et préférences utilisateur.
             </p>
         </div>
@@ -1624,7 +1624,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         with col2:
             # Status card
             has_key = bool(st.session_state.get("anthropic_api_key"))
-            status_color = "#38ef7d" if has_key else "#eb3349"
+            status_color = "#38a169" if has_key else "#e53e3e"
             status_text = "Active" if has_key else "Inactive"
             status_icon = "✅" if has_key else "⏸️"
 
@@ -1799,22 +1799,22 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
         st.markdown("""
         <div style="
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(44, 82, 130, 0.05);
+            border: 1px solid rgba(44, 82, 130, 0.15);
             border-radius: 12px;
             padding: 1.5rem;
         ">
-            <h4 style="color: white; margin: 0 0 1rem 0;">🎯 DataQualityLab</h4>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <h4 style="color: #1a365d; margin: 0 0 1rem 0;">🎯 DataQualityLab</h4>
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Version :</strong> 1.2.0
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Moteur IA :</strong> Claude Sonnet 4 (Anthropic)
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 1rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 1rem 0;">
                 <strong>Framework :</strong> Streamlit + Plotly
             </p>
-            <p style="color: rgba(255,255,255,0.5); margin: 0; font-size: 0.85rem;">
+            <p style="color: #718096; margin: 0; font-size: 0.85rem;">
                 Outil de démonstration pour l'analyse de qualité des données avec approche probabiliste basée sur les distributions Beta.
             </p>
         </div>
@@ -1831,14 +1831,14 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1.1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1.1rem;">
                 Un outil qui mesure la qualité de vos données <strong>ET leur impact selon l'usage</strong>
             </p>
         </div>
@@ -1851,9 +1851,9 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         with col1:
             st.markdown("""
             <div style="background: rgba(235,51,73,0.1); border: 1px solid rgba(235,51,73,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #eb3349; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score unique : "82% de qualité"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                <h4 style="color: #e53e3e; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score unique : "82% de qualité"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
                     → Même donnée = même note partout
                 </p>
             </div>
@@ -1862,9 +1862,9 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         with col2:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #38ef7d; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                <h4 style="color: #38a169; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
                     → Même donnée = risques différents selon l'usage
                 </p>
             </div>
@@ -1876,16 +1876,16 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         st.subheader("🧠 Les 4 dimensions du risque")
 
         st.markdown("""
-        <p style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">
+        <p style="color: #4a6fa5; margin-bottom: 1rem;">
             Chaque attribut est analysé sur <strong>4 dimensions causales</strong> :
         </p>
         """, unsafe_allow_html=True)
 
         dims_help = [
-            {"code": "DB", "nom": "Structure", "icon": "🗄️", "question": "Le format/type est-il correct ?", "exemple": "VARCHAR au lieu de NUMBER", "color": "#667eea"},
-            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "question": "Les ETL ont-ils dégradé la donnée ?", "exemple": "Troncature, encodage cassé", "color": "#764ba2"},
-            {"code": "BR", "nom": "Règles métier", "icon": "📋", "question": "La valeur respecte-t-elle les règles ?", "exemple": "Salaire négatif, date future", "color": "#f093fb"},
-            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "question": "La donnée est-elle exploitable ?", "exemple": "Trop de valeurs manquantes", "color": "#38ef7d"},
+            {"code": "DB", "nom": "Structure", "icon": "🗄️", "question": "Le format/type est-il correct ?", "exemple": "VARCHAR au lieu de NUMBER", "color": "#2c5282"},
+            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "question": "Les ETL ont-ils dégradé la donnée ?", "exemple": "Troncature, encodage cassé", "color": "#2a4365"},
+            {"code": "BR", "nom": "Règles métier", "icon": "📋", "question": "La valeur respecte-t-elle les règles ?", "exemple": "Salaire négatif, date future", "color": "#805ad5"},
+            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "question": "La donnée est-elle exploitable ?", "exemple": "Trop de valeurs manquantes", "color": "#38a169"},
         ]
 
         cols = st.columns(4)
@@ -1893,7 +1893,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             with cols[i]:
                 st.markdown(f"""
                 <div style="
-                    background: rgba(255,255,255,0.03);
+                    background: rgba(44, 82, 130, 0.05);
                     border: 1px solid {dim['color']}40;
                     border-radius: 12px;
                     padding: 1rem;
@@ -1902,8 +1902,8 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                 ">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">{dim['icon']}</div>
                     <div style="color: {dim['color']}; font-weight: 600; font-size: 1.1rem;">{dim['code']} - {dim['nom']}</div>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0.5rem 0;">{dim['question']}</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; font-style: italic;">Ex: {dim['exemple']}</p>
+                    <p style="color: #4a6fa5; font-size: 0.85rem; margin: 0.5rem 0;">{dim['question']}</p>
+                    <p style="color: #718096; font-size: 0.75rem; font-style: italic;">Ex: {dim['exemple']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1913,7 +1913,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         st.subheader("⚖️ Pourquoi les pondérations changent tout")
 
         st.markdown("""
-        <p style="color: rgba(255,255,255,0.7);">
+        <p style="color: #4a6fa5;">
             Le <strong>même attribut</strong> a des risques différents selon l'usage car les pondérations varient :
         </p>
         """, unsafe_allow_html=True)
@@ -1936,10 +1936,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
         cols = st.columns(4)
         colors_help = [
-            {"color": "#38ef7d", "label": "< 15%", "status": "Faible", "action": "Monitoring"},
+            {"color": "#38a169", "label": "< 15%", "status": "Faible", "action": "Monitoring"},
             {"color": "#F2C94C", "label": "15-25%", "status": "Modéré", "action": "Surveillance"},
             {"color": "#F2994A", "label": "25-40%", "status": "Élevé", "action": "Action planifiée"},
-            {"color": "#eb3349", "label": "> 40%", "status": "Critique", "action": "Action immédiate"},
+            {"color": "#e53e3e", "label": "> 40%", "status": "Critique", "action": "Action immédiate"},
         ]
 
         for i, c in enumerate(colors_help):
@@ -1953,8 +1953,8 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     text-align: center;
                 ">
                     <div style="color: {c['color']}; font-size: 1.5rem; font-weight: 700;">{c['label']}</div>
-                    <div style="color: white; font-weight: 600;">{c['status']}</div>
-                    <div style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">{c['action']}</div>
+                    <div style="color: #1a365d; font-weight: 600;">{c['status']}</div>
+                    <div style="color: #6b8bb5; font-size: 0.85rem;">{c['action']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -1982,15 +1982,15 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     with col:
                         st.markdown(f"""
                         <div style="
-                            background: rgba(255,255,255,0.03);
-                            border: 1px solid rgba(255,255,255,0.1);
+                            background: rgba(44, 82, 130, 0.05);
+                            border: 1px solid rgba(44, 82, 130, 0.15);
                             border-radius: 10px;
                             padding: 0.75rem;
                             margin-bottom: 0.5rem;
                         ">
                             <div style="font-size: 1.25rem;">{o['icon']} <strong>{o['nom']}</strong></div>
-                            <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin: 0.25rem 0;">{o['desc']}</p>
-                            <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">→ {o['quand']}</p>
+                            <p style="color: #4a6fa5; font-size: 0.8rem; margin: 0.25rem 0;">{o['desc']}</p>
+                            <p style="color: #718096; font-size: 0.75rem; margin: 0;">→ {o['quand']}</p>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -2010,14 +2010,14 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             with cols[i]:
                 st.markdown(f"""
                 <div style="
-                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+                    background: linear-gradient(135deg, rgba(44, 82, 130, 0.1) 0%, rgba(26, 54, 93, 0.08) 100%);
                     border: 1px solid rgba(102, 126, 234, 0.3);
                     border-radius: 12px;
                     padding: 1.25rem;
                     text-align: center;
                 ">
                     <div style="
-                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        background: linear-gradient(135deg, #2c5282, #1a365d);
                         width: 40px;
                         height: 40px;
                         border-radius: 50%;
@@ -2027,10 +2027,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                         margin: 0 auto 0.75rem auto;
                         font-size: 1.25rem;
                         font-weight: 700;
-                        color: white;
+                        color: #1a365d;
                     ">{insight['num']}</div>
-                    <div style="color: white; font-weight: 600; font-size: 0.95rem;">{insight['titre']}</div>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">{insight['desc']}</p>
+                    <div style="color: #1a365d; font-weight: 600; font-size: 0.95rem;">{insight['titre']}</div>
+                    <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">{insight['desc']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -2041,7 +2041,7 @@ else:
     with tabs[0]:  # 🏠 Accueil
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 20px;
             padding: 2.5rem;
@@ -2049,8 +2049,8 @@ else:
             margin: 1.5rem 0;
         ">
             <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">📊</div>
-            <h2 style="color: white; margin-bottom: 0.75rem;">Bienvenue dans le Framework DQ</h2>
-            <p style="color: rgba(255,255,255,0.7); font-size: 1.05rem; max-width: 600px; margin: 0 auto 1rem auto;">
+            <h2 style="color: #1a365d; margin-bottom: 0.75rem;">Bienvenue dans le Framework DQ</h2>
+            <p style="color: #4a6fa5; font-size: 1.05rem; max-width: 600px; margin: 0 auto 1rem auto;">
                 Analysez la qualité de vos données avec une approche probabiliste basée sur les distributions Beta.
             </p>
         <div style="
@@ -2062,15 +2062,15 @@ else:
         ">
             <div style="text-align: center;">
                 <div style="font-size: 1.75rem;">1️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Upload dataset</p>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Upload dataset</p>
             </div>
             <div style="text-align: center;">
                 <div style="font-size: 1.75rem;">2️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Sélectionner colonnes</p>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Sélectionner colonnes</p>
             </div>
             <div style="text-align: center;">
                 <div style="font-size: 1.75rem;">3️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Lancer l'analyse</p>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Lancer l'analyse</p>
             </div>
             </div>
         </div>
@@ -2085,24 +2085,24 @@ else:
             st.markdown("""
             <div style="background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                <div style="color: white; font-weight: 600;">Analyser</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Scores de risque contextualisés par usage</p>
+                <div style="color: #1a365d; font-weight: 600;">Analyser</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Scores de risque contextualisés par usage</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div style="background: rgba(118,75,162,0.1); border: 1px solid rgba(118,75,162,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
-                <div style="color: white; font-weight: 600;">Prioriser</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Identifier les urgences à traiter</p>
+                <div style="color: #1a365d; font-weight: 600;">Prioriser</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Identifier les urgences à traiter</p>
             </div>
             """, unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
-                <div style="color: white; font-weight: 600;">Rapporter</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Générer des rapports IA personnalisés</p>
+                <div style="color: #1a365d; font-weight: 600;">Rapporter</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Générer des rapports IA personnalisés</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -2143,14 +2143,14 @@ else:
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
+            <p style="color: #2d4a7a; margin: 0;">
                 Configure ici ta clé API et tes préférences pour l'assistance IA.
             </p>
         </div>
@@ -2201,7 +2201,7 @@ else:
 
         with col2:
             has_key = bool(st.session_state.get("anthropic_api_key"))
-            status_color = "#38ef7d" if has_key else "#eb3349"
+            status_color = "#38a169" if has_key else "#e53e3e"
             status_text = "Configurée" if has_key else "Non configurée"
             status_icon = "✅" if has_key else "❌"
 
@@ -2222,19 +2222,19 @@ else:
         st.subheader("ℹ️ À propos")
         st.markdown("""
         <div style="
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(44, 82, 130, 0.05);
+            border: 1px solid rgba(44, 82, 130, 0.15);
             border-radius: 12px;
             padding: 1.5rem;
         ">
-            <h4 style="color: white; margin: 0 0 1rem 0;">🎯 DataQualityLab</h4>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <h4 style="color: #1a365d; margin: 0 0 1rem 0;">🎯 DataQualityLab</h4>
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Version :</strong> 1.2.0
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Moteur IA :</strong> Claude Sonnet 4 (Anthropic)
             </p>
-            <p style="color: rgba(255,255,255,0.5); margin: 0; font-size: 0.85rem;">
+            <p style="color: #718096; margin: 0; font-size: 0.85rem;">
                 Outil de démonstration pour l'analyse de qualité des données avec approche probabiliste.
             </p>
         </div>
@@ -2248,14 +2248,14 @@ else:
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1.1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1.1rem;">
                 Un outil qui mesure la qualité de vos données <strong>ET leur impact selon l'usage</strong>
             </p>
         </div>
@@ -2267,36 +2267,36 @@ else:
         with col1:
             st.markdown("""
             <div style="background: rgba(235,51,73,0.1); border: 1px solid rgba(235,51,73,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #eb3349; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score unique : "82% de qualité"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = même note partout</p>
+                <h4 style="color: #e53e3e; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score unique : "82% de qualité"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = même note partout</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #38ef7d; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = risques différents selon l'usage</p>
+                <h4 style="color: #38a169; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = risques différents selon l'usage</p>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown("---")
         st.subheader("🧠 Les 4 dimensions du risque")
         dims_help_init = [
-            {"code": "DB", "nom": "Structure", "icon": "🗄️", "desc": "Format/type correct ?", "color": "#667eea"},
-            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "desc": "ETL ont dégradé ?", "color": "#764ba2"},
-            {"code": "BR", "nom": "Règles métier", "icon": "📋", "desc": "Respecte les règles ?", "color": "#f093fb"},
-            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "desc": "Exploitable ?", "color": "#38ef7d"},
+            {"code": "DB", "nom": "Structure", "icon": "🗄️", "desc": "Format/type correct ?", "color": "#2c5282"},
+            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "desc": "ETL ont dégradé ?", "color": "#2a4365"},
+            {"code": "BR", "nom": "Règles métier", "icon": "📋", "desc": "Respecte les règles ?", "color": "#805ad5"},
+            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "desc": "Exploitable ?", "color": "#38a169"},
         ]
         cols = st.columns(4)
         for i, dim in enumerate(dims_help_init):
             with cols[i]:
                 st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid {dim['color']}40; border-radius: 12px; padding: 0.75rem; text-align: center;">
+                <div style="background: rgba(44, 82, 130, 0.05); border: 1px solid {dim['color']}40; border-radius: 12px; padding: 0.75rem; text-align: center;">
                     <div style="font-size: 1.5rem;">{dim['icon']}</div>
                     <div style="color: {dim['color']}; font-weight: 600;">{dim['code']} - {dim['nom']}</div>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin: 0.25rem 0 0 0;">{dim['desc']}</p>
+                    <p style="color: #6b8bb5; font-size: 0.8rem; margin: 0.25rem 0 0 0;">{dim['desc']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -2304,17 +2304,17 @@ else:
         st.subheader("🎨 Code couleur des risques")
         cols = st.columns(4)
         colors_init = [
-            {"color": "#38ef7d", "label": "< 15%", "status": "Faible"},
+            {"color": "#38a169", "label": "< 15%", "status": "Faible"},
             {"color": "#F2C94C", "label": "15-25%", "status": "Modéré"},
             {"color": "#F2994A", "label": "25-40%", "status": "Élevé"},
-            {"color": "#eb3349", "label": "> 40%", "status": "Critique"},
+            {"color": "#e53e3e", "label": "> 40%", "status": "Critique"},
         ]
         for i, c in enumerate(colors_init):
             with cols[i]:
                 st.markdown(f"""
                 <div style="background: {c['color']}20; border: 2px solid {c['color']}; border-radius: 12px; padding: 0.75rem; text-align: center;">
                     <div style="color: {c['color']}; font-size: 1.25rem; font-weight: 700;">{c['label']}</div>
-                    <div style="color: white; font-weight: 600;">{c['status']}</div>
+                    <div style="color: #1a365d; font-weight: 600;">{c['status']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -2324,13 +2324,13 @@ else:
 st.markdown("---")
 st.markdown("""
 <div style="
-    background: rgba(255,255,255,0.03);
+    background: rgba(44, 82, 130, 0.05);
     border-radius: 16px;
     padding: 1.5rem;
     margin-top: 2rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(44, 82, 130, 0.15);
 ">
-    <p style="text-align: center; color: rgba(255,255,255,0.5); margin: 0; font-size: 0.9rem;">
+    <p style="text-align: center; color: #718096; margin: 0; font-size: 0.9rem;">
         DataQualityLab • Propulsé par Claude AI
     </p>
 </div>
