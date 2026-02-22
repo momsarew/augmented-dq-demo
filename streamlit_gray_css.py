@@ -1,43 +1,48 @@
 """
 streamlit_gray_css.py
-CSS MODERNE : Design glassmorphism + gradients subtils
-Interface élégante et professionnelle
+CSS PROFESSIONNEL : Design Jaune/Bleu — DataQualityLab
+Interface claire, structurée et lisible
 """
 
 def get_gray_css():
-    """CSS moderne avec glassmorphism et design épuré"""
+    """CSS professionnel thème jaune clair / bleu foncé"""
 
     return """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
     /* ================================================================
-       VARIABLES CSS GLOBALES
+       VARIABLES CSS GLOBALES — Thème Jaune/Bleu
     ================================================================ */
 
     :root {
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        --warning-gradient: linear-gradient(135deg, #F2994A 0%, #F2C94C 100%);
-        --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        --primary: #2c5282;
+        --primary-light: #3182ce;
+        --primary-dark: #1a365d;
+        --accent: #d69e2e;
+        --accent-light: #ecc94b;
+        --accent-bg: #FEF3C7;
 
-        --bg-primary: #0f0f23;
-        --bg-secondary: #1a1a2e;
-        --bg-card: rgba(255, 255, 255, 0.03);
-        --bg-glass: rgba(255, 255, 255, 0.05);
+        --bg-primary: #FFF9E6;
+        --bg-secondary: #FEF3C7;
+        --bg-card: #ffffff;
+        --bg-glass: rgba(255, 255, 255, 0.85);
 
-        --text-primary: #ffffff;
-        --text-secondary: rgba(255, 255, 255, 0.7);
-        --text-muted: rgba(255, 255, 255, 0.5);
+        --text-primary: #1a365d;
+        --text-secondary: #2d3748;
+        --text-muted: #718096;
 
-        --border-color: rgba(255, 255, 255, 0.1);
-        --border-glow: rgba(102, 126, 234, 0.3);
+        --border-color: #e2e8f0;
+        --border-accent: rgba(44, 82, 130, 0.3);
 
-        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-        --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
-        --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
-        --shadow-glow: 0 0 30px rgba(102, 126, 234, 0.2);
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+        --success: #38a169;
+        --warning: #d69e2e;
+        --danger: #e53e3e;
+        --info: #3182ce;
     }
 
     /* ================================================================
@@ -46,15 +51,14 @@ def get_gray_css():
 
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-        transition: all 0.2s ease-in-out;
     }
 
     /* ================================================================
-       FOND PRINCIPAL - Gradient sombre élégant
+       FOND PRINCIPAL
     ================================================================ */
 
     .stApp {
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%) !important;
+        background: var(--bg-primary) !important;
         min-height: 100vh;
     }
 
@@ -69,13 +73,11 @@ def get_gray_css():
     }
 
     /* ================================================================
-       SIDEBAR - Glassmorphism
+       SIDEBAR
     ================================================================ */
 
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(26, 26, 46, 0.95) 0%, rgba(15, 15, 35, 0.98) 100%) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
+        background: linear-gradient(180deg, #1a365d 0%, #2c5282 100%) !important;
         border-right: 1px solid var(--border-color) !important;
     }
 
@@ -83,8 +85,53 @@ def get_gray_css():
         padding: 2rem 1.5rem !important;
     }
 
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button {
+        width: 100% !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    [data-testid="stSidebar"] .stTextInput > div > div > input,
+    [data-testid="stSidebar"] .stSelectbox > div > div,
+    [data-testid="stSidebar"] .stMultiSelect > div > div {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 2px dashed rgba(255, 255, 255, 0.3) !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] * {
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] button {
+        background: var(--accent) !important;
+        color: #1a365d !important;
+        border: none !important;
+    }
+
     /* ================================================================
-       TEXTE - Palette claire sur fond sombre
+       TEXTE
     ================================================================ */
 
     body, body *,
@@ -93,13 +140,12 @@ def get_gray_css():
         color: var(--text-primary) !important;
     }
 
-    /* Texte secondaire pour labels */
     [data-testid="stMetricLabel"],
     .stSelectbox label,
     .stSlider label,
     .stTextInput label,
     .stFileUploader label {
-        color: var(--text-secondary) !important;
+        color: var(--text-muted) !important;
         font-weight: 500 !important;
         font-size: 0.85rem !important;
         text-transform: uppercase !important;
@@ -107,14 +153,13 @@ def get_gray_css():
     }
 
     /* ================================================================
-       TITRES - Gradient text ou blanc pur
+       TITRES
     ================================================================ */
 
     h1 {
-        background: var(--primary-gradient) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        background-clip: text !important;
+        color: var(--primary-dark) !important;
+        -webkit-text-fill-color: var(--primary-dark) !important;
+        background: none !important;
         font-size: 2.5rem !important;
         font-weight: 700 !important;
         margin-bottom: 1.5rem !important;
@@ -122,114 +167,114 @@ def get_gray_css():
     }
 
     h2 {
-        color: var(--text-primary) !important;
+        color: var(--primary) !important;
+        -webkit-text-fill-color: var(--primary) !important;
+        background: none !important;
         font-size: 1.5rem !important;
         font-weight: 600 !important;
         margin-top: 2rem !important;
         margin-bottom: 1rem !important;
         padding-bottom: 0.5rem !important;
-        border-bottom: 2px solid transparent !important;
-        border-image: var(--primary-gradient) 1 !important;
+        border-bottom: 2px solid var(--accent) !important;
+        border-image: none !important;
     }
 
     h3 {
-        color: var(--text-primary) !important;
+        color: var(--primary) !important;
+        -webkit-text-fill-color: var(--primary) !important;
+        background: none !important;
         font-size: 1.2rem !important;
         font-weight: 600 !important;
     }
 
     /* ================================================================
-       TABS - Design moderne avec pills
+       TABS
     ================================================================ */
 
     .stTabs [data-baseweb="tab-list"] {
-        background: var(--bg-glass) !important;
-        backdrop-filter: blur(10px) !important;
-        border-radius: 16px !important;
-        padding: 0.5rem !important;
-        gap: 0.5rem !important;
+        background: var(--bg-card) !important;
+        border-radius: 12px !important;
+        padding: 0.4rem !important;
+        gap: 0.4rem !important;
         border: 1px solid var(--border-color) !important;
         box-shadow: var(--shadow-sm) !important;
     }
 
     .stTabs [data-baseweb="tab"] {
-        color: var(--text-secondary) !important;
+        color: var(--text-muted) !important;
         background: transparent !important;
-        padding: 0.75rem 1.25rem !important;
-        font-size: 0.9rem !important;
+        padding: 0.6rem 1rem !important;
+        font-size: 0.85rem !important;
         font-weight: 500 !important;
-        border-radius: 12px !important;
+        border-radius: 8px !important;
         border: none !important;
     }
 
     .stTabs [aria-selected="true"] {
-        background: var(--primary-gradient) !important;
+        background: var(--primary) !important;
         color: white !important;
         -webkit-text-fill-color: white !important;
         font-weight: 600 !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+        box-shadow: 0 2px 8px rgba(44, 82, 130, 0.3) !important;
     }
 
     .stTabs [data-baseweb="tab"]:hover:not([aria-selected="true"]) {
-        background: rgba(255, 255, 255, 0.08) !important;
-        color: var(--text-primary) !important;
+        background: var(--accent-bg) !important;
+        color: var(--primary) !important;
     }
 
     /* ================================================================
-       BOUTONS - Gradients et effets hover
+       BOUTONS
     ================================================================ */
 
     .stButton > button {
-        background: var(--bg-glass) !important;
-        color: var(--text-primary) !important;
+        background: var(--bg-card) !important;
+        color: var(--primary) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 12px !important;
-        padding: 0.75rem 1.5rem !important;
+        border-radius: 10px !important;
+        padding: 0.7rem 1.4rem !important;
         font-weight: 500 !important;
         font-size: 0.9rem !important;
-        backdrop-filter: blur(10px) !important;
         box-shadow: var(--shadow-sm) !important;
     }
 
     .stButton > button:hover {
-        background: rgba(255, 255, 255, 0.1) !important;
-        border-color: var(--border-glow) !important;
-        box-shadow: var(--shadow-glow) !important;
-        transform: translateY(-2px) !important;
+        background: var(--accent-bg) !important;
+        border-color: var(--primary) !important;
+        box-shadow: var(--shadow-md) !important;
+        transform: translateY(-1px) !important;
     }
 
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="baseButton-primary"] {
-        background: var(--primary-gradient) !important;
+        background: var(--primary) !important;
         border: none !important;
         color: white !important;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+        box-shadow: 0 2px 8px rgba(44, 82, 130, 0.3) !important;
     }
 
     .stButton > button[kind="primary"]:hover,
     .stButton > button[data-testid="baseButton-primary"]:hover {
-        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5) !important;
-        transform: translateY(-3px) !important;
+        background: var(--primary-light) !important;
+        box-shadow: 0 4px 16px rgba(44, 82, 130, 0.4) !important;
     }
 
     /* ================================================================
-       CARDS / METRICS - Glassmorphism
+       CARDS / METRICS
     ================================================================ */
 
     [data-testid="stMetric"] {
-        background: var(--bg-glass) !important;
-        backdrop-filter: blur(10px) !important;
+        background: var(--bg-card) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 16px !important;
+        border-radius: 12px !important;
         padding: 1.5rem !important;
-        box-shadow: var(--shadow-md) !important;
-        transition: all 0.3s ease !important;
+        box-shadow: var(--shadow-sm) !important;
     }
 
     [data-testid="stMetric"]:hover {
-        border-color: var(--border-glow) !important;
-        box-shadow: var(--shadow-glow) !important;
-        transform: translateY(-4px) !important;
+        border-color: var(--border-accent) !important;
+        box-shadow: var(--shadow-md) !important;
+        transform: translateY(-2px) !important;
     }
 
     [data-testid="stMetricLabel"] {
@@ -240,203 +285,141 @@ def get_gray_css():
     }
 
     [data-testid="stMetricValue"] {
-        background: var(--primary-gradient) !important;
-        -webkit-background-clip: text !important;
-        -webkit-text-fill-color: transparent !important;
-        background-clip: text !important;
+        color: var(--primary) !important;
+        -webkit-text-fill-color: var(--primary) !important;
+        background: none !important;
         font-size: 2rem !important;
         font-weight: 700 !important;
     }
 
     /* ================================================================
-       INPUTS - Style moderne avec bon contraste
+       INPUTS
     ================================================================ */
 
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
     .stTextArea textarea {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(102, 126, 234, 0.4) !important;
-        border-radius: 12px !important;
-        padding: 0.75rem 1rem !important;
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 10px !important;
+        padding: 0.7rem 1rem !important;
         font-size: 0.95rem !important;
-    }
-
-    .stTextInput > div > div > input::placeholder,
-    .stNumberInput > div > div > input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: rgba(255, 255, 255, 0.5) !important;
     }
 
     .stTextInput > div > div > input:focus,
     .stNumberInput > div > div > input:focus,
     .stTextArea textarea:focus {
-        border-color: #667eea !important;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3) !important;
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.15) !important;
         outline: none !important;
-        background: rgba(40, 40, 70, 0.95) !important;
-    }
-
-    /* Password input */
-    .stTextInput input[type="password"] {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
     }
 
     /* ================================================================
-       SELECTBOX & MULTISELECT - Fond sombre avec texte clair
+       SELECTBOX & MULTISELECT
     ================================================================ */
 
     .stSelectbox > div > div,
     .stMultiSelect > div > div {
-        background: rgba(30, 30, 50, 0.95) !important;
-        border: 1px solid rgba(102, 126, 234, 0.4) !important;
-        border-radius: 12px !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 10px !important;
     }
 
     .stSelectbox [data-baseweb="select"] > div,
     .stMultiSelect [data-baseweb="select"] > div {
         background: transparent !important;
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
 
-    /* Le texte sélectionné dans le selectbox */
     .stSelectbox [data-baseweb="select"] span,
     .stSelectbox [data-baseweb="select"] div[data-testid] {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
 
     /* ================================================================
-       DROPDOWN MENU - Liste déroulante (CORRECTION CONTRASTE)
+       DROPDOWN MENU
     ================================================================ */
 
-    /* Conteneur principal du popover/dropdown */
     [data-baseweb="popover"],
     [data-baseweb="popover"] > div,
     [data-baseweb="popover"] > div > div,
     [data-baseweb="popover"] [data-baseweb="menu"],
     div[data-baseweb="popover"] {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
-        border: 1px solid rgba(102, 126, 234, 0.5) !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7) !important;
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 10px !important;
+        box-shadow: var(--shadow-lg) !important;
     }
 
-    /* Menu list container */
     [data-baseweb="menu"],
     [data-baseweb="menu"] ul,
     ul[role="listbox"],
     div[role="listbox"],
     [data-baseweb="list"],
     [data-baseweb="menu-list"] {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
     }
 
-    /* Chaque option dans le dropdown */
     [role="option"],
     [data-baseweb="menu"] li,
     [data-baseweb="menu"] [role="option"],
     li[role="option"],
     div[role="option"],
-    ul[role="listbox"] li,
-    [data-baseweb="list"] li,
-    [data-baseweb="menu-list"] li {
-        color: #ffffff !important;
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
+    ul[role="listbox"] li {
+        color: var(--text-primary) !important;
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
     }
 
-    /* Hover sur les options */
     [role="option"]:hover,
     [data-baseweb="menu"] li:hover,
     li[role="option"]:hover,
     div[role="option"]:hover,
     ul[role="listbox"] li:hover {
-        background: rgba(102, 126, 234, 0.4) !important;
-        background-color: rgba(102, 126, 234, 0.4) !important;
-        color: #ffffff !important;
+        background: var(--accent-bg) !important;
+        background-color: var(--accent-bg) !important;
+        color: var(--primary) !important;
     }
 
-    /* Option sélectionnée / highlighted */
     [aria-selected="true"],
     [data-baseweb="menu"] [aria-selected="true"],
     [data-highlighted="true"],
     li[aria-selected="true"],
     div[aria-selected="true"] {
-        background: rgba(102, 126, 234, 0.5) !important;
-        background-color: rgba(102, 126, 234, 0.5) !important;
-        color: #ffffff !important;
+        background: rgba(44, 82, 130, 0.1) !important;
+        background-color: rgba(44, 82, 130, 0.1) !important;
+        color: var(--primary) !important;
     }
 
-    /* Texte dans les options */
     [role="option"] *,
     [data-baseweb="menu"] li *,
     ul[role="listbox"] li * {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
 
-    /* Icône de dropdown (flèche) */
     .stSelectbox svg,
     .stMultiSelect svg {
-        fill: #ffffff !important;
-        color: #ffffff !important;
-    }
-
-    /* Input dans le multiselect */
-    .stMultiSelect input,
-    [data-baseweb="select"] input {
-        color: #ffffff !important;
-        background: transparent !important;
-    }
-
-    /* Placeholder dans select */
-    [data-baseweb="select"] [data-baseweb="input"] {
-        color: #ffffff !important;
-    }
-
-    /* Le conteneur du select lui-même */
-    [data-baseweb="select"],
-    [data-baseweb="select"] > div {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
+        fill: var(--text-muted) !important;
+        color: var(--text-muted) !important;
     }
 
     /* ================================================================
-       SLIDERS - Style moderne
-    ================================================================ */
-
-    .stSlider > div > div > div > div {
-        background: var(--border-color) !important;
-    }
-
-    .stSlider > div > div > div > div > div {
-        background: var(--primary-gradient) !important;
-    }
-
-    .stSlider [data-baseweb="slider"] [role="slider"] {
-        background: white !important;
-        border: 3px solid #667eea !important;
-        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4) !important;
-    }
-
-    /* ================================================================
-       DATAFRAMES - Style moderne
+       DATAFRAMES
     ================================================================ */
 
     [data-testid="stDataFrame"] {
-        background: var(--bg-glass) !important;
+        background: var(--bg-card) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 16px !important;
+        border-radius: 12px !important;
         overflow: hidden !important;
-        backdrop-filter: blur(10px) !important;
     }
 
     [data-testid="stDataFrame"] th {
-        background: rgba(102, 126, 234, 0.2) !important;
-        color: var(--text-primary) !important;
+        background: var(--primary) !important;
+        color: #ffffff !important;
         font-size: 0.85rem !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
@@ -450,13 +433,12 @@ def get_gray_css():
     }
 
     /* ================================================================
-       ALERTS - Gradients subtils
+       ALERTS
     ================================================================ */
 
     [data-testid="stAlert"] {
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         border: none !important;
-        backdrop-filter: blur(10px) !important;
     }
 
     .stAlert > div {
@@ -465,98 +447,94 @@ def get_gray_css():
 
     [data-testid="stInfo"],
     div[data-baseweb="notification"][kind="info"] {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%) !important;
-        border-left: 4px solid #667eea !important;
+        background: rgba(49, 130, 206, 0.08) !important;
+        border-left: 4px solid var(--info) !important;
     }
 
     [data-testid="stSuccess"],
     div[data-baseweb="notification"][kind="positive"] {
-        background: linear-gradient(135deg, rgba(17, 153, 142, 0.15) 0%, rgba(56, 239, 125, 0.15) 100%) !important;
-        border-left: 4px solid #38ef7d !important;
+        background: rgba(56, 161, 105, 0.08) !important;
+        border-left: 4px solid var(--success) !important;
     }
 
     [data-testid="stWarning"],
     div[data-baseweb="notification"][kind="warning"] {
-        background: linear-gradient(135deg, rgba(242, 153, 74, 0.15) 0%, rgba(242, 201, 76, 0.15) 100%) !important;
-        border-left: 4px solid #F2994A !important;
+        background: rgba(214, 158, 46, 0.1) !important;
+        border-left: 4px solid var(--warning) !important;
     }
 
     [data-testid="stError"],
     div[data-baseweb="notification"][kind="negative"] {
-        background: linear-gradient(135deg, rgba(235, 51, 73, 0.15) 0%, rgba(244, 92, 67, 0.15) 100%) !important;
-        border-left: 4px solid #eb3349 !important;
+        background: rgba(229, 62, 62, 0.08) !important;
+        border-left: 4px solid var(--danger) !important;
     }
 
     /* ================================================================
-       EXPANDER - Style moderne
+       EXPANDER
     ================================================================ */
 
     .streamlit-expanderHeader {
-        background: var(--bg-glass) !important;
+        background: var(--bg-card) !important;
         color: var(--text-primary) !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         padding: 1rem 1.25rem !important;
         font-weight: 500 !important;
-        backdrop-filter: blur(10px) !important;
     }
 
     .streamlit-expanderHeader:hover {
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-color: var(--border-glow) !important;
+        background: var(--accent-bg) !important;
+        border-color: var(--border-accent) !important;
     }
 
     .streamlit-expanderContent {
-        background: var(--bg-glass) !important;
+        background: var(--bg-card) !important;
         border: 1px solid var(--border-color) !important;
         border-top: none !important;
-        border-radius: 0 0 12px 12px !important;
+        border-radius: 0 0 10px 10px !important;
         padding: 1.25rem !important;
-        backdrop-filter: blur(10px) !important;
     }
 
     /* ================================================================
-       FILE UPLOADER - Style moderne
+       FILE UPLOADER
     ================================================================ */
 
     [data-testid="stFileUploader"] {
-        background: var(--bg-glass) !important;
+        background: var(--bg-card) !important;
         border: 2px dashed var(--border-color) !important;
-        border-radius: 16px !important;
+        border-radius: 12px !important;
         padding: 2rem !important;
-        backdrop-filter: blur(10px) !important;
-        transition: all 0.3s ease !important;
     }
 
     [data-testid="stFileUploader"]:hover {
-        border-color: #667eea !important;
-        background: rgba(102, 126, 234, 0.05) !important;
+        border-color: var(--primary) !important;
+        background: rgba(44, 82, 130, 0.03) !important;
     }
 
     [data-testid="stFileUploader"] * {
-        color: var(--text-secondary) !important;
+        color: var(--text-muted) !important;
     }
 
     [data-testid="stFileUploader"] button {
-        background: var(--primary-gradient) !important;
+        background: var(--primary) !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
     }
 
     /* ================================================================
-       DIVIDER / SEPARATOR
+       DIVIDER
     ================================================================ */
 
     hr {
         border: none !important;
         height: 1px !important;
-        background: linear-gradient(90deg, transparent, var(--border-color), transparent) !important;
+        background: var(--border-color) !important;
         margin: 2rem 0 !important;
     }
 
     /* ================================================================
-       SCROLLBAR - Style moderne
+       SCROLLBAR
     ================================================================ */
 
     ::-webkit-scrollbar {
@@ -570,12 +548,13 @@ def get_gray_css():
     }
 
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #667eea, #764ba2);
+        background: var(--primary);
         border-radius: 4px;
+        opacity: 0.5;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, #5a6fd6, #6a4190);
+        background: var(--primary-light);
     }
 
     /* ================================================================
@@ -583,28 +562,17 @@ def get_gray_css():
     ================================================================ */
 
     code {
-        background: rgba(102, 126, 234, 0.15) !important;
-        color: #a78bfa !important;
+        background: rgba(44, 82, 130, 0.08) !important;
+        color: var(--primary) !important;
         padding: 0.2rem 0.5rem !important;
         border-radius: 6px !important;
         font-size: 0.85rem !important;
     }
 
     pre {
-        background: var(--bg-glass) !important;
+        background: #f7fafc !important;
         border: 1px solid var(--border-color) !important;
-        border-radius: 12px !important;
-        padding: 1rem !important;
-    }
-
-    /* ================================================================
-       JSON DISPLAY
-    ================================================================ */
-
-    .stJson {
-        background: var(--bg-glass) !important;
-        border: 1px solid var(--border-color) !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         padding: 1rem !important;
     }
 
@@ -613,29 +581,21 @@ def get_gray_css():
     ================================================================ */
 
     .stDownloadButton > button {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+        background: var(--success) !important;
         border: none !important;
         color: white !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         font-weight: 500 !important;
-        box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3) !important;
+        box-shadow: 0 2px 8px rgba(56, 161, 105, 0.25) !important;
     }
 
     .stDownloadButton > button:hover {
-        box-shadow: 0 6px 25px rgba(56, 239, 125, 0.4) !important;
-        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 16px rgba(56, 161, 105, 0.35) !important;
+        transform: translateY(-1px) !important;
     }
 
     /* ================================================================
-       SPINNER
-    ================================================================ */
-
-    .stSpinner > div {
-        border-top-color: #667eea !important;
-    }
-
-    /* ================================================================
-       PLOTLY CHARTS - Fond transparent
+       PLOTLY CHARTS
     ================================================================ */
 
     .js-plotly-plot .plotly .main-svg {
@@ -643,24 +603,34 @@ def get_gray_css():
     }
 
     /* ================================================================
+       SLIDERS
+    ================================================================ */
+
+    .stSlider > div > div > div > div {
+        background: var(--border-color) !important;
+    }
+
+    .stSlider > div > div > div > div > div {
+        background: var(--primary) !important;
+    }
+
+    .stSlider [data-baseweb="slider"] [role="slider"] {
+        background: white !important;
+        border: 3px solid var(--primary) !important;
+        box-shadow: 0 2px 6px rgba(44, 82, 130, 0.3) !important;
+    }
+
+    /* ================================================================
        MULTISELECT TAGS
     ================================================================ */
 
     [data-baseweb="tag"] {
-        background: var(--primary-gradient) !important;
-        border-radius: 8px !important;
+        background: var(--primary) !important;
+        border-radius: 6px !important;
     }
 
     [data-baseweb="tag"] span {
         color: white !important;
-    }
-
-    /* ================================================================
-       TOOLTIP
-    ================================================================ */
-
-    [data-testid="stTooltipIcon"] {
-        color: var(--text-muted) !important;
     }
 
     /* ================================================================
@@ -673,24 +643,57 @@ def get_gray_css():
     }
 
     .stProgress > div > div > div {
-        background: var(--primary-gradient) !important;
+        background: var(--primary) !important;
         border-radius: 10px !important;
     }
 
     /* ================================================================
-       CHECKBOX & RADIO
+       TABLES HTML
     ================================================================ */
 
-    .stCheckbox label span,
-    .stRadio label span {
+    table, th, td {
         color: var(--text-primary) !important;
     }
 
+    th {
+        background: var(--primary) !important;
+        color: #ffffff !important;
+    }
+
+    td {
+        background: var(--bg-card) !important;
+    }
+
+    tr:hover td {
+        background: var(--accent-bg) !important;
+    }
+
     /* ================================================================
-       FIX CONTRASTE GÉNÉRAL - Textes sur fond clair/sombre
+       MARKDOWN
     ================================================================ */
 
-    /* Labels des inputs */
+    .stMarkdown p,
+    .stMarkdown li,
+    .stMarkdown span {
+        color: var(--text-secondary) !important;
+    }
+
+    /* ================================================================
+       LINKS
+    ================================================================ */
+
+    a, a:visited {
+        color: var(--primary-light) !important;
+    }
+
+    a:hover {
+        color: var(--primary) !important;
+    }
+
+    /* ================================================================
+       LABELS
+    ================================================================ */
+
     .stTextInput label,
     .stNumberInput label,
     .stSelectbox label,
@@ -700,181 +703,52 @@ def get_gray_css():
     .stSlider label,
     .stCheckbox label,
     .stRadio label {
-        color: #e0e0e0 !important;
+        color: var(--text-secondary) !important;
         font-weight: 500 !important;
     }
 
-    /* Petit texte d'aide sous les inputs */
-    .stTextInput small,
-    .stSelectbox small,
-    .stNumberInput small,
-    div[data-testid="stFormSubmitButton"] + small,
-    .stHelp,
-    [data-testid="stWidgetHelp"] {
-        color: rgba(255, 255, 255, 0.6) !important;
+    /* ================================================================
+       JSON DISPLAY
+    ================================================================ */
+
+    .stJson {
+        background: #f7fafc !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 10px !important;
+        padding: 1rem !important;
     }
 
-    /* Messages d'info dans les widgets */
-    .stTextInput .stAlert,
-    .stSelectbox .stAlert {
-        background: rgba(102, 126, 234, 0.15) !important;
-        color: #ffffff !important;
-    }
+    /* ================================================================
+       NUMBER INPUT BUTTONS
+    ================================================================ */
 
-    /* Texte dans les expandeurs de sidebar */
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] label {
-        color: #ffffff !important;
-    }
-
-    /* Liens */
-    a, a:visited {
-        color: #8b9fff !important;
-    }
-
-    a:hover {
-        color: #a5b4ff !important;
-    }
-
-    /* Markdown text */
-    .stMarkdown p,
-    .stMarkdown li,
-    .stMarkdown span {
-        color: #e8e8e8 !important;
-    }
-
-    /* Caption et small text */
-    .stCaption, caption, figcaption {
-        color: rgba(255, 255, 255, 0.7) !important;
-    }
-
-    /* Tables HTML */
-    table, th, td {
-        color: #ffffff !important;
-    }
-
-    th {
-        background: rgba(102, 126, 234, 0.3) !important;
-    }
-
-    td {
-        background: rgba(30, 30, 50, 0.5) !important;
-    }
-
-    tr:hover td {
-        background: rgba(102, 126, 234, 0.15) !important;
-    }
-
-    /* Number input buttons */
     .stNumberInput button {
-        background: rgba(102, 126, 234, 0.3) !important;
-        color: #ffffff !important;
+        background: rgba(44, 82, 130, 0.1) !important;
+        color: var(--primary) !important;
         border: none !important;
     }
 
     .stNumberInput button:hover {
-        background: rgba(102, 126, 234, 0.5) !important;
-    }
-
-    /* Date input */
-    .stDateInput > div > div > input {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(102, 126, 234, 0.4) !important;
-        border-radius: 12px !important;
-    }
-
-    /* Time input */
-    .stTimeInput > div > div > input {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(102, 126, 234, 0.4) !important;
-        border-radius: 12px !important;
-    }
-
-    /* Color picker */
-    .stColorPicker label {
-        color: #e0e0e0 !important;
-    }
-
-    /* Camera input */
-    .stCameraInput label {
-        color: #e0e0e0 !important;
-    }
-
-    /* Text area */
-    .stTextArea > div > div > textarea {
-        background: rgba(30, 30, 50, 0.95) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(102, 126, 234, 0.4) !important;
-        border-radius: 12px !important;
+        background: rgba(44, 82, 130, 0.2) !important;
     }
 
     /* ================================================================
-       FIX GLOBAL - Forcer fond sombre sur tous les widgets interactifs
+       GENERIC OVERRIDES — Remove dark residues
     ================================================================ */
 
-    /* Tous les inputs de type select/combobox */
     [data-baseweb="select"] *,
     [data-baseweb="combobox"] *,
     [data-baseweb="input"] * {
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
 
-    /* Les conteneurs de liste */
     [data-baseweb="base-popover"],
     [data-baseweb="popover-content"],
     [data-baseweb="block"] {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
     }
 
-    /* Override pour tous les éléments avec fond blanc */
-    .st-emotion-cache-1inwz65,
-    .st-emotion-cache-16idsys,
-    .st-emotion-cache-1v7f65g,
-    .st-emotion-cache-10trblm,
-    .st-emotion-cache-1dp5vir,
-    .st-emotion-cache-ocqkz7,
-    .st-emotion-cache-1y4p8pa {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
-        color: #ffffff !important;
-    }
-
-    /* Dropdown/Select option container - approche plus globale */
-    div[data-testid="stSelectbox"] ul,
-    div[data-testid="stSelectbox"] li,
-    div[data-testid="stMultiSelect"] ul,
-    div[data-testid="stMultiSelect"] li {
-        background: #1a1a2e !important;
-        color: #ffffff !important;
-    }
-
-    /* Pour les éléments internes des selectbox */
-    [class*="st-emotion-cache"] ul[role="listbox"],
-    [class*="st-emotion-cache"] li[role="option"] {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
-        color: #ffffff !important;
-    }
-
-    [class*="st-emotion-cache"] li[role="option"]:hover {
-        background: rgba(102, 126, 234, 0.4) !important;
-    }
-
-    /* Supprimer tout fond blanc résiduel */
-    .stApp div[style*="background: white"],
-    .stApp div[style*="background-color: white"],
-    .stApp div[style*="background: rgb(255"],
-    .stApp div[style*="background-color: rgb(255"] {
-        background: #1a1a2e !important;
-        background-color: #1a1a2e !important;
-    }
-
-    /* Conteneurs génériques Streamlit */
     .element-container,
     .row-widget,
     .stSelectbox > div,
@@ -882,57 +756,20 @@ def get_gray_css():
         background: transparent !important;
     }
 
-    /* Zone de saisie dans multiselect */
     .stMultiSelect [data-baseweb="tag"] {
-        background: rgba(102, 126, 234, 0.6) !important;
+        background: var(--primary) !important;
         color: #ffffff !important;
     }
 
-    .stMultiSelect [data-baseweb="tag"] span {
-        color: #ffffff !important;
-    }
-
-    /* Search input dans les dropdowns */
     [data-baseweb="input"] input,
     [data-baseweb="select"] input[type="text"] {
         background: transparent !important;
-        color: #ffffff !important;
+        color: var(--text-primary) !important;
     }
 
-    /* Clear button dans select */
     [data-baseweb="clear-icon"],
     [data-baseweb="select"] button {
-        color: #ffffff !important;
-    }
-
-    /* ================================================================
-       SIDEBAR SPECIFIC OVERRIDES
-    ================================================================ */
-
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        -webkit-text-fill-color: var(--text-primary) !important;
-        background: none !important;
-    }
-
-    [data-testid="stSidebar"] .stButton > button {
-        width: 100% !important;
-    }
-
-    /* ================================================================
-       ANIMATION KEYFRAMES
-    ================================================================ */
-
-    @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); }
-        50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.5); }
-    }
-
-    @keyframes gradient-shift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        color: var(--text-muted) !important;
     }
 
     </style>
