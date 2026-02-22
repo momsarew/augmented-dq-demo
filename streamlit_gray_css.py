@@ -1,6 +1,6 @@
 """
 streamlit_gray_css.py
-CSS minimal — le thème est géré par .streamlit/config.toml
+Le thème Jaune/Bleu est géré nativement via .streamlit/config.toml
 """
 
 def get_gray_css():
