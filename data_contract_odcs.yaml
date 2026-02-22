@@ -1,0 +1,859 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: 52e51ff5-d64b-4073-8946-af169ee46c9a
+name: Data Contract — referentiel_rh_complet
+version: 1.0.0
+status: active
+domain: data-quality
+description:
+  purpose: Contrat qualité généré automatiquement pour le dataset 'referentiel_rh_complet' avec le référentiel de 128 anomalies
+    (DB:22, DP:32, BR:34, UP:40).
+  limitations: Les règles 'Manuel' nécessitent une revue humaine. Les seuils Auto/Semi sont calibrés statistiquement sur les
+    données observées.
+schema:
+- name: referentiel_rh_complet
+  logicalType: object
+  properties:
+  - name: matricule_id
+    logicalType: string
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: 'Pas de doublons PK (actuel: 0)'
+      customProperties:
+        anomalyId: DB#2
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAMT
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: 'Valeurs autorisées (8): EMP001, EMP002, EMP003, EMP004, EMP005, EMP006, EMP007, EMP008'
+      validValues:
+      - EMP001
+      - EMP002
+      - EMP003
+      - EMP004
+      - EMP005
+      - EMP006
+      - EMP007
+      - EMP008
+      customProperties:
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 6 car.
+      mustBeLessThan: 6
+      mustBeLessThanUnit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Risque jointure cartésienne si PK non unique
+      customProperties:
+        anomalyId: DP#14
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MR
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: nom
+    logicalType: string
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: 'Valeurs autorisées (8): Dupont, Durand, Laurent, Lefebvre, Martin, Michel, Moreau, Simon'
+      validValues:
+      - Dupont
+      - Durand
+      - Laurent
+      - Lefebvre
+      - Martin
+      - Michel
+      - Moreau
+      - Simon
+      customProperties:
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 8 car.
+      mustBeLessThan: 8
+      mustBeLessThanUnit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: email
+    logicalType: string
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: 'Valeurs autorisées (8): dupont@corp.fr, durand@corp.fr, laurent@corp.fr, lefebvre@corp.fr, martin@corp.fr,
+        michel@corp.fr, moreau@corp.fr, simon@corp.fr'
+      validValues:
+      - dupont@corp.fr
+      - durand@corp.fr
+      - laurent@corp.fr
+      - lefebvre@corp.fr
+      - martin@corp.fr
+      - michel@corp.fr
+      - moreau@corp.fr
+      - simon@corp.fr
+      customProperties:
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: invalidValues
+      description: Format email valide (xxx@domain.tld)
+      customProperties:
+        anomalyId: DB#7
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 16 car.
+      mustBeLessThan: 16
+      mustBeLessThanUnit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: date_embauche
+    logicalType: date-time
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: date_embauche doit être ≤ date_sortie
+      customProperties:
+        anomalyId: BR#1
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    - type: custom
+      description: Données de moins de 365 jours
+      mustBeLessThan: 365
+      mustBeLessThanUnit: days
+      customProperties:
+        anomalyId: UP#6
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Fraîcheur: 0.0
+        Unicité: 1.0
+  - name: date_sortie
+    logicalType: string
+    nullable: true
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 10.0% (actuel: 75.0%)'
+      mustBeLessThan: 10.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: duplicateValues
+      description: 5 doublons exacts
+      customProperties:
+        anomalyId: DB#9
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: nullValues
+      description: 'NULL légitimes: 75.0% (à documenter si > 30%)'
+      customProperties:
+        anomalyId: DB#16
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: VARIABLE
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: SI statut=Inactif ALORS date_sortie NOT NULL
+      customProperties:
+        anomalyId: BR#5
+        causalDimension: BR
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    - type: custom
+      description: Données de moins de 365 jours
+      mustBeLessThan: 365
+      mustBeLessThanUnit: days
+      customProperties:
+        anomalyId: UP#6
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: missingValues
+      description: 'Taux remplissage 25.0% (seuil: 70%)'
+      mustBeGreaterThan: 70
+      mustBeGreaterThanUnit: percent
+      customProperties:
+        anomalyId: UP#16
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    customProperties:
+      damaScores:
+        Complétude: 0.25
+        Fraîcheur: 0.875
+        Unicité: 0.375
+  - name: salaire
+    logicalType: integer
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: Valeurs dans [35210.00, 60580.00]
+      mustBeBetween:
+        min: 35210.0
+        max: 60580.0
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: invalidValues
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: age
+    logicalType: integer
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: Valeurs dans [25.21, 50.79]
+      mustBeBetween:
+        min: 25.21
+        max: 50.79
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: invalidValues
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    - type: custom
+      description: 'Formule: age = (now - date_embauche) / 365.25'
+      customProperties:
+        anomalyId: DP#1
+        causalDimension: DP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Exactitude: 0.0
+        Unicité: 1.0
+  - name: statut
+    logicalType: string
+    nullable: false
+    unique: false
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: invalidValues
+      description: 'Valeurs autorisées (2): Actif, Inactif'
+      validValues:
+      - Actif
+      - Inactif
+      customProperties:
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 7 car.
+      mustBeLessThan: 7
+      mustBeLessThanUnit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 0.25
+  - name: departement
+    logicalType: string
+    nullable: false
+    unique: false
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: invalidValues
+      description: 'Valeurs autorisées (4): Finance, IT, Marketing, RH'
+      validValues:
+      - Finance
+      - IT
+      - Marketing
+      - RH
+      customProperties:
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 9 car.
+      mustBeLessThan: 9
+      mustBeLessThanUnit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 0.5
+  - name: taux_prime
+    logicalType: number
+    nullable: false
+    unique: true
+    quality:
+    - type: nullValues
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      mustBeLessThan: 0.0
+      mustBeLessThanUnit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: duplicateValues
+      description: Toutes valeurs doivent être uniques
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: invalidValues
+      description: Valeurs dans [0.08, 0.18]
+      mustBeBetween:
+        min: 0.0814
+        max: 0.17859999999999998
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: invalidValues
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    - type: invalidValues
+      description: Ratio dans [0, 1] ou [0, 100]
+      mustBeBetween:
+        min: 0
+        max: 100
+      customProperties:
+        anomalyId: BR#13
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+team:
+  members:
+  - name: Augmented DQ Framework
+    role: generator
+tags:
+- data-quality
+- augmented-dq
+- dama-iso-8000
+- woodall-taxonomy
+customProperties:
+  framework: Augmented DQ Demo
+  referential:
+    total: 128
+    byDimension:
+      DB:
+        total: 22
+        auto: 16
+        semi: 4
+        manuel: 2
+      DP:
+        total: 32
+        auto: 4
+        semi: 17
+        manuel: 11
+      BR:
+        total: 34
+        auto: 7
+        semi: 14
+        manuel: 13
+      UP:
+        total: 40
+        auto: 0
+        semi: 7
+        manuel: 33
+  qualityFramework: DAMA/ISO 8000
+  causalDimensions:
+  - DB (Database Integrity)
+  - DP (Data Processing)
+  - BR (Business Rules)
+  - UP (Usage Appropriateness)
+  damaDimensions:
+  - Complétude
+  - Cohérence
+  - Exactitude
+  - Fraîcheur
+  - Validité
+  - Unicité
+  validationResults:
+    totalViolations: 10
+    violationsByColumn:
+      date_embauche:
+      - rule: Données obsolètes
+        anomalyId: UP#6
+        criticality: ÉLEVÉ
+        message: '8 données > 365j (plus ancienne: 2017-11-20)'
+        affectedRows: 8
+      date_sortie:
+      - rule: NULL non autorisés
+        anomalyId: DB#1
+        criticality: CRITIQUE
+        message: Taux nulls 75.0% > seuil 10.0%
+        affectedRows: 6
+      - rule: Violations contraintes unicité
+        anomalyId: DB#4
+        criticality: ÉLEVÉ
+        message: 5 doublons (unicité attendue)
+        affectedRows: 5
+      - rule: Doublons exacts
+        anomalyId: DB#9
+        criticality: ÉLEVÉ
+        message: 5 doublons exacts
+        affectedRows: 5
+      - rule: Données obsolètes
+        anomalyId: UP#6
+        criticality: MOYEN
+        message: '1 données > 365j (plus ancienne: 2024-12-31)'
+        affectedRows: 1
+      - rule: Taux remplissage insuffisant
+        anomalyId: UP#16
+        criticality: ÉLEVÉ
+        message: Remplissage 25.0% < seuil 70%
+        affectedRows: 6
+      salaire:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
+        criticality: CRITIQUE
+        message: 2 valeurs hors [35210.00, 60580.00]
+        affectedRows: 2
+      age:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
+        criticality: CRITIQUE
+        message: 2 valeurs hors [25.21, 50.79]
+        affectedRows: 2
+      - rule: Calculs dérivés incorrects
+        anomalyId: DP#1
+        criticality: ÉLEVÉ
+        message: '8 lignes: formule ''age_from_birthdate'' non respectée'
+        affectedRows: 8
+      taux_prime:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
+        criticality: CRITIQUE
+        message: 2 valeurs hors [0.08, 0.18]
+        affectedRows: 2
+contractCreatedTs: '2026-02-22T03:13:30Z'
