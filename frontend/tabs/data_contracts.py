@@ -1015,7 +1015,7 @@ _TYPE_MAP = {
     "integer": "integer",
     "float": "number",
     "boolean": "boolean",
-    "datetime": "date-time",
+    "datetime": "timestamp",
     "unknown": "string",
 }
 
@@ -1045,37 +1045,40 @@ def _map_odcs_quality_type(rule_type: str) -> str:
 
 
 def _build_odcs_quality_entry(rule: dict) -> dict:
-    """Convertit une règle interne en entrée quality ODCS."""
-    metric_type = _map_odcs_quality_type(rule.get("type", ""))
+    """Convertit une règle interne en entrée quality ODCS v3.1.0."""
+    metric_name = _map_odcs_quality_type(rule.get("type", ""))
+    # ODCS v3.1.0: type = "library"|"custom", metric = nullValues|duplicateValues|...
+    is_library = metric_name in ("nullValues", "duplicateValues", "invalidValues", "missingValues", "rowCount")
     entry = {
-        "type": metric_type,
+        "type": "library" if is_library else "custom",
         "description": rule.get("description", ""),
     }
+    if is_library:
+        entry["metric"] = metric_name
 
     # Ajouter les paramètres spécifiques selon le type
     rt = rule.get("type", "")
     if rt == "null_check":
         entry["mustBeLessThan"] = rule.get("threshold", 10.0)
-        entry["mustBeLessThanUnit"] = "percent"
+        entry["unit"] = "percent"
     elif rt in ("range", "ratio_bounds"):
-        entry["mustBeBetween"] = {
-            "min": rule.get("min", 0),
-            "max": rule.get("max", 0),
-        }
+        entry["mustBeBetween"] = [rule.get("min", 0), rule.get("max", 0)]
     elif rt == "enum":
-        entry["validValues"] = rule.get("values", [])
+        pass  # validValues ajouté dans customProperties ci-dessous
     elif rt == "freshness":
         entry["mustBeLessThan"] = rule.get("max_age_days", 365)
-        entry["mustBeLessThanUnit"] = "days"
+        entry["unit"] = "days"
     elif rt == "length":
         entry["mustBeLessThan"] = rule.get("max_length", 255)
-        entry["mustBeLessThanUnit"] = "characters"
+        entry["unit"] = "characters"
     elif rt == "fill_rate":
         entry["mustBeGreaterThan"] = rule.get("min_fill_rate", 70)
-        entry["mustBeGreaterThanUnit"] = "percent"
+        entry["unit"] = "percent"
 
-    # Enrichissements custom (Woodall, anomaly_id, etc.)
+    # Enrichissements custom (Woodall, anomaly_id, validValues, etc.)
     custom = {}
+    if rule.get("type") == "enum" and rule.get("values"):
+        custom["validValues"] = rule["values"]
     if rule.get("anomaly_id"):
         custom["anomalyId"] = rule["anomaly_id"]
     if rule.get("dimension"):
@@ -1104,7 +1107,7 @@ def convert_to_odcs(contracts: dict, dama_scores: dict, violations: dict,
         prop = {
             "name": col_name,
             "logicalType": _TYPE_MAP.get(contract.get("expected_type", "string"), "string"),
-            "nullable": contract.get("nullable", True),
+            "required": not contract.get("nullable", True),
             "unique": contract.get("unique", False),
         }
 
