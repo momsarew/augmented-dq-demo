@@ -127,6 +127,39 @@ except Exception as e:
 st.set_page_config(page_title="DataQualityLab", page_icon=":material/analytics:", layout="wide")
 st.markdown(get_gray_css(), unsafe_allow_html=True)
 
+# ============================================================================
+# AUTHENTIFICATION PAR MOT DE PASSE
+# ============================================================================
+def check_password():
+    """Vérifie si l'utilisateur a entré le bon mot de passe."""
+    # Si pas de mot de passe configuré dans secrets, on laisse passer
+    try:
+        app_password = st.secrets["auth"]["APP_PASSWORD"]
+    except (KeyError, FileNotFoundError):
+        return True
+
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.markdown(
+        "<h2 style='text-align:center; margin-top:2rem;'>🔒 Accès protégé</h2>"
+        "<p style='text-align:center; color:#888;'>Entrez le mot de passe pour accéder à DataQualityLab</p>",
+        unsafe_allow_html=True,
+    )
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        pwd = st.text_input("Mot de passe", type="password", key="login_pwd")
+        if st.button("Entrer", key="login_btn", use_container_width=True):
+            if pwd == app_password:
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("Mot de passe incorrect.")
+    return False
+
+if not check_password():
+    st.stop()
+
 # Session state
 defaults = {
     "df": None,
