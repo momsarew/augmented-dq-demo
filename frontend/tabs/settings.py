@@ -9,6 +9,10 @@ def render_settings_tab_full(validate_api_key, mask_api_key):
     st.header("Paramètres", anchor=False)
 
     def load_api_key_from_secrets():
+        """Charge la cle API depuis les sources disponibles.
+
+        Ordre de priorite : secrets.toml (nested ou flat) > variable d'env.
+        """
         try:
             if hasattr(st, 'secrets'):
                 if 'api' in st.secrets and 'ANTHROPIC_API_KEY' in st.secrets['api']:
@@ -30,6 +34,7 @@ def render_settings_tab_full(validate_api_key, mask_api_key):
         return ""
 
     def check_admin_password():
+        """Retourne le mot de passe admin depuis secrets ou 'admin' par defaut."""
         try:
             if hasattr(st, 'secrets') and 'admin' in st.secrets:
                 return st.secrets['admin'].get('ADMIN_PASSWORD', '')

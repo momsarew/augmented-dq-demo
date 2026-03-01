@@ -18,15 +18,18 @@ def render_elicitation_tab(r):
         with col1:
             st.markdown("**Ajuster pondérations** :")
 
+            # Sliders pour les 4 dimensions (valeurs brutes, pas encore normalisees)
             w_db = st.slider("DB (Structure)", 0.0, 1.0, float(weights.get("w_DB", 0.25)), 0.05, key=f"w_db_{usage_nom}")
             w_dp = st.slider("DP (Traitements)", 0.0, 1.0, float(weights.get("w_DP", 0.25)), 0.05, key=f"w_dp_{usage_nom}")
             w_br = st.slider("BR (Règles Métier)", 0.0, 1.0, float(weights.get("w_BR", 0.25)), 0.05, key=f"w_br_{usage_nom}")
             w_up = st.slider("UP (Utilisabilité)", 0.0, 1.0, float(weights.get("w_UP", 0.25)), 0.05, key=f"w_up_{usage_nom}")
 
+            # Normalisation AHP : contrainte Sigma(w_d) = 1
             total = w_db + w_dp + w_br + w_up
             if total > 0:
                 w_db_norm, w_dp_norm, w_br_norm, w_up_norm = w_db / total, w_dp / total, w_br / total, w_up / total
             else:
+                # Fallback equipondere si tous les sliders sont a zero
                 w_db_norm = w_dp_norm = w_br_norm = w_up_norm = 0.25
 
             st.markdown("**Pondérations normalisées** :")

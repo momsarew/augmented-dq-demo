@@ -6,15 +6,20 @@ from frontend.components.ai_explain import explain_with_ai
 
 
 def _get_score_color(score):
+    """Retourne la couleur associee a un score DAMA (0-1).
+
+    Seuils : >=0.8 vert, >=0.6 jaune, >=0.4 orange, <0.4 rouge.
+    None renvoie gris (dimension non calculable).
+    """
     if score is None:
-        return "#6b7280"
+        return "#6b7280"     # Gris : dimension non calculable
     if score >= 0.8:
-        return "#38ef7d"
+        return "#38ef7d"     # Vert : bon
     if score >= 0.6:
-        return "#F2C94C"
+        return "#F2C94C"     # Jaune : acceptable
     if score >= 0.4:
-        return "#F2994A"
-    return "#eb3349"
+        return "#F2994A"     # Orange : a surveiller
+    return "#eb3349"         # Rouge : critique
 
 
 DIM_INFO = {

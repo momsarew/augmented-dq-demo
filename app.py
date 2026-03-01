@@ -1,6 +1,16 @@
 """
-DataQualityLab - Version FINALE COMPLÈTE
-Tous les onglets + Élicitation AHP + Reporting Contextuel
+DataQualityLab - Orchestrateur principal Streamlit.
+
+Point d'entree de l'application. Ce fichier:
+- Configure la page Streamlit et le session_state
+- Charge les modules backend (engine, audit, scan, contracts)
+- Definit la sidebar (upload CSV, status API)
+- Instancie les onglets selon l'etat (avant/apres analyse)
+- Delegue le rendu de chaque onglet aux modules frontend/tabs/
+
+Les onglets post-analyse sont: Dashboard, Vecteurs, Priorites,
+Elicitation AHP, Profil Risque, Lineage, DAMA, Reporting,
+Data Contracts, Historique, Parametres, Aide.
 """
 
 import os
@@ -145,6 +155,17 @@ def get_risk_color(s):
     return "#38a169"                 # Vert moderne
 
 def explain_with_ai(scope, data, cache_key, max_tokens=400):
+    """Appelle l'API Claude pour generer une explication contextuelle.
+
+    Args:
+        scope: Type d'explication (vector, priority, lineage, dama, global, elicitation).
+        data: Donnees a transmettre au modele (dict JSON-serialisable).
+        cache_key: Cle de cache dans session_state.ai_explanations.
+        max_tokens: Limite de tokens pour la reponse.
+
+    Returns:
+        str: Texte d'explication ou message d'erreur si l'API n'est pas configuree.
+    """
     # Check cache
     if cache_key in st.session_state.ai_explanations:
         return st.session_state.ai_explanations[cache_key]
@@ -250,7 +271,18 @@ def create_vector_chart(v):
     return fig
 
 def create_heatmap(scores):
-    """Heatmap moderne avec palette personnalisée"""
+    """Cree une heatmap Plotly [Attribut x Usage] des scores de risque.
+
+    Les cles de `scores` suivent le format "attribut_usage" (ex: "Salaire_paie").
+    La matrice est construite en parsant ces cles pour extraire attributs et usages.
+
+    Args:
+        scores: Dict[str, float] - scores de risque par couple attribut_usage.
+
+    Returns:
+        go.Figure: Heatmap Plotly.
+    """
+    # Parser les cles "attribut_usage" pour extraire les axes
     attrs, usages = set(), set()
     for k in scores.keys():
         p = k.rsplit("_", 1)
@@ -259,15 +291,17 @@ def create_heatmap(scores):
             usages.add(p[1])
 
     attrs, usages = sorted(attrs), sorted(usages)
+    # Construire la matrice [attributs x usages] en pourcentage
     matrix = [[float(scores.get(f"{a}_{u}", 0)) * 100 for u in usages] for a in attrs]
 
-    # Palette de couleurs moderne
+    # Palette discrete alignee sur les seuils de risque :
+    # 0% = vert (faible), 25% = jaune, 50% = orange, 75% = rouge-orange, 100% = rouge
     custom_colorscale = [
-        [0.0, "#38a169"],    # Vert (faible risque)
-        [0.25, "#F2C94C"],   # Jaune
-        [0.5, "#F2994A"],    # Orange
-        [0.75, "#f45c43"],   # Orange-rouge
-        [1.0, "#e53e3e"]     # Rouge (haut risque)
+        [0.0, "#38a169"],
+        [0.25, "#F2C94C"],
+        [0.5, "#F2994A"],
+        [0.75, "#f45c43"],
+        [1.0, "#e53e3e"]
     ]
 
     fig = go.Figure(data=go.Heatmap(
@@ -314,6 +348,16 @@ def create_heatmap(scores):
     return fig
 
 def export_excel(results):
+    """Exporte les resultats d'analyse en fichier Excel multi-feuilles.
+
+    Feuilles generees:
+      - Vecteurs : P_DB, P_DP, P_BR, P_UP par attribut
+      - Scores : score de risque par couple (attribut, usage)
+      - Priorites : top priorites triees par score decroissant
+
+    Returns:
+        str: Chemin du fichier Excel genere.
+    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out = f"resultats_{ts}.xlsx"
     with pd.ExcelWriter(out, engine="openpyxl") as w:
@@ -652,11 +696,13 @@ if st.session_state.analysis_done:
                 w_br = st.slider(f"BR (Règles Métier)", 0.0, 1.0, float(weights.get("w_BR", 0.25)), 0.05, key=f"w_br_{usage_nom}")
                 w_up = st.slider(f"UP (Utilisabilité)", 0.0, 1.0, float(weights.get("w_UP", 0.25)), 0.05, key=f"w_up_{usage_nom}")
                 
-                # Normaliser
+                # Normaliser pour que la somme des poids = 1.0
+                # (contrainte AHP : Sigma(w_d) = 1)
                 total = w_db + w_dp + w_br + w_up
                 if total > 0:
                     w_db_norm, w_dp_norm, w_br_norm, w_up_norm = w_db/total, w_dp/total, w_br/total, w_up/total
                 else:
+                    # Fallback equipondere si tous les sliders sont a zero
                     w_db_norm = w_dp_norm = w_br_norm = w_up_norm = 0.25
                 
                 st.markdown("**Pondérations normalisées** :")

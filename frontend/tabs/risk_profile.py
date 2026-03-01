@@ -137,13 +137,18 @@ def render_risk_profile_tab(r):
         mult = profil_actuel['multiplicateur']
         seuils = profil_actuel['seuils']
 
+        # Appliquer le multiplicateur du profil a chaque score brut
+        # et classifier selon les seuils ajustes du profil
         scores_ajustes = []
         for key, score in scores.items():
+            # Plafonner a 1.0 apres application du multiplicateur
             score_ajuste = min(1.0, score * mult)
+            # Extraire attribut et usage depuis la cle "attribut_usage"
             parts = key.rsplit("_", 1)
             attr = parts[0] if len(parts) == 2 else key
             usage = parts[1] if len(parts) == 2 else "N/A"
 
+            # Classification selon les seuils du profil selectionne
             if score_ajuste >= seuils['critique']:
                 niveau = "Critique"
             elif score_ajuste >= seuils['eleve']:
