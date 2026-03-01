@@ -7,11 +7,11 @@ from frontend.components.ai_explain import explain_with_ai
 
 def render_elicitation_tab(r):
     """Render the elicitation tab."""
-    st.header("🎚️ Élicitation Pondérations AHP")
+    st.header("Elicitation Ponderations AHP", anchor=False)
     st.info("Configure les pondérations pour chaque usage. Utilise les presets ou définis tes propres valeurs.")
 
     for usage_nom, weights in r.get("weights", {}).items():
-        st.subheader(f"📌 {usage_nom}")
+        st.subheader(f"{usage_nom}")
 
         col1, col2 = st.columns([2, 1])
 
@@ -32,12 +32,12 @@ def render_elicitation_tab(r):
             st.markdown("**Pondérations normalisées** :")
             st.json({"w_DB": f"{w_db_norm:.2%}", "w_DP": f"{w_dp_norm:.2%}", "w_BR": f"{w_br_norm:.2%}", "w_UP": f"{w_up_norm:.2%}"})
 
-            if st.button(f"💾 Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
+            if st.button(f":material/save: Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
                 new_weights = {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}
                 if "custom_weights" not in st.session_state:
                     st.session_state.custom_weights = {}
                 st.session_state.custom_weights[usage_nom] = new_weights
-                st.success(f"✅ Pondérations sauvegardées pour {usage_nom}. Relance analyse pour appliquer.")
+                st.success(f"Ponderations sauvegardees pour {usage_nom}. Relancez l'analyse.")
                 try:
                     from backend.audit_trail import get_audit_trail
                     audit = get_audit_trail()
@@ -77,7 +77,7 @@ def render_elicitation_tab(r):
         st.markdown("---")
         col_btn, col_exp = st.columns([1, 4])
         with col_btn:
-            if st.button("💬 Justifier", key=f"elicit_{usage_nom}"):
+            if st.button(":material/chat: Justifier", key=f"elicit_{usage_nom}"):
                 exp = explain_with_ai("elicitation", {"usage": usage_nom, "weights": {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}}, f"elicit_{usage_nom}", 500)
                 st.session_state[f"elicit_{usage_nom}_exp"] = exp
         with col_exp:

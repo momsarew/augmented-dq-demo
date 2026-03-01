@@ -11,10 +11,10 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
 
     api_key = st.session_state.get("anthropic_api_key", "").strip()
     if not api_key:
-        return "⚠️ Configure ta clé API Claude dans la sidebar"
+        return "Configurez la cle API Claude dans la sidebar"
 
     if not api_key.startswith("sk-ant-"):
-        return "⚠️ Clé API invalide (doit commencer par 'sk-ant-')"
+        return "Cle API invalide (doit commencer par 'sk-ant-')"
 
     prompts = {
         "vector": "Explique vecteur 4D en 3 phrases : dimension critique, cause, action.",
@@ -56,7 +56,7 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
         return explanation
     except Exception as e:
         if "AuthenticationError" in type(e).__name__:
-            return "⚠️ Erreur authentification : Vérifie ta clé API"
+            return "Erreur authentification : verifiez la cle API"
         if "RateLimitError" in type(e).__name__:
-            return "⚠️ Limite de taux atteinte : Réessaye dans quelques secondes"
-        return f"⚠️ Erreur : {str(e)[:200]}"
+            return "Limite de taux atteinte : reessayez dans quelques secondes"
+        return f"Erreur : {str(e)[:200]}"

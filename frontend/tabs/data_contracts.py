@@ -49,7 +49,7 @@ DIM_LABELS = {
 def render_data_contracts_tab():
     """Rendu de l'onglet Data Contracts — référentiel 128 anomalies."""
 
-    st.header("📜 Data Contracts")
+    st.header("Data Contracts", anchor=False)
 
     ref_summary = get_summary()
     st.markdown(f"""
@@ -60,7 +60,7 @@ def render_data_contracts_tab():
         padding: 1.25rem;
         margin-bottom: 1.5rem;
     ">
-        <h3 style="color: white; margin: 0 0 0.5rem 0;">📜 Data Contracts v3 — Référentiel {ref_summary['total']} anomalies (extensible)</h3>
+        <h3 style="color: white; margin: 0 0 0.5rem 0;">Data Contracts v3 — Référentiel {ref_summary['total']} anomalies (extensible)</h3>
         <p style="color: rgba(255,255,255,0.8); margin: 0;">
             DB: {ref_summary['by_dimension']['DB']['total']} ·
             DP: {ref_summary['by_dimension']['DP']['total']} ·
@@ -76,21 +76,21 @@ def render_data_contracts_tab():
 
     df = st.session_state.get("df")
     if df is None:
-        st.info("📁 Chargez un dataset dans la sidebar pour générer les contrats.")
+        st.info("Chargez un dataset dans la sidebar pour générer les contrats.")
         return
 
     # =====================================================================
     # RÉFÉRENTIEL (collapsible) — chargé depuis rules_catalog.yaml
     # =====================================================================
     ref_total = len(_catalog.anomalies)
-    with st.expander(f"📚 Référentiel complet ({ref_total} anomalies)", expanded=False):
+    with st.expander(f"Référentiel complet ({ref_total} anomalies)", expanded=False):
         for dim in ["DB", "DP", "BR", "UP"]:
             dim_anomalies = get_by_dimension(dim)
             color = DIM_COLORS[dim]
             st.markdown(f"<h4 style='color: {color};'>[{dim}] {DIM_LABELS[dim]} — {len(dim_anomalies)} anomalies</h4>", unsafe_allow_html=True)
             rows = []
             for aid, a in dim_anomalies.items():
-                det_icon = {"Auto": "🟢", "Semi": "🟡", "Manuel": "🔴"}.get(a["detection"], "⚪")
+                det_icon = {"Auto": "● ", "Semi": "◐ ", "Manuel": "○ "}.get(a["detection"], "- ")
                 rows.append({
                     "ID": aid,
                     "Anomalie": a["name"],
@@ -104,7 +104,7 @@ def render_data_contracts_tab():
     # =====================================================================
     # IMPORT CSV — Enrichir le référentiel
     # =====================================================================
-    with st.expander("📥 Importer de nouvelles anomalies (CSV)", expanded=False):
+    with st.expander("Importer de nouvelles anomalies (CSV)", expanded=False):
         st.markdown("""
         <div style="
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
@@ -126,7 +126,7 @@ def render_data_contracts_tab():
         # Télécharger le template
         csv_template = _catalog.generate_csv_template()
         st.download_button(
-            label="📄 Télécharger le template CSV",
+            label=":material/download: Télécharger le template CSV",
             data=csv_template,
             file_name="anomalies_template.csv",
             mime="text/csv",
@@ -134,7 +134,7 @@ def render_data_contracts_tab():
 
         # Upload CSV
         csv_file = st.file_uploader(
-            "📁 Charger un CSV d'anomalies",
+            "Charger un CSV d'anomalies",
             type=["csv"],
             key="anomaly_csv_upload",
         )
@@ -149,7 +149,7 @@ def render_data_contracts_tab():
                 errors = _catalog.validate_import_df(import_df)
                 if errors:
                     for err in errors:
-                        st.error(f"❌ {err}")
+                        st.error(f"{err}")
                 else:
                     # Identifier nouvelles vs existantes
                     existing = set(_catalog.anomalies.keys())
@@ -157,50 +157,50 @@ def render_data_contracts_tab():
                     update_ids = set(import_df["anomaly_id"].str.strip()) & existing
 
                     if new_ids:
-                        st.info(f"🆕 {len(new_ids)} nouvelles anomalies : {', '.join(sorted(new_ids))}")
+                        st.info(f"{len(new_ids)} nouvelles anomalies : {', '.join(sorted(new_ids))}")
                     if update_ids:
-                        st.warning(f"♻️ {len(update_ids)} anomalies déjà existantes : {', '.join(sorted(update_ids))}")
+                        st.warning(f"{len(update_ids)} anomalies déjà existantes : {', '.join(sorted(update_ids))}")
 
                     col_a, col_b = st.columns(2)
                     with col_a:
                         overwrite = st.checkbox("Écraser les anomalies existantes", value=False)
                     with col_b:
-                        if st.button("✅ Importer dans le catalogue", type="primary"):
+                        if st.button("Importer dans le catalogue", type="primary"):
                             result = _catalog.import_from_dataframe(import_df, overwrite=overwrite)
                             if result["errors"]:
                                 for err in result["errors"]:
-                                    st.error(f"❌ {err}")
+                                    st.error(f"{err}")
                             else:
                                 msg_parts = []
                                 if result["added"] > 0:
-                                    msg_parts.append(f"🆕 {result['added']} ajoutées")
+                                    msg_parts.append(f"{result['added']} ajoutées")
                                 if result["updated"] > 0:
-                                    msg_parts.append(f"♻️ {result['updated']} mises à jour")
+                                    msg_parts.append(f"{result['updated']} mises à jour")
                                 if result["skipped"] > 0:
-                                    msg_parts.append(f"⏭️ {result['skipped']} ignorées (déjà existantes)")
-                                st.success(f"✅ Import réussi — {' · '.join(msg_parts)}")
-                                st.info(f"📊 Le référentiel contient maintenant **{len(_catalog.anomalies)} anomalies**")
+                                    msg_parts.append(f"{result['skipped']} ignorées (déjà existantes)")
+                                st.success(f"Import réussi — {' · '.join(msg_parts)}")
+                                st.info(f"Le référentiel contient maintenant **{len(_catalog.anomalies)} anomalies**")
                                 st.rerun()
 
             except Exception as e:
-                st.error(f"❌ Erreur de lecture CSV : {e}")
+                st.error(f"Erreur de lecture CSV : {e}")
 
     # =====================================================================
     # GÉNÉRATION
     # =====================================================================
-    st.subheader("⚡ Génération automatique")
+    st.subheader("Génération automatique")
 
-    if st.button(f"🔄 Générer les contrats ({ref_total} anomalies)", type="primary", use_container_width=True):
+    if st.button(f":material/refresh: Générer les contrats ({ref_total} anomalies)", type="primary", use_container_width=True):
         contracts = _auto_generate_contracts(df)
         st.session_state.data_contracts = contracts
         total_rules = sum(len(c.get("rules", [])) for c in contracts.values())
         auto_rules = sum(1 for c in contracts.values() for r in c.get("rules", []) if r.get("detection") == "Auto")
         semi_rules = sum(1 for c in contracts.values() for r in c.get("rules", []) if r.get("detection") == "Semi")
         manuel_rules = sum(1 for c in contracts.values() for r in c.get("rules", []) if r.get("detection") == "Manuel")
-        st.success(f"✅ {len(contracts)} contrats · {total_rules} règles (🟢 {auto_rules} Auto · 🟡 {semi_rules} Semi · 🔴 {manuel_rules} Manuel)")
+        st.success(f"{len(contracts)} contrats · {total_rules} règles (● {auto_rules} Auto · ◐ {semi_rules} Semi · ○ {manuel_rules} Manuel)")
 
     if not st.session_state.data_contracts:
-        st.info("💡 Cliquez ci-dessus pour générer les contrats depuis le référentiel complet.")
+        st.info("Cliquez ci-dessus pour générer les contrats depuis le référentiel complet.")
         return
 
     contracts = st.session_state.data_contracts
@@ -232,10 +232,10 @@ def render_data_contracts_tab():
                 dim_violations[dim] += 1
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("📋 Attributs", len(contracts))
-    c2.metric("📏 Règles", total_rules)
-    c3.metric("✅ Conformes", f"{passing}/{len(contracts)}")
-    c4.metric("⚠️ Violations", total_violations)
+    c1.metric("Attributs", len(contracts))
+    c2.metric("Règles", total_rules)
+    c3.metric("Conformes", f"{passing}/{len(contracts)}")
+    c4.metric("Violations", total_violations)
 
     # Dimension causale cards
     st.markdown("**Couverture par dimension causale :**")
@@ -256,7 +256,7 @@ def render_data_contracts_tab():
     # =====================================================================
     # SCORES DAMA/ISO 8000
     # =====================================================================
-    st.subheader("📊 Scores DAMA / ISO 8000")
+    st.subheader("Scores DAMA / ISO 8000")
     if dama_scores:
         dama_cols = st.columns(6)
         for i, dim_name in enumerate(DAMA_DIMENSIONS):
@@ -279,13 +279,13 @@ def render_data_contracts_tab():
     # =====================================================================
     # VUE PAR ATTRIBUT
     # =====================================================================
-    st.subheader("📋 Contrats par attribut")
+    st.subheader("Contrats par attribut")
 
     for col_name, contract in contracts.items():
         col_viols = violations.get(col_name, [])
         nb_rules = len(contract.get("rules", []))
         has_critique = any(v.get("criticality") == "CRITIQUE" for v in col_viols)
-        status_icon = "✅" if not col_viols else "❌" if has_critique else "⚠️"
+        status_icon = ":material/check_circle:" if not col_viols else ":material/cancel:" if has_critique else ":material/warning:"
 
         with st.expander(f"{status_icon} **{col_name}** — {nb_rules} règles, {len(col_viols)} violation(s)", expanded=len(col_viols) > 0):
             # Metadata
@@ -311,8 +311,8 @@ def render_data_contracts_tab():
                 color = DIM_COLORS.get(dim, "rgba(255,255,255,0.5)")
                 st.markdown(f"<span style='color: {color}; font-weight: 600;'>[{dim}] {DIM_LABELS.get(dim, dim)}</span>", unsafe_allow_html=True)
                 for rule in dim_rules:
-                    icon = "❌" if rule["name"] in violated_names else "✅"
-                    det_badge = {"Auto": "🟢", "Semi": "🟡", "Manuel": "🔴"}.get(rule.get("detection", ""), "")
+                    icon = ":material/cancel:" if rule["name"] in violated_names else ":material/check_circle:"
+                    det_badge = {"Auto": "● ", "Semi": "◐ ", "Manuel": "○ "}.get(rule.get("detection", ""), "")
                     aid = rule.get("anomaly_id", "")
                     tag = f" `{aid}`" if aid else ""
                     st.markdown(f"- {icon} {det_badge}{tag} **{rule['name']}**: {rule['description']}")
@@ -337,7 +337,7 @@ def render_data_contracts_tab():
     # =====================================================================
     # EXPORT
     # =====================================================================
-    st.subheader("📤 Export")
+    st.subheader("Export")
 
     # --- ODCS v3.1.0 (standard open source) ---
     st.markdown("""
@@ -359,7 +359,7 @@ def render_data_contracts_tab():
 
     odcs_yaml = export_odcs_yaml(contracts, dama_scores, violations, dataset_name or "dataset")
     st.download_button(
-        label="📥 Export ODCS v3.1.0 (YAML)", use_container_width=True,
+        label=":material/download: Export ODCS v3.1.0 (YAML)", use_container_width=True,
         data=odcs_yaml,
         file_name=f"data_contract_{datetime.now().strftime('%Y%m%d_%H%M%S')}.odcs.yaml",
         mime="application/x-yaml",
@@ -381,7 +381,7 @@ def render_data_contracts_tab():
             "dama_scores": {k: {dk: dv for dk, dv in v.items() if dv is not None} for k, v in dama_scores.items()},
         }
         st.download_button(
-            label="📥 Contrats JSON (format interne)", use_container_width=True,
+            label=":material/download: Contrats JSON (format interne)", use_container_width=True,
             data=json.dumps(export_data, ensure_ascii=False, indent=2, default=str),
             file_name=f"data_contracts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             mime="application/json",
@@ -401,7 +401,7 @@ def render_data_contracts_tab():
                         atag = f" [{v.get('anomaly_id', '')}]" if v.get("anomaly_id") else ""
                         lines.append(f"- **{v.get('criticality', 'MOYEN')}**{atag} {v['rule']}: {v['message']}")
             st.download_button(
-                label="📥 Rapport violations (MD)", use_container_width=True,
+                label=":material/download: Rapport violations (MD)", use_container_width=True,
                 data="\n".join(lines),
                 file_name=f"violations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                 mime="text/markdown",

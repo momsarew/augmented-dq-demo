@@ -1,158 +1,143 @@
-# 🎯 Framework Probabiliste DQ
+# Augmented DQ Framework
 
-Application Streamlit pour analyse qualité données avec approche probabiliste bayésienne.
+Application Streamlit d'analyse qualite donnees avec approche probabiliste bayesienne et referentiel evolutif de 128+ anomalies.
 
-## 🚀 Installation Rapide
+## Installation Rapide
 
-### Option A : Setup automatique Mac (recommande)
+### Option A : Setup automatique Mac
 
 ```bash
-# Rend le script executable (une seule fois)
 chmod +x setup_mac.sh
-
-# Nettoyage complet + installation + lancement
 ./setup_mac.sh
 ```
 
-Le script `setup_mac.sh` nettoie tous les caches (Python, Streamlit, navigateur),
-recree un virtualenv propre, installe les dependances et lance l'app.
-
-Options du script :
-- `./setup_mac.sh --full` : Nettoyage + install + lancement (defaut)
-- `./setup_mac.sh --clean` : Nettoyage seul
-- `./setup_mac.sh --run` : Lancement seul (si deja installe)
+Options : `--full` (defaut) | `--clean` (nettoyage seul) | `--run` (lancement seul)
 
 ### Option B : Installation manuelle
 
-#### 1. Prerequis
 ```bash
-Python 3.9+
-pip
-```
-
-#### 2. Installation
-```bash
-# Supprimer ancien venv si existant
-rm -rf venv
-
-# Creer environnement virtuel
-python3 -m venv venv
-source venv/bin/activate  # Mac/Linux
-# OU
-venv\Scripts\activate  # Windows
-
-# Installer dependances
-pip install -r requirements.txt
-```
-
-#### 3. Lancement
-```bash
-source venv/bin/activate
-streamlit run app.py
-```
-
-L'application s'ouvre automatiquement dans votre navigateur sur `http://localhost:8501`
-
-### Probleme de cache / ancienne version ?
-
-Si l'application affiche une ancienne version :
-
-```bash
-# 1. Arreter Streamlit (Ctrl+C)
-
-# 2. Nettoyer tous les caches
-find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true
-rm -rf ~/.streamlit/cache .streamlit/cache
-
-# 3. Supprimer et recreer le venv
-rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# 4. Vider le cache navigateur (Cmd+Shift+R dans Chrome/Safari)
-
-# 5. Relancer
 streamlit run app.py
 ```
 
-## 📁 Structure Projet
+L'application s'ouvre sur `http://localhost:8501`
+
+## Structure du Projet
 
 ```
 augmented-dq-demo/
-├── app.py                              # Application principale
-├── streamlit_gray_css.py               # CSS (fond gris mat)
-├── streamlit_anomaly_detection.py      # Module scan anomalies
-├── requirements.txt                    # Dépendances
+├── app.py                                # Orchestrateur principal Streamlit
+├── requirements.txt                      # Dependances Python
 │
 ├── backend/
-│   ├── adaptive_scan_engine.py         # Moteur scan adaptatif
-│   ├── core_anomaly_catalog.py         # 15 anomalies détectées
-│   ├── extended_anomaly_catalog.py     # 60 anomalies cataloguées
-│   ├── scan_to_beta_connector.py       # Connecteur scan→Beta
+│   ├── rules_catalog.yaml                # REFERENTIEL : 128+ anomalies (source unique)
+│   ├── rules_catalog_loader.py           # Chargeur YAML + API ODCS + import CSV
+│   ├── anomaly_referential.py            # Couche compatibilite (lit le YAML)
+│   ├── security.py                       # Securite (XSS, validation, sanitization)
+│   ├── audit_trail.py                    # Audit trail complet
+│   ├── adaptive_scan_engine.py           # Moteur scan adaptatif
+│   ├── scan_to_beta_connector.py         # Connecteur scan -> Beta
 │   │
-│   └── engine/                         # Moteur calculs probabilistes
-│       ├── __init__.py
-│       ├── beta_calculator.py          # Distributions Beta
-│       ├── ahp_elicitor.py             # Pondérations AHP
-│       ├── analyzer.py                 # Stats exploratoires
-│       ├── risk_scorer.py              # Calcul scores risque
-│       ├── lineage_propagator.py       # Propagation causale
-│       └── comparator.py               # Comparaison DAMA
+│   └── engine/                           # Moteur calculs probabilistes
+│       ├── beta_calculator.py            # Distributions Beta bayesiennes
+│       ├── ahp_elicitor.py               # Ponderations AHP par usage
+│       ├── analyzer.py                   # Analyse exploratoire
+│       ├── risk_scorer.py                # Scoring risque contextualise
+│       ├── lineage_propagator.py         # Propagation causale ETL
+│       └── comparator.py                 # Comparaison DAMA vs Probabiliste
+│
+├── frontend/
+│   ├── components/                       # Composants partages (theme, charts, export)
+│   └── tabs/                             # Onglets de l'application
+│       ├── home.py                       # Accueil
+│       ├── dashboard.py                  # Dashboard global
+│       ├── vectors.py                    # Vecteurs 4D detailles
+│       ├── priorities.py                 # Top priorites actions
+│       ├── elicitation.py                # Elicitation AHP
+│       ├── risk_profile.py              # Profil de risque
+│       ├── lineage.py                    # Propagation ETL
+│       ├── dama.py                       # Comparaison DAMA
+│       ├── reporting.py                  # Rapports contextuels IA
+│       ├── data_contracts.py             # Data Contracts (generation dynamique)
+│       ├── settings.py                   # Parametres et admin
+│       └── help.py                       # Guide utilisateur
+│
+├── tests/                                # Tests pre-deploiement
+└── docs/                                 # Documentation architecture
 ```
 
-## ✅ Fonctionnalités
+## Architecture Cle
 
-### 🔍 Scan Anomalies
-- **15 détecteurs réels** opérationnels
-- **60 anomalies** cataloguées (15 implémentées)
-- **Apprentissage adaptatif** : moteur s'améliore à chaque scan
+### Referentiel d'anomalies evolutif
+
+Le referentiel est stocke dans `backend/rules_catalog.yaml` (source unique de verite) :
+
+- **128 anomalies** reparties en 4 dimensions causales (DB, DP, BR, UP)
+- **31 rule_types** avec validateurs automatiques
+- **Extensible par CSV** : ajoutez des anomalies metier sans modifier le code Python
+- **Export ODCS v3.1.0** : standard Open Data Contract (Bitol / Linux Foundation)
+
+### Generation dynamique de contrats
+
+L'onglet Data Contracts utilise un systeme d'**applicateurs dynamiques** :
+
+1. Chaque `rule_type` dans le YAML a un applicateur Python qui decide SI la regle s'applique
+2. La generation itere toutes les anomalies du catalogue automatiquement
+3. Ajouter une anomalie avec un `rule_type` existant = prise en charge **zero code**
+
+### Framework 4D probabiliste
+
+| Dimension | Code | Description |
+|-----------|------|-------------|
+| Database Integrity | DB | Contraintes structurelles (NULL, PK, types) |
+| Data Processing | DP | Transformations ETL (calculs, jointures, troncatures) |
+| Business Rules | BR | Regles metier (temporelles, bornes, conformite) |
+| Usage Appropriateness | UP | Adequation contextuelle (fraicheur, granularite) |
+
+Chaque dimension est modelisee par une **distribution Beta** bayesienne, ponderee par usage via **AHP**.
+
+## Fonctionnalites
+
+### Scan et Detection
+- **128+ anomalies** dans le referentiel YAML (extensible)
+- **33 detecteurs automatiques** (rule_types avec validateurs)
+- **Apprentissage adaptatif** : le moteur s'ameliore a chaque scan
 - **3 budgets** : QUICK (top 5) | STANDARD (top 10) | DEEP (tous)
 
-### 📊 Dashboard Qualité
-- Vecteurs 4D (DB-DP-BR-UP)
-- Heatmap scores risque
-- Top priorités actions
-- Export Excel multi-onglets
+### Data Contracts
+- Generation automatique depuis le referentiel complet
+- Validation Auto/Semi/Manuel par anomalie
+- Scores DAMA / ISO 8000 (6 dimensions)
+- Import CSV pour anomalies metier personnalisees
+- Export ODCS v3.1.0 (YAML) + JSON + rapport violations
 
-### 🎯 Analyse Probabiliste
-- Distributions Beta par dimension
-- Scores contextualisés par usage
-- Propagation risque (lineage)
-- Comparaison vs DAMA
+### Analyse Probabiliste
+- Distributions Beta par dimension (DB, DP, BR, UP)
+- Scores contextualises par usage metier (paie, reporting, audit...)
+- Propagation risque le long des pipelines ETL (lineage)
+- Comparaison vs referentiel DAMA
 
-## 🔑 Configuration API Claude (Optionnel)
+## Configuration API Claude (Optionnel)
 
-Pour utiliser les fonctionnalités IA (dialogue élicitation, commentaires) :
+Pour les fonctionnalites IA (dialogue elicitation, commentaires contextuels) :
 
-1. Obtenir clé API sur https://console.anthropic.com/
-2. Dans la sidebar, coller la clé dans le champ "Clé API Claude"
+1. Obtenir une cle API sur https://console.anthropic.com/
+2. Dans la sidebar, coller la cle dans le champ "Cle API Claude"
 
-## 📚 Documentation
+## Documentation
 
-- **Guide déploiement** : Voir `GUIDE_DEPLOIEMENT.md`
-- **Architecture** : Voir `backend/README.md`
+| Document | Description |
+|----------|-------------|
+| `GUIDE_UTILISATEUR.md` | Guide d'utilisation avec exemples |
+| `DOCUMENTATION_TECHNIQUE.md` | Architecture, modules, formules |
+| `docs/ARCHITECTURE.md` | Architecture C4 detaillee |
+| `docs/ARCHITECTURE_DIAGRAMS.md` | Diagrammes Mermaid |
 
-## 🎓 Méthodologie
+## Gains Demontres
 
-**Framework 4D** :
-- **[DB]** Database : Contraintes structurelles
-- **[DP]** Data Processing : Transformations ETL
-- **[BR]** Business Rules : Règles métier
-- **[UP]** Usage-fit : Adéquation contextuelle
-
-**Approche Bayésienne** :
-- Distributions Beta modélisant l'incertitude
-- Pondérations AHP par usage métier
-- Propagation causale le long des pipelines
-
-## 💡 Gains Démontrés
-
-- ⏱️ **Temps élicitation** : 240h → 30min (480×)
-- 🎯 **Faux positifs** : -70%
-- 🔔 **Détection incidents** : 3 sem → 9h (-95%)
-- 💰 **ROI** : 8-18× vs approches traditionnelles
-
-## 📞 Contact
-
-Thierno DIAW - Senior Manager Data Governance
+- Temps elicitation : 240h -> 30min (480x)
+- Faux positifs : -70%
+- Detection incidents : 3 sem -> 9h (-95%)
+- ROI : 8-18x vs approches traditionnelles

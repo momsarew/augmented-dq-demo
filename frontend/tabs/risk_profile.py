@@ -6,31 +6,31 @@ import streamlit as st
 
 PROFILS_RISQUE = {
     "tres_prudent": {
-        "nom": "🛡️ Très Prudent",
+        "nom": "Tres Prudent",
         "description": "Zéro tolérance aux risques. Idéal pour contextes réglementaires stricts (Paie, Audit).",
         "multiplicateur": 1.3,
         "seuils": {"critique": 0.30, "eleve": 0.20, "modere": 0.10}
     },
     "prudent": {
-        "nom": "🔒 Prudent",
+        "nom": "Prudent",
         "description": "Préférence pour la sécurité. Alertes précoces recommandées.",
         "multiplicateur": 1.15,
         "seuils": {"critique": 0.35, "eleve": 0.22, "modere": 0.12}
     },
     "equilibre": {
-        "nom": "⚖️ Équilibré",
+        "nom": "Equilibre",
         "description": "Balance risque/efficacité. Profil par défaut recommandé.",
         "multiplicateur": 1.0,
         "seuils": {"critique": 0.40, "eleve": 0.25, "modere": 0.15}
     },
     "tolerant": {
-        "nom": "🎯 Tolérant",
+        "nom": "Tolerant",
         "description": "Accepte certains risques pour plus d'agilité. Pour environnements flexibles.",
         "multiplicateur": 0.85,
         "seuils": {"critique": 0.50, "eleve": 0.35, "modere": 0.20}
     },
     "tres_tolerant": {
-        "nom": "🚀 Très Tolérant",
+        "nom": "Tres Tolerant",
         "description": "Focus sur l'essentiel uniquement. Pour POC ou environnements de test.",
         "multiplicateur": 0.70,
         "seuils": {"critique": 0.60, "eleve": 0.45, "modere": 0.30}
@@ -40,7 +40,7 @@ PROFILS_RISQUE = {
 
 def render_risk_profile_tab(r):
     """Render the risk profile tab."""
-    st.header("🎭 Profil de Risque")
+    st.header("Profil de Risque", anchor=False)
 
     st.markdown("""
     <div style="
@@ -50,7 +50,7 @@ def render_risk_profile_tab(r):
         padding: 1.25rem;
         margin-bottom: 1.5rem;
     ">
-        <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 Qu'est-ce que c'est ?</h3>
+        <h3 style="color: white; margin: 0 0 0.5rem 0;">Profil de risque</h3>
         <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1rem;">
             Ton <strong>profil de risque</strong> détermine comment les scores sont ajustés selon ton appétence au risque.
             Un profil <strong>prudent</strong> amplifiera les alertes, tandis qu'un profil <strong>tolérant</strong> les atténuera.
@@ -58,7 +58,7 @@ def render_risk_profile_tab(r):
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("1️⃣ Choisis ton profil")
+    st.subheader("Choisis ton profil")
 
     if "profil_risque" not in st.session_state:
         st.session_state.profil_risque = "equilibre"
@@ -102,12 +102,12 @@ def render_risk_profile_tab(r):
     profil_actuel = PROFILS_RISQUE[st.session_state.profil_risque]
     st.markdown("---")
 
-    st.subheader(f"2️⃣ Ton profil : {profil_actuel['nom']}")
-    st.info(f"📋 {profil_actuel['description']}")
+    st.subheader(f"Ton profil : {profil_actuel['nom']}")
+    st.info(f"{profil_actuel['description']}")
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**🔢 Multiplicateur de risque**")
+        st.markdown("**Multiplicateur de risque**")
         mult = profil_actuel['multiplicateur']
         if mult > 1:
             st.warning(f"Les scores sont **amplifiés** de {(mult - 1) * 100:.0f}%")
@@ -117,20 +117,20 @@ def render_risk_profile_tab(r):
             st.info("Scores **non modifiés** (profil neutre)")
 
     with col2:
-        st.markdown("**🚨 Seuils d'alerte ajustés**")
+        st.markdown("**Seuils d'alerte ajustes**")
         seuils = profil_actuel['seuils']
         st.markdown(f"""
         | Niveau | Seuil |
         |--------|-------|
-        | 🔴 Critique | ≥ {seuils['critique']:.0%} |
-        | 🟠 Élevé | ≥ {seuils['eleve']:.0%} |
-        | 🟡 Modéré | ≥ {seuils['modere']:.0%} |
-        | 🟢 Faible | < {seuils['modere']:.0%} |
+        | Critique | ≥ {seuils['critique']:.0%} |
+        | Eleve | ≥ {seuils['eleve']:.0%} |
+        | Modere | ≥ {seuils['modere']:.0%} |
+        | Faible | < {seuils['modere']:.0%} |
         """)
 
     st.markdown("---")
 
-    st.subheader("3️⃣ Impact sur tes scores actuels")
+    st.subheader("Impact sur les scores")
 
     scores = r.get("scores", {})
     if scores:
@@ -145,13 +145,13 @@ def render_risk_profile_tab(r):
             usage = parts[1] if len(parts) == 2 else "N/A"
 
             if score_ajuste >= seuils['critique']:
-                niveau = "🔴 Critique"
+                niveau = "Critique"
             elif score_ajuste >= seuils['eleve']:
-                niveau = "🟠 Élevé"
+                niveau = "Eleve"
             elif score_ajuste >= seuils['modere']:
-                niveau = "🟡 Modéré"
+                niveau = "Modere"
             else:
-                niveau = "🟢 Faible"
+                niveau = "Faible"
 
             scores_ajustes.append({
                 "attribut": attr,
@@ -175,10 +175,10 @@ def render_risk_profile_tab(r):
         nb_modere = len([s for s in scores_ajustes if "Modéré" in s['niveau']])
         nb_faible = len([s for s in scores_ajustes if "Faible" in s['niveau']])
 
-        col1.metric("🔴 Critiques", nb_critique)
-        col2.metric("🟠 Élevés", nb_eleve)
-        col3.metric("🟡 Modérés", nb_modere)
-        col4.metric("🟢 Faibles", nb_faible)
+        col1.metric("Critiques", nb_critique)
+        col2.metric("Eleves", nb_eleve)
+        col3.metric("Moderes", nb_modere)
+        col4.metric("Faibles", nb_faible)
 
         st.session_state.scores_ajustes = {f"{s['attribut']}_{s['usage']}": s['score_ajuste'] for s in scores_ajustes}
         st.session_state.seuils_profil = seuils
@@ -188,11 +188,11 @@ def render_risk_profile_tab(r):
 
     # AI recommendations
     st.markdown("---")
-    if st.button("🤖 Obtenir recommandations IA selon mon profil", type="primary"):
+    if st.button(":material/smart_toy: Recommandations IA", type="primary"):
         if not scores:
-            st.warning("⚠️ Aucun score disponible pour générer des recommandations.")
+            st.warning("Aucun score disponible pour generer des recommandations.")
         elif st.session_state.get("anthropic_api_key"):
-            with st.spinner("🤖 Analyse en cours..."):
+            with st.spinner(":material/smart_toy: Analyse en cours..."):
                 try:
                     import anthropic
                     client = anthropic.Anthropic(api_key=st.session_state.anthropic_api_key)
@@ -227,10 +227,10 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                     st.session_state.ai_tokens_used += response.usage.input_tokens + response.usage.output_tokens
                     st.session_state.profil_risque_reco = response.content[0].text
                 except Exception as e:
-                    st.error(f"❌ Erreur IA : {e}")
+                    st.error(f"Erreur IA : {e}")
         else:
-            st.warning("⚠️ Configure ta clé API dans l'onglet ⚙️ Paramètres")
+            st.warning("Configurez la cle API dans l'onglet Parametres")
 
     if "profil_risque_reco" in st.session_state:
-        with st.expander("💡 Recommandations IA personnalisées", expanded=True):
+        with st.expander(":material/lightbulb: Recommandations IA", expanded=True):
             st.markdown(st.session_state.profil_risque_reco)

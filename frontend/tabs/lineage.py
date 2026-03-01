@@ -6,7 +6,7 @@ from frontend.components.ai_explain import explain_with_ai
 
 def render_lineage_tab(r):
     """Render the lineage tab."""
-    st.header("🔄 Propagation Lineage")
+    st.header("Propagation Lineage", anchor=False)
 
     lineage = r.get("lineage")
     if lineage:
@@ -18,7 +18,7 @@ def render_lineage_tab(r):
 
         col1, col2 = st.columns([1, 4])
         with col1:
-            if st.button("💬 Analyser Propagation", key="lineage"):
+            if st.button(":material/chat: Analyser Propagation", key="lineage"):
                 exp = explain_with_ai("lineage", {"risk_source": lineage.get("risk_source"), "risk_final": lineage.get("risk_final")}, "lineage", 450)
                 st.session_state.lineage_exp = exp
         with col2:

@@ -18,18 +18,18 @@ def _get_score_color(score):
 
 
 DIM_INFO = {
-    "completeness": {"label": "Complétude", "icon": "📊", "desc": "Données présentes vs attendues"},
-    "consistency": {"label": "Cohérence", "icon": "🔗", "desc": "Uniformité entre sources"},
-    "accuracy": {"label": "Exactitude", "icon": "🎯", "desc": "Conformité à la réalité"},
-    "timeliness": {"label": "Fraîcheur", "icon": "⏱️", "desc": "Actualité des données"},
-    "validity": {"label": "Validité", "icon": "✅", "desc": "Respect des règles métier"},
-    "uniqueness": {"label": "Unicité", "icon": "🔑", "desc": "Données sans doublons"}
+    "completeness": {"label": "Complétude", "icon": ":material/pie_chart:", "desc": "Donnees presentes vs attendues"},
+    "consistency": {"label": "Cohérence", "icon": ":material/link:", "desc": "Uniformite entre sources"},
+    "accuracy": {"label": "Exactitude", "icon": ":material/target:", "desc": "Conformite a la realite"},
+    "timeliness": {"label": "Fraîcheur", "icon": ":material/schedule:", "desc": "Actualite des donnees"},
+    "validity": {"label": "Validité", "icon": ":material/verified:", "desc": "Respect des regles metier"},
+    "uniqueness": {"label": "Unicité", "icon": ":material/fingerprint:", "desc": "Donnees sans doublons"}
 }
 
 
 def render_dama_tab(r, sanitize_column_name):
     """Render the DAMA comparison tab."""
-    st.header("📈 Comparaison DAMA")
+    st.header("Comparaison DAMA", anchor=False)
 
     comp = r.get("comparaison", {})
     if not comp:
@@ -49,7 +49,7 @@ def render_dama_tab(r, sanitize_column_name):
             margin-bottom: 1.5rem;
         ">
             <h3 style="color: white; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                📌 {safe_attr_name}
+                {safe_attr_name}
             </h3>
         </div>
         """, unsafe_allow_html=True)
@@ -104,7 +104,7 @@ def render_dama_tab(r, sanitize_column_name):
 
             note = attr_data.get("note", "")
             if note:
-                st.caption(f"ℹ️ {note}")
+                st.caption(f"{note}")
 
         st.markdown("<p style='color: rgba(255,255,255,0.7); margin: 1rem 0 0.5rem 0; font-weight: 500;'>Dimensions DAMA</p>", unsafe_allow_html=True)
 
@@ -114,7 +114,7 @@ def render_dama_tab(r, sanitize_column_name):
         for i, dim_key in enumerate(dims_list):
             with cols[i % 3]:
                 dim_value = attr_data.get(dim_key)
-                info = DIM_INFO.get(dim_key, {"label": dim_key, "icon": "📊", "desc": ""})
+                info = DIM_INFO.get(dim_key, {"label": dim_key, "icon": "", "desc": ""})
 
                 if dim_value is None:
                     display_value = "N/A"
@@ -148,7 +148,7 @@ def render_dama_tab(r, sanitize_column_name):
 
     # Comparative chart
     if len(dama_scores) > 1:
-        st.subheader("📊 Vue Comparative")
+        st.subheader("Vue Comparative")
 
         attr_names = list(dama_scores.keys())
         global_scores = [dama_scores[a].get("score_global", 0) * 100 for a in attr_names]
@@ -179,7 +179,7 @@ def render_dama_tab(r, sanitize_column_name):
 
     col1, col2 = st.columns([1, 4])
     with col1:
-        if st.button("💬 Synthétiser", key="dama"):
+        if st.button(":material/chat: Synthetiser", key="dama"):
             exp = explain_with_ai("dama", {"dama": comp.get("dama_scores"), "masked": len(comp.get("problemes_masques", []))}, "dama", 500)
             st.session_state.dama_exp = exp
     with col2:

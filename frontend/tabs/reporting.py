@@ -7,32 +7,32 @@ import streamlit as st
 
 
 PROFILS = {
-    "cfo": "💰 CFO (Chief Financial Officer)",
-    "data_engineer": "🔧 Data Engineer / Développeur",
-    "drh": "👥 DRH (Directeur Ressources Humaines)",
-    "auditeur": "🔍 Auditeur / Compliance Officer",
-    "gouvernance": "📊 Responsable Gouvernance Données",
-    "manager_ops": "⚡ Manager Opérationnel",
-    "custom": "✏️ Profil personnalisé..."
+    "cfo": "CFO (Chief Financial Officer)",
+    "data_engineer": "Data Engineer / Developpeur",
+    "drh": "DRH (Directeur Ressources Humaines)",
+    "auditeur": "Auditeur / Compliance Officer",
+    "gouvernance": "Responsable Gouvernance Donnees",
+    "manager_ops": "Manager Operationnel",
+    "custom": "Profil personnalise..."
 }
 
 
 def render_reporting_tab(r, escape_html, sanitize_user_input):
     """Render the reporting tab."""
-    st.header("📋 Restitution Adaptative")
-    st.info("🎯 Rapport personnalisé selon TON profil métier")
+    st.header("Restitution Adaptative", anchor=False)
+    st.info("Rapport personnalise selon votre profil metier")
 
     profils = dict(PROFILS)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        profil_select = st.selectbox("👤 Ton profil", options=list(profils.keys()), format_func=lambda x: profils[x], index=4)
+        profil_select = st.selectbox("Votre profil", options=list(profils.keys()), format_func=lambda x: profils[x], index=4)
         st.session_state.selected_profile = profil_select
 
         if profil_select == "custom":
             st.markdown("---")
-            st.markdown("**📝 Définir ton profil personnalisé**")
+            st.markdown("**Definir un profil personnalise**")
 
             custom_titre_raw = st.text_input("Intitulé du poste", placeholder="Ex: Chief Data Officer, Analyste BI...", key="custom_profile_title", max_chars=100)
             custom_titre = sanitize_user_input(custom_titre_raw, max_length=100)
@@ -44,32 +44,32 @@ def render_reporting_tab(r, escape_html, sanitize_user_input):
             custom_focus = sanitize_user_input(custom_focus_raw, max_length=200)
 
             if custom_titre:
-                profils["custom"] = f"✏️ {escape_html(custom_titre)}"
+                profils["custom"] = f"{escape_html(custom_titre)}"
 
     with col2:
         attributs = list(r.get("vecteurs_4d", {}).keys())
         if attributs:
-            attributs_focus = st.multiselect("📌 Attribut(s) à analyser", options=attributs, default=[attributs[0]] if attributs else [], help="Sélectionne un ou plusieurs attributs pour le rapport")
+            attributs_focus = st.multiselect("Attribut(s) a analyser", options=attributs, default=[attributs[0]] if attributs else [], help="Sélectionne un ou plusieurs attributs pour le rapport")
         else:
             st.warning("Aucun attribut analysé")
             attributs_focus = []
 
     usages_list = list(r.get("weights", {}).keys())
     if usages_list and attributs_focus:
-        usage_focus = st.selectbox("🎯 Usage métier", options=usages_list)
+        usage_focus = st.selectbox("Usage metier", options=usages_list)
 
         st.markdown("---")
 
         can_generate = True
         if profil_select == "custom":
             if not st.session_state.get("custom_profile_title"):
-                st.warning("⚠️ Renseigne l'intitulé de ton profil personnalisé")
+                st.warning("Renseignez l'intitule du profil personnalise")
                 can_generate = False
 
-        st.info(f"📊 **{len(attributs_focus)} attribut(s) sélectionné(s)** pour le rapport")
+        st.info(f"**{len(attributs_focus)} attribut(s) selectionne(s)** pour le rapport")
 
-        if st.button("📄 Générer Rapport Personnalisé", type="primary", use_container_width=True) and can_generate:
-            with st.spinner("🤖 Claude génère ton rapport..."):
+        if st.button(":material/description: Generer le rapport", type="primary", use_container_width=True) and can_generate:
+            with st.spinner(":material/smart_toy: Generation du rapport..."):
                 try:
                     weights_data = r.get("weights", {}).get(usage_focus, {})
                     lineage_data = r.get("lineage", {})
@@ -78,7 +78,7 @@ def render_reporting_tab(r, escape_html, sanitize_user_input):
                         custom_titre = st.session_state.get("custom_profile_title", "Profil personnalisé")
                         custom_desc = st.session_state.get("custom_profile_desc", "")
                         custom_focus_input = st.session_state.get("custom_profile_focus", "")
-                        profil_pour_prompt = f"✏️ {custom_titre}"
+                        profil_pour_prompt = f"{custom_titre}"
                         if custom_desc:
                             profil_pour_prompt += f"\nDescription : {custom_desc}"
                         if custom_focus_input:
@@ -167,11 +167,11 @@ Nombre d'attributs analysés : {nb_attrs}
 Génère un rapport structuré en 3 parties en utilisant EXCLUSIVEMENT les données réelles fournies :
 
 **PARTIE 1 : SYNTHÈSE EXÉCUTIVE (2 min lecture)**
-- 🚨 Vue d'ensemble : {nb_attrs} attribut(s) analysé(s) pour l'usage "{usage_focus}"
-- 📊 Tableau récapitulatif des scores de risque par attribut (du plus critique au moins critique)
-- 💡 L'essentiel en 3-5 points (basé sur les données réelles)
-- 🔴 Focus sur l'attribut le plus critique et pourquoi
-- ✅ Top 3 actions prioritaires (basées sur les dimensions critiques réelles)
+- Vue d'ensemble : {nb_attrs} attribut(s) analysé(s) pour l'usage "{usage_focus}"
+- Tableau recapitulatif des scores de risque par attribut (du plus critique au moins critique)
+- L'essentiel en 3-5 points (basé sur les données réelles)
+- Focus sur l'attribut le plus critique et pourquoi
+- Top 3 actions prioritaires (basées sur les dimensions critiques réelles)
 
 **PARTIE 2 : DÉTAILS PAR ATTRIBUT (5-10 min lecture)**
 Pour chaque attribut analysé, affiche un bloc avec :
@@ -182,11 +182,11 @@ Pour chaque attribut analysé, affiche un bloc avec :
 - Actions recommandées spécifiques
 
 **PARTIE 3 : SYNTHÈSE & RECOMMANDATIONS PROFIL (3 min lecture)**
-- 📊 KPIs globaux : score moyen, min, max, nb alertes critiques
-- ⚖️ Pondérations utilisées pour l'usage "{usage_focus}"
-- 💼 Impact business global basé sur les scores de risque réels
-- 📈 Plan de monitoring et prochaines étapes
-- 🎯 Recommandations spécifiques pour le profil {profil_pour_prompt}
+- KPIs globaux : score moyen, min, max, nb alertes critiques
+- Ponderations utilisees pour l'usage "{usage_focus}"
+- Impact business global basé sur les scores de risque réels
+- Plan de monitoring et prochaines étapes
+- Recommandations specifiques pour le profil {profil_pour_prompt}
 
 Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans les données JSON."""
 
@@ -201,10 +201,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     rapport = response.content[0].text
                     st.session_state.rapport_genere = rapport
 
-                    st.success("✅ Rapport généré !")
+                    st.success("Rapport genere")
 
                 except Exception as e:
-                    st.error(f"❌ Erreur génération rapport : {e}")
+                    st.error(f"Erreur generation rapport : {e}")
 
         # Display generated report
         if "rapport_genere" in st.session_state:
@@ -219,7 +219,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
             nb_attrs_rapport = len(attributs_focus)
             attrs_str = ", ".join(attributs_focus[:3]) + ("..." if nb_attrs_rapport > 3 else "")
-            st.success(f"✅ Rapport généré pour : **{profil_affiche}** | {nb_attrs_rapport} attribut(s) : {attrs_str}")
+            st.success(f"Rapport genere pour **{profil_affiche}** | {nb_attrs_rapport} attribut(s) : {attrs_str}")
 
             try:
                 from backend.audit_trail import get_audit_trail
@@ -228,18 +228,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             except Exception:
                 pass
 
-            with st.expander("📄 Ton Rapport Personnalisé", expanded=True):
+            with st.expander(":material/description: Rapport Personnalise", expanded=True):
                 st.markdown(st.session_state.rapport_genere)
 
             st.markdown("---")
-            st.subheader("📥 Télécharger")
+            st.subheader("Telecharger")
 
             col1, col2 = st.columns(2)
             with col1:
                 rapport_bytes = st.session_state.rapport_genere.encode('utf-8')
-                st.download_button("📝 Markdown (.md)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.md", mime="text/markdown")
+                st.download_button(":material/download: Markdown (.md)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.md", mime="text/markdown")
             with col2:
-                st.download_button("📄 Texte (.txt)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
+                st.download_button(":material/download: Texte (.txt)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
 
     else:
-        st.warning("⚠️ Sélectionne au moins un usage ET un attribut pour générer un rapport")
+        st.warning("Selectionnez au moins un usage et un attribut pour generer un rapport")

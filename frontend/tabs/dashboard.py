@@ -8,14 +8,14 @@ from frontend.components.ai_explain import explain_with_ai
 
 def render_dashboard_tab(r):
     """Render the dashboard tab."""
-    st.header("📊 Dashboard Qualité")
+    st.header("Dashboard Qualite", anchor=False)
 
-    if st.button("📥 Export Excel", type="primary"):
+    if st.button(":material/download: Export Excel", type="primary"):
         try:
             out = export_excel(r)
             with open(out, "rb") as f:
-                st.download_button("💾 Télécharger", f, out, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            st.success(f"✅ {out}")
+                st.download_button(":material/download: Telecharger", f, out, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.success(f"{out}")
             try:
                 from backend.audit_trail import get_audit_trail
                 audit = get_audit_trail()
@@ -23,7 +23,7 @@ def render_dashboard_tab(r):
             except Exception:
                 pass
         except Exception as e:
-            st.error(f"❌ {e}")
+            st.error(f"{e}")
 
     st.markdown("---")
 
@@ -39,11 +39,11 @@ def render_dashboard_tab(r):
         st.plotly_chart(create_heatmap(r["scores"]), use_container_width=True)
 
     st.markdown("---")
-    st.subheader("💬 Assistance IA")
+    st.subheader("Assistance IA")
 
     col1, col2 = st.columns([1, 4])
     with col1:
-        if st.button("🤖 Analyser", key="dash"):
+        if st.button(":material/smart_toy: Analyser", key="dash"):
             exp = explain_with_ai("global", {"nb": len(r["vecteurs_4d"]), "max": max(r["scores"].values())}, "dash", 500)
             st.session_state.dash_exp = exp
     with col2:

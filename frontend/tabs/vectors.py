@@ -7,22 +7,22 @@ from frontend.components.ai_explain import explain_with_ai
 
 def render_vectors_tab(r):
     """Render the vectors tab."""
-    st.header("🎯 Vecteurs 4D")
+    st.header("Vecteurs 4D", anchor=False)
 
     for attr, vec in r["vecteurs_4d"].items():
-        st.subheader(f"📌 {attr}")
+        st.subheader(f"{attr}")
         st.plotly_chart(create_vector_chart(vec), use_container_width=True, key=f"vec_{attr}")
 
         col1, col2 = st.columns([1, 4])
         with col1:
-            if st.button("💬 Expliquer", key=f"v_{attr}"):
+            if st.button(":material/chat: Expliquer", key=f"v_{attr}"):
                 exp = explain_with_ai("vector", {f"P_{d}": vec[f"P_{d}"] for d in ["DB", "DP", "BR", "UP"]}, f"v_{attr}", 400)
                 st.session_state[f"v_{attr}_exp"] = exp
         with col2:
             if f"v_{attr}_exp" in st.session_state:
                 st.info(st.session_state[f"v_{attr}_exp"])
 
-        with st.expander("🔬 Détails Beta"):
+        with st.expander(":material/science: Details Beta"):
             c1, c2, c3, c4 = st.columns(4)
             c1.markdown(f"**DB**: Beta({vec['alpha_DB']:.1f}, {vec['beta_DB']:.1f})\nP={vec['P_DB']:.3f}")
             c2.markdown(f"**DP**: Beta({vec['alpha_DP']:.1f}, {vec['beta_DP']:.1f})\nP={vec['P_DP']:.3f}")
