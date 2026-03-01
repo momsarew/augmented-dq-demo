@@ -2193,16 +2193,6 @@ else:
             st.warning("Module Data Contracts non disponible")
 
     # ========================================================================
-    # ONGLET DATA CONTRACTS (avant analyse)
-    # ========================================================================
-    with tabs[1]:  # 📜 Contracts
-        if CONTRACTS_OK:
-            render_data_contracts_tab()
-        else:
-            st.header("📜 Data Contracts")
-            st.warning("Module Data Contracts non disponible")
-
-    # ========================================================================
     # ONGLET HISTORIQUE (avant analyse)
     # ========================================================================
     with tabs[2]:  # Historique
