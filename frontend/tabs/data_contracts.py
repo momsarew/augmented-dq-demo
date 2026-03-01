@@ -863,6 +863,77 @@ def _check_rule(df, series, col_name, total, rt, rule, aid, dim):
         if len(clean) > 0 and (clean.max() > 1e15 or clean.min() < -1e15):
             return _violation(aid, rule["name"], f"Valeur extrême: max={clean.max():.2e}", "CRITIQUE", dim, 1)
 
+    elif rt == "fuzzy_duplicates":
+        clean = series.dropna().astype(str)
+        unique_vals = clean.unique()
+        if 1 < len(unique_vals) <= 500:
+            from difflib import SequenceMatcher
+            pairs = []
+            for i in range(len(unique_vals)):
+                for j in range(i + 1, len(unique_vals)):
+                    if SequenceMatcher(None, unique_vals[i].lower(), unique_vals[j].lower()).ratio() >= 0.85:
+                        pairs.append((unique_vals[i], unique_vals[j]))
+            if pairs:
+                ex = "; ".join(f"'{a}'≈'{b}'" for a, b in pairs[:3])
+                return _violation(aid, rule["name"], f"{len(pairs)} paires proches: {ex}", "MOYEN", dim, len(pairs))
+
+    elif rt == "synonyms":
+        clean = series.dropna().astype(str)
+        if len(clean) > 0:
+            groups = {}
+            for v in clean:
+                groups.setdefault(v.lower().strip(), set()).add(v)
+            syns = {k: v for k, v in groups.items() if len(v) > 1}
+            if syns:
+                ex = "; ".join("/".join(sorted(v)) for v in list(syns.values())[:3])
+                return _violation(aid, rule["name"], f"{len(syns)} synonymes: {ex}", "MOYEN", dim, sum(len(v) for v in syns.values()))
+
+    elif rt == "format_consistency":
+        clean = series.dropna().astype(str)
+        if len(clean) > 0:
+            pats = clean.apply(lambda x: re.sub(r'\d', 'D', x))
+            unique_pats = pats.unique()
+            if len(unique_pats) > 1:
+                top = pats.value_counts().head(3)
+                ex = ", ".join(f"'{p}': {c}" for p, c in top.items())
+                return _violation(aid, rule["name"], f"{len(unique_pats)} formats: {ex}", "MOYEN", dim, 0)
+
+    elif rt == "date_format_ambiguity":
+        clean = series.dropna().astype(str)
+        if len(clean) > 0:
+            ambiguous = 0
+            for v in clean.head(200):
+                parts = re.split(r'[-/.]', v)
+                if len(parts) >= 3:
+                    try:
+                        nums = [int(p) for p in parts[:3]]
+                        if len(parts[0]) == 4:
+                            m, d = nums[1], nums[2]
+                        else:
+                            m, d = nums[1], nums[0]
+                        if 1 <= m <= 12 and 1 <= d <= 12 and m != d:
+                            ambiguous += 1
+                    except ValueError:
+                        pass
+            if ambiguous > 0:
+                return _violation(aid, rule["name"], f"{ambiguous} dates ambiguës DD/MM vs MM/DD", "MOYEN", dim, ambiguous)
+
+    elif rt == "cartesian_join_risk":
+        dup_count = int(series.duplicated(keep="first").sum())
+        if dup_count > 0:
+            return _violation(aid, rule["name"], f"{dup_count} doublons → risque cartésien", "CRITIQUE", dim, dup_count)
+
+    elif rt == "unit_heterogeneity":
+        clean = pd.to_numeric(series, errors="coerce").dropna()
+        if len(clean) > 5:
+            pos = clean[clean > 0]
+            if len(pos) > 5:
+                log_range = np.log10(pos.max()) - np.log10(pos.min())
+                if log_range > 2:
+                    return _violation(aid, rule["name"],
+                        f"Amplitude {10**log_range:.0f}x ({pos.min():.2f} → {pos.max():.2f})",
+                        "MOYEN", dim, 0)
+
     return None
 
 
@@ -1044,7 +1115,7 @@ def _map_odcs_quality_type(rule_type: str) -> str:
     return _QUALITY_METRIC_MAP.get(rule_type, "custom")
 
 
-def _build_odcs_quality_entry(rule: dict) -> dict:
+def _build_odcs_quality_entry(rule: dict, col_name: str = "", dataset_name: str = "dataset") -> dict:
     """Convertit une règle interne en entrée quality ODCS v3.1.0."""
     metric_name = _map_odcs_quality_type(rule.get("type", ""))
     # ODCS v3.1.0: type = "library"|"custom", metric = nullValues|duplicateValues|...
@@ -1055,6 +1126,8 @@ def _build_odcs_quality_entry(rule: dict) -> dict:
     }
     if is_library:
         entry["metric"] = metric_name
+
+    t = dataset_name  # alias table pour les requêtes SQL
 
     # Ajouter les paramètres spécifiques selon le type
     rt = rule.get("type", "")
@@ -1074,6 +1147,90 @@ def _build_odcs_quality_entry(rule: dict) -> dict:
     elif rt == "fill_rate":
         entry["mustBeGreaterThan"] = rule.get("min_fill_rate", 70)
         entry["unit"] = "percent"
+    # ── Requêtes SQL pour règles Semi/Manuel (exploitabilité ODCS) ──
+    elif rt == "fuzzy_duplicates" and col_name:
+        entry["query"] = (
+            f"SELECT a.{col_name}, b.{col_name}, "
+            f"LEVENSHTEIN(a.{col_name}, b.{col_name}) AS dist "
+            f"FROM {t} a JOIN {t} b ON a.rowid < b.rowid "
+            f"WHERE dist <= 2 AND a.{col_name} <> b.{col_name}")
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "synonyms" and col_name:
+        entry["query"] = (
+            f"SELECT LOWER(TRIM({col_name})) AS norm, "
+            f"GROUP_CONCAT(DISTINCT {col_name}) AS variantes, "
+            f"COUNT(DISTINCT {col_name}) AS nb "
+            f"FROM {t} GROUP BY norm HAVING nb > 1")
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "groups"
+    elif rt == "unit_heterogeneity" and col_name:
+        entry["query"] = (
+            f"SELECT MIN({col_name}) AS min_val, MAX({col_name}) AS max_val, "
+            f"MAX({col_name})/NULLIF(MIN({col_name}),0) AS amplitude "
+            f"FROM {t} WHERE {col_name} > 0 HAVING amplitude > 100")
+        entry["mustBeLessThan"] = 100
+        entry["unit"] = "amplitude_ratio"
+    elif rt == "format_consistency" and col_name:
+        entry["query"] = (
+            f"SELECT {col_name}, LENGTH({col_name}) AS len FROM {t} "
+            f"WHERE {col_name} IS NOT NULL "
+            f"AND {col_name} NOT REGEXP '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}$'")
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "missing_rows" and col_name:
+        entry["query"] = (
+            f"SELECT COUNT(DISTINCT {col_name}) AS nb_present FROM {t} "
+            f"-- Comparer avec le nombre attendu dans l'univers de référence")
+        entry["mustBeGreaterThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "date_format_ambiguity" and col_name:
+        entry["query"] = (
+            f"SELECT {col_name} FROM {t} "
+            f"WHERE CAST(SUBSTR({col_name},6,2) AS INT) <= 12 "
+            f"AND CAST(SUBSTR({col_name},9,2) AS INT) <= 12 "
+            f"AND SUBSTR({col_name},6,2) <> SUBSTR({col_name},9,2)")
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "cartesian_join_risk" and col_name:
+        entry["query"] = (
+            f"SELECT {col_name}, COUNT(*) AS nb FROM {t} "
+            f"GROUP BY {col_name} HAVING nb > 1")
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "temporal_order":
+        sc = rule.get("start_col", col_name)
+        ec = rule.get("end_col", "")
+        if ec:
+            entry["query"] = (
+                f"SELECT {sc}, {ec} FROM {t} "
+                f"WHERE {sc} > {ec} AND {sc} IS NOT NULL AND {ec} IS NOT NULL")
+            entry["mustBeLessThan"] = 0
+            entry["unit"] = "rows"
+    elif rt == "conditional_required":
+        cc = rule.get("condition_col", "")
+        cv = rule.get("condition_val", "")
+        if cc and col_name:
+            entry["query"] = (
+                f"SELECT * FROM {t} "
+                f"WHERE {cc} = '{cv}' AND {col_name} IS NULL")
+            entry["mustBeLessThan"] = 0
+            entry["unit"] = "rows"
+    elif rt == "derived_calc":
+        entry["query"] = f"-- Vérifier: {rule.get('description', '')}"
+        entry["mustBeLessThan"] = 0
+        entry["unit"] = "rows"
+    elif rt == "granularity_max" and col_name:
+        entry["query"] = (
+            f"SELECT COUNT(DISTINCT {col_name}) * 100.0 / COUNT(*) AS pct_unique "
+            f"FROM {t}")
+        entry["mustBeLessThan"] = rule.get("max_unique_ratio", 0.9) * 100
+        entry["unit"] = "percent"
+    elif rt == "granularity_min" and col_name:
+        entry["query"] = (
+            f"SELECT COUNT(DISTINCT {col_name}) AS nb_unique FROM {t}")
+        entry["mustBeGreaterThan"] = rule.get("min_unique", 3)
+        entry["unit"] = "distinct_values"
 
     # Enrichissements custom (Woodall, anomaly_id, validValues, etc.)
     custom = {}
@@ -1114,7 +1271,7 @@ def convert_to_odcs(contracts: dict, dama_scores: dict, violations: dict,
         # Quality rules
         quality = []
         for rule in contract.get("rules", []):
-            quality.append(_build_odcs_quality_entry(rule))
+            quality.append(_build_odcs_quality_entry(rule, col_name, dataset_name))
         if quality:
             prop["quality"] = quality
 
