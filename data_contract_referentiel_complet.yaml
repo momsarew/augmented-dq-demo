@@ -1,1436 +1,1103 @@
-data_contract:
-  version: '3.0'
-  metadata:
-    source: Base_d_anomalies_pour_les_dimensions_Risques__1_.xlsx
-    total_anomalies: 128
-    framework: Woodall (2013) - 4 dimensions causales
-    norme: DAMA / ISO 8000
-  summary:
-    DB:
-      label: Database Integrity
-      total: 22
-      auto: 16
-      semi: 4
-      manuel: 2
-    DP:
-      label: Data Processing
-      total: 32
-      auto: 4
-      semi: 17
-      manuel: 11
-    BR:
-      label: Business Rules
-      total: 34
-      auto: 7
-      semi: 14
-      manuel: 13
-    UP:
-      label: Usage Appropriateness
-      total: 40
-      auto: 0
-      semi: 7
-      manuel: 33
-  dama_iso_8000:
+apiVersion: v3.1.0
+kind: DataContract
+id: b95d4729-3a68-49f1-a977-cacd28b38584
+name: Data Contract — referentiel_rh_complet
+version: 1.0.0
+status: active
+domain: data-quality
+description:
+  purpose: Contrat qualité généré automatiquement pour le dataset 'referentiel_rh_complet' avec le référentiel de 128 anomalies
+    (DB:22, DP:32, BR:34, UP:40).
+  limitations: Les règles 'Manuel' nécessitent une revue humaine. Les seuils Auto/Semi sont calibrés statistiquement sur les
+    données observées.
+schema:
+- name: referentiel_rh_complet
+  logicalType: object
+  properties:
+  - name: matricule_id
+    logicalType: string
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: 'Pas de doublons PK (actuel: 0)'
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#2
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAMT
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'Valeurs autorisées (8): EMP001, EMP002, EMP003, EMP004, EMP005, EMP006, EMP007, EMP008'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - EMP001
+        - EMP002
+        - EMP003
+        - EMP004
+        - EMP005
+        - EMP006
+        - EMP007
+        - EMP008
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
+      mustBeLessThan: 0
+      unit: groups
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 6 car.
+      mustBeLessThan: 6
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Risque jointure cartésienne si PK non unique
+      query: SELECT {column}, COUNT(*) AS nb FROM {table} GROUP BY {column} HAVING nb > 1
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DP#14
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MR
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
+      mustBeLessThan: 90.0
+      unit: percent
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: nom
+    logicalType: string
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'Valeurs autorisées (8): Dupont, Durand, Laurent, Lefebvre, Martin, Michel, Moreau, Simon'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - Dupont
+        - Durand
+        - Laurent
+        - Lefebvre
+        - Martin
+        - Michel
+        - Moreau
+        - Simon
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
+      mustBeLessThan: 0
+      unit: groups
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 8 car.
+      mustBeLessThan: 8
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
+      mustBeLessThan: 90.0
+      unit: percent
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: email
+    logicalType: string
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'Valeurs autorisées (8): dupont@corp.fr, durand@corp.fr, laurent@corp.fr, lefebvre@corp.fr, martin@corp.fr,
+        michel@corp.fr, moreau@corp.fr, simon@corp.fr'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - dupont@corp.fr
+        - durand@corp.fr
+        - laurent@corp.fr
+        - lefebvre@corp.fr
+        - martin@corp.fr
+        - michel@corp.fr
+        - moreau@corp.fr
+        - simon@corp.fr
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: library
+      description: Format email valide (xxx@domain.tld)
+      metric: invalidValues
+      customProperties:
+        anomalyId: DB#7
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
+      mustBeLessThan: 0
+      unit: groups
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 16 car.
+      mustBeLessThan: 16
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
+      mustBeLessThan: 90.0
+      unit: percent
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: date_embauche
+    logicalType: string
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'Valeurs autorisées (8): 2017-11-20, 2018-07-22, 2019-03-15, 2019-08-30, 2020-06-01, 2021-01-10, 2022-09-05,
+        2023-02-14'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - '2017-11-20'
+        - '2018-07-22'
+        - '2019-03-15'
+        - '2019-08-30'
+        - '2020-06-01'
+        - '2021-01-10'
+        - '2022-09-05'
+        - '2023-02-14'
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
+      mustBeLessThan: 0
+      unit: groups
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier cohérence formats dates
+      query: SELECT {column}, LENGTH({column}) AS len FROM {table} WHERE {column} IS NOT NULL AND {column} NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#15
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: FAIBLE
+        woodallClass: MAST
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 10 car.
+      mustBeLessThan: 10
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier parsing dates (DD/MM vs MM/DD)
+      query: SELECT {column} FROM {table} WHERE CAST(SUBSTR({column},6,2) AS INT) <= 12 AND CAST(SUBSTR({column},9,2) AS INT)
+        <= 12 AND SUBSTR({column},6,2) <> SUBSTR({column},9,2)
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DP#8
+        causalDimension: DP
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAST, MDS
+    - type: custom
+      description: date_embauche doit être ≤ date_sortie
+      query: SELECT {start_column}, {end_column} FROM {table} WHERE {start_column} > {end_column} AND {start_column} IS NOT
+        NULL AND {end_column} IS NOT NULL
+      mustBeLessThan: 0
+      unit: rows
+      queryParams:
+        start_column: date_embauche
+        end_column: date_sortie
+      customProperties:
+        anomalyId: BR#1
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    - type: custom
+      description: Granularité excessive (100% uniques)
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
+      mustBeLessThan: 90.0
+      unit: percent
+      customProperties:
+        anomalyId: UP#1
+        causalDimension: UP
+        detectionMethod: Manuel
+        criticality: FAIBLE
+        woodallClass: MAST
+    - type: custom
+      description: Données de moins de 365 jours
+      mustBeLessThan: 365
+      unit: days
+      customProperties:
+        anomalyId: UP#6
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Exactitude: 0.625
+        Fraîcheur: 0.0
+        Unicité: 1.0
+  - name: date_sortie
+    logicalType: string
+    required: false
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 10.0% (actuel: 87.5%)'
+      metric: nullValues
+      mustBeLessThan: 10.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 6 doublons exacts
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#9
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'NULL légitimes: 87.5% (à documenter si > 30%)'
+      metric: nullValues
+      customProperties:
+        anomalyId: DB#16
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: VARIABLE
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: SI statut=Inactif ALORS date_sortie NOT NULL
+      query: SELECT * FROM {table} WHERE {condition_column} = '{condition_value}' AND {column} IS NULL
+      mustBeLessThan: 0
+      unit: rows
+      queryParams:
+        condition_column: statut
+        condition_value: Inactif
+      customProperties:
+        anomalyId: BR#5
+        causalDimension: BR
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    - type: custom
+      description: Données de moins de 365 jours
+      mustBeLessThan: 365
+      unit: days
+      customProperties:
+        anomalyId: UP#6
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: 'Taux remplissage 12.5% (seuil: 70%)'
+      metric: missingValues
+      mustBeGreaterThan: 70
+      unit: percent
+      customProperties:
+        anomalyId: UP#16
+        causalDimension: UP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    customProperties:
+      damaScores:
+        Complétude: 0.125
+        Fraîcheur: 0.875
+        Unicité: 0.25
+  - name: salaire
+    logicalType: integer
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: Valeurs dans [35210.00, 60580.00]
+      metric: invalidValues
+      mustBeBetween:
+      - 35210.0
+      - 60580.0
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
+      mustBeLessThan: 100
+      unit: amplitude_ratio
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: library
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      metric: invalidValues
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+  - name: age
+    logicalType: integer
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: Valeurs dans [25.21, 50.58]
+      metric: invalidValues
+      mustBeBetween:
+      - 25.21
+      - 50.58
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
+      mustBeLessThan: 100
+      unit: amplitude_ratio
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: library
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      metric: invalidValues
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    - type: custom
+      description: 'Formule: age = (now - date_embauche) / 365.25'
+      query: 'SELECT * FROM {table} WHERE {column} IS NOT NULL -- Vérifier formule: age_from_birthdate'
+      mustBeLessThan: 0
+      unit: rows
+      queryParams:
+        sources:
+        - date_embauche
+        formula: age_from_birthdate
+      customProperties:
+        anomalyId: DP#1
+        causalDimension: DP
+        detectionMethod: Semi
+        criticality: ÉLEVÉ
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Exactitude: 0.0
+        Unicité: 1.0
+  - name: statut
+    logicalType: string
+    required: true
+    unique: false
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: 'Valeurs autorisées (2): Actif, Inactif'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - Actif
+        - Inactif
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 7 car.
+      mustBeLessThan: 7
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 0.25
+  - name: departement
+    logicalType: string
+    required: true
+    unique: false
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: 'Valeurs autorisées (4): Finance, IT, Marketing, RH'
+      metric: invalidValues
+      customProperties:
+        validValues:
+        - Finance
+        - IT
+        - Marketing
+        - RH
+        anomalyId: DB#5
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Doublons fuzzy (variations syntaxiques)
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
+      mustBeLessThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#10
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, SR, MR, MDS
+    - type: custom
+      description: Vérifier synonymes/variantes même concept
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
+      mustBeLessThan: 0
+      unit: groups
+      customProperties:
+        anomalyId: DB#12
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: MOYEN
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: custom
+      description: Longueur max ≤ 9 car.
+      mustBeLessThan: 9
+      unit: characters
+      customProperties:
+        anomalyId: DP#7
+        causalDimension: DP
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: SAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 0.5
+  - name: taux_prime
+    logicalType: number
+    required: true
+    unique: true
+    quality:
+    - type: library
+      description: 'Taux nulls ≤ 0.0% (actuel: 0.0%)'
+      metric: nullValues
+      mustBeLessThan: 0.0
+      unit: percent
+      customProperties:
+        anomalyId: DB#1
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: SAST
+    - type: library
+      description: Toutes valeurs doivent être uniques
+      metric: duplicateValues
+      customProperties:
+        anomalyId: DB#4
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAMT
+    - type: library
+      description: Valeurs dans [0.08, 0.18]
+      metric: invalidValues
+      mustBeBetween:
+      - 0.08070000000000001
+      - 0.17789999999999997
+      customProperties:
+        anomalyId: DB#6
+        causalDimension: DB
+        detectionMethod: Auto
+        criticality: ÉLEVÉ
+        woodallClass: SAST
+    - type: custom
+      description: Vérifier homogénéité des unités
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
+      mustBeLessThan: 100
+      unit: amplitude_ratio
+      customProperties:
+        anomalyId: DB#14
+        causalDimension: DB
+        detectionMethod: Semi
+        criticality: CRITIQUE
+        woodallClass: SAMT, MR, MDS
+    - type: custom
+      description: Vérifier complétude vs univers attendu
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
+      mustBeGreaterThan: 0
+      unit: rows
+      customProperties:
+        anomalyId: DB#17
+        causalDimension: DB
+        detectionMethod: Manuel
+        criticality: ÉLEVÉ
+        woodallClass: SR, MR
+    - type: library
+      description: 'Pas de négatifs sur champ positif (actuel: 0)'
+      metric: invalidValues
+      customProperties:
+        anomalyId: BR#2
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: CRITIQUE
+        woodallClass: MAST
+    - type: library
+      description: Ratio dans [0, 1] ou [0, 100]
+      metric: invalidValues
+      mustBeBetween:
+      - 0
+      - 100
+      customProperties:
+        anomalyId: BR#13
+        causalDimension: BR
+        detectionMethod: Auto
+        criticality: MOYEN
+        woodallClass: MAST
+    customProperties:
+      damaScores:
+        Complétude: 1.0
+        Unicité: 1.0
+team:
+  members:
+  - name: Augmented DQ Framework
+    role: generator
+tags:
+- data-quality
+- augmented-dq
+- dama-iso-8000
+- woodall-taxonomy
+customProperties:
+  framework: Augmented DQ Demo
+  referential:
+    total: 128
+    byDimension:
+      DB:
+        total: 22
+        auto: 16
+        semi: 4
+        manuel: 2
+      DP:
+        total: 32
+        auto: 4
+        semi: 17
+        manuel: 11
+      BR:
+        total: 34
+        auto: 7
+        semi: 14
+        manuel: 13
+      UP:
+        total: 40
+        auto: 0
+        semi: 7
+        manuel: 33
+  qualityFramework: DAMA/ISO 8000
+  causalDimensions:
+  - DB (Database Integrity)
+  - DP (Data Processing)
+  - BR (Business Rules)
+  - UP (Usage Appropriateness)
+  damaDimensions:
   - Complétude
   - Cohérence
   - Exactitude
   - Fraîcheur
   - Validité
   - Unicité
-  anomalies:
-    DB:
-      DB#1:
-        name: NULL non autorisés
-        description: Attributs obligatoires (1,1) contenant NULL
-        dimension_causale: DB
-        dimensions_academiques: Completeness, Validity
-        detection: Auto
+  validationResults:
+    totalViolations: 11
+    violationsByColumn:
+      date_embauche:
+      - rule: Conversions format dates
+        anomalyId: DP#8
+        criticality: MOYEN
+        message: 3 dates ambiguës DD/MM vs MM/DD
+        affectedRows: 3
+      - rule: Données obsolètes
+        anomalyId: UP#6
+        criticality: ÉLEVÉ
+        message: '8 données > 365j (plus ancienne: 2017-11-20)'
+        affectedRows: 8
+      date_sortie:
+      - rule: NULL non autorisés
+        anomalyId: DB#1
         criticality: CRITIQUE
-        woodall_level: SAST
-        algorithm: 'Domain analysis: WHERE col IS NULL'
-        complexity: O(1)
-        business_risk: Le risque métier est le blocage de la paie ou de la facturation, car une information obligatoire manquante empêche le système
-          d’identifier correctement l’employé ou le client à traiter
-      DB#2:
-        name: Violations clé primaire
-        description: Doublons sur contrainte PK
-        dimension_causale: DB
-        dimensions_academiques: Redundancy, Correctness
-        detection: Auto
+        message: Taux nulls 87.5% > seuil 10.0%
+        affectedRows: 7
+      - rule: Violations contraintes unicité
+        anomalyId: DB#4
+        criticality: ÉLEVÉ
+        message: 6 doublons (unicité attendue)
+        affectedRows: 6
+      - rule: Doublons exacts
+        anomalyId: DB#9
+        criticality: ÉLEVÉ
+        message: 6 doublons exacts
+        affectedRows: 6
+      - rule: Données obsolètes
+        anomalyId: UP#6
+        criticality: MOYEN
+        message: '1 données > 365j (plus ancienne: 2024-12-31)'
+        affectedRows: 1
+      - rule: Taux remplissage insuffisant
+        anomalyId: UP#16
+        criticality: ÉLEVÉ
+        message: Remplissage 12.5% < seuil 70%
+        affectedRows: 7
+      salaire:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
         criticality: CRITIQUE
-        woodall_level: SAMT
-        algorithm: 'Column analysis: GROUP BY pk HAVING COUNT(*)>1'
-        complexity: O(n)
-        business_risk: Le risque métier est de compter ou payer plusieurs fois la même personne, car la présence de doublons empêche de distinguer
-          une entité unique
-      DB#3:
-        name: Violations clé étrangère
-        description: Références vers entités inexistantes (orphelins)
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Correctness
-        detection: Auto
+        message: 2 valeurs hors [35210.00, 60580.00]
+        affectedRows: 2
+      age:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
         criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'PK/FK analysis: LEFT JOIN + WHERE IS NULL'
-        complexity: O(n+m)
-        business_risk: Le risque métier est l’impossibilité de relier certaines données à un employé, un client ou un produit, car la référence
-          associée n’existe pas
-      DB#4:
-        name: Violations contraintes unicité
-        description: Doublons sur colonnes UNIQUE hors PK
-        dimension_causale: DB
-        dimensions_academiques: Redundancy, Consistency
-        detection: Auto
+        message: 2 valeurs hors [25.21, 50.58]
+        affectedRows: 2
+      - rule: Calculs dérivés incorrects
+        anomalyId: DP#1
         criticality: ÉLEVÉ
-        woodall_level: SAMT
-        algorithm: 'Column analysis: GROUP BY col HAVING COUNT(*)>1'
-        complexity: O(n)
-        business_risk: Le risque métier est la confusion entre plusieurs enregistrements représentant la même personne, ce qui fausse le suivi
-          et les décisions
-      DB#5:
-        name: Valeurs hors domaine
-        description: Valeur ∉ ensemble prédéfini
-        dimension_causale: DB
-        dimensions_academiques: Validity, Correctness
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: SAST
-        algorithm: 'Domain analysis: WHERE col NOT IN (domain)'
-        complexity: O(1)
-        business_risk: Le risque métier est de mal interpréter une situation (statut, catégorie, type), car la valeur utilisée n’est pas reconnue
-          par le système ou les utilisateurs
-      DB#6:
-        name: Valeurs hors plage numérique
-        description: Nombres violant bornes MIN/MAX
-        dimension_causale: DB
-        dimensions_academiques: Validity, Accuracy
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: SAST
-        algorithm: 'Domain analysis: WHERE col<MIN OR col>MAX'
-        complexity: O(1)
-        business_risk: Le risque métier est de produire des montants ou indicateurs faux, car les valeurs saisies dépassent les limites réalistes
-          attendues
-      DB#7:
-        name: Violations de format
-        description: Pattern syntaxique incorrect
-        dimension_causale: DB
-        dimensions_academiques: Validity, Consistency
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST
-        algorithm: 'Lexical analysis: Regex match'
-        complexity: O(1)
-        business_risk: Le risque métier est le blocage d’un traitement (facture, paie, envoi de document), car l’information n'est pas écrite
-          au bon format
-      DB#8:
-        name: Erreurs de type données
-        description: Type physique ≠ type logique
-        dimension_causale: DB
-        dimensions_academiques: Validity, Correctness
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: SAST
-        algorithm: 'Column analysis: Type inference + validation'
-        complexity: O(1)
-        business_risk: Le risque métier est d’obtenir des résultats incorrects, car le système traite une information comme un texte alors qu’elle
-          devrait être un nombre ou une date
-      DB#9:
-        name: Doublons exacts
-        description: n tuples identiques (sauf clé)
-        dimension_causale: DB
-        dimensions_academiques: Redundancy
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: SAMT
-        algorithm: 'Column analysis: GROUP BY all_cols HAVING COUNT(*)>1'
-        complexity: O(n)
-        business_risk: Le risque métier est d’avoir des chiffres trop élevés, car une même personne ou opération est comptée plusieurs fois
-      DB#10:
-        name: Doublons proches (fuzzy)
-        description: Variations syntaxiques même entité
-        dimension_causale: DB
-        dimensions_academiques: Redundancy, Consistency
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT, SR, MR, MDS
-        algorithm: 'Matching algorithms: Levenshtein, SOUNDEX, NYSIIS, Fellegi-Sunter (1969), Sorted Neighbourhood Method (SNM)'
-        complexity: "O(n²) naïf\n O(n×w) avec SNM\n w=taille fenêtre"
-        business_risk: Le risque métier est de traiter une même personne comme plusieurs personnes différentes, car de légères variations empêchent
-          de les reconnaître comme identiques
-      DB#11:
-        name: Redondance inter-tables
-        description: Même info dans N tables (violation 3NF)
-        dimension_causale: DB
-        dimensions_academiques: Redundancy, Consistency
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Cross-domain analysis: Compare col values across tables'
-        complexity: O(n×m)
-        business_risk: Le risque métier est d’avoir des informations contradictoires, car la même donnée est stockée à plusieurs endroits et mise
-          à jour différemment
-      DB#12:
-        name: Synonymes
-        description: N valeurs = même concept
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Understandability
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT, MR, MDS
-        algorithm: Column analysis + Dictionary matching
-        complexity: "O(n×d)\n d=taille dictionnaire"
-        business_risk: Le risque métier est de produire des analyses incohérentes, car plusieurs termes différents sont utilisés pour désigner
-          la même chose
-      DB#13:
-        name: Homonymes
-        description: Même valeur = N concepts selon contexte
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Interpretability
-        detection: Manuel
+        message: '8 lignes: formule ''age_from_birthdate'' non respectée'
+        affectedRows: 8
+      taux_prime:
+      - rule: Valeurs hors plage numérique
+        anomalyId: DB#6
         criticality: CRITIQUE
-        woodall_level: MAST, MR, MDS
-        algorithm: "Semantic profiling + Context analysis\n ⚠️ GAP Woodall (pas de méthode auto)"
-        complexity: "Manuel\n (heuristiques)"
-        business_risk: Le risque métier est de mal interpréter les données, car une même valeur peut avoir des significations différentes selon
-          le contexte
-      DB#14:
-        name: Hétérogénéité unités
-        description: Unités différentes même dimension
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Understandability
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: SAMT, MR, MDS
-        algorithm: 'Column analysis: Detect scale factors (×2.2 kg/lbs, ×1000 k€/€)'
-        complexity: O(n)
-        business_risk: Le risque métier est de faire des calculs faux, car les valeurs comparées n’utilisent pas la même unité de mesure
-      DB#15:
-        name: Incohérences format colonnes
-        description: Formats incompatibles attributs liés
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Readability
-        detection: Auto
-        criticality: FAIBLE
-        woodall_level: MAST
-        algorithm: 'Format distribution: Analyze date/numeric patterns'
-        complexity: O(1)
-        business_risk: Le risque métier est de ne pas pouvoir croiser les données, car les informations liées ne sont pas stockées sous le même
-          format
-      DB#16:
-        name: Données manquantes (NULL légitimes)
-        description: NULL autorisés par modèle (0,1)
-        dimension_causale: DB
-        dimensions_academiques: Completeness
-        detection: Auto
-        criticality: VARIABLE
-        woodall_level: SAST
-        algorithm: 'Column analysis: COUNT(col)/COUNT(*) ratio'
-        complexity: O(1)
-        business_risk: Le risque métier est d’avoir une vision incomplète de l’activité, car certaines informations importantes ne sont pas renseignées
-      DB#17:
-        name: Lignes manquantes
-        description: Entités absentes de l'univers
-        dimension_causale: DB
-        dimensions_academiques: Completeness
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SR, MR
-        algorithm: "Compare expected vs actual count\n ⚠️ GAP Woodall (nécessite référence externe)"
-        complexity: O(n) avec référence externe
-        business_risk: Le risque métier est de sous-estimer l’activité réelle, car certaines entités attendues sont absentes du système
-      DB#18:
-        name: Colonnes entières vides
-        description: Attribut 100% NULL
-        dimension_causale: DB
-        dimensions_academiques: Completeness
-        detection: Auto
-        criticality: FAIBLE
-        woodall_level: SAMT
-        algorithm: 'Column analysis: COUNT(col)=0'
-        complexity: O(n)
-        business_risk: Le risque métier est de ne pas exploiter une information prévue, car la donnée n’a jamais été renseignée
-      DB#19:
-        name: Problèmes encodage
-        description: Corruption charset (UTF-8, ISO)
-        dimension_causale: DB
-        dimensions_academiques: Readability, Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST
-        algorithm: 'Charset detection: chardet library + validation'
-        complexity: O(1)
-        business_risk: Le risque métier est de mal identifier des personnes, produits ou lieux, car les caractères sont mal interprétés par les
-          systèmes
-      DB#20:
-        name: Caractères spéciaux non échappés
-        description: Caractères réservés SQL/XML non traités
-        dimension_causale: DB
-        dimensions_academiques: Readability, Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST
-        algorithm: 'Regex: Search special chars [''\"\\]'
-        complexity: O(1)
-        business_risk: Le risque métier est que le système ne fonctionne pas correctement, car certains caractères sont mal interprétés
-      DB#21:
-        name: Espaces parasites
-        description: Leading/trailing whitespace
-        dimension_causale: DB
-        dimensions_academiques: Readability, Consistency
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST
-        algorithm: WHERE col <> TRIM(col)
-        complexity: O(1)
-        business_risk: Le risque métier est que le système ne reconnaisse pas des valeurs pourtant identiques, car des espaces invisibles les
-          rendent différentes
-      DB#22:
-        name: Casse incohérente
-        description: Variations majuscules/minuscules
-        dimension_causale: DB
-        dimensions_academiques: Consistency, Readability
-        detection: Auto
-        criticality: FAIBLE
-        woodall_level: SAMT
-        algorithm: GROUP BY UPPER(col), col; COUNT DISTINCT
-        complexity: O(n)
-        business_risk: Le risque métier est de créer des doublons ou des erreurs de correspondance, car le système considère des mots identiques
-          comme différents selon les majuscules ou minuscules
-    DP:
-      DP#1:
-        name: Calculs dérivés incorrects
-        description: Formule F(A₁,...,Aₙ) non respectée
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Accuracy
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: Verify F(A₁,...,Aₙ) = result'
-        complexity: O(1)
-      DP#2:
-        name: Erreurs d'arrondi
-        description: Perte précision arrondis cumulés
-        dimension_causale: DP
-        dimensions_academiques: Accuracy
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MAST, SAMT
-        algorithm: 'Precision analysis: Compare stored vs recalculated'
-        complexity: O(n)
-      DP#3:
-        name: Débordements numériques
-        description: Overflow/underflow arithmétique
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Accuracy
-        detection: Auto
-        criticality: CRITIQUE
-        woodall_level: SAMT
-        algorithm: 'Type analysis: Check value < type_max'
-        complexity: O(n)
-      DP#4:
-        name: Divisions par zéro
-        description: Ratio avec dénominateur=0
-        dimension_causale: DP
-        dimensions_academiques: Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST, MAST
-        algorithm: 'Domain analysis: WHERE denominator = 0'
-        complexity: O(1)
-      DP#5:
-        name: Erreurs d'agrégations
-        description: SUM/AVG/COUNT incorrects
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Accuracy
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SAMT, SR
-        algorithm: 'Semantic profiling: Validate aggregation logic + NULL handling'
-        complexity: O(n)
-      DP#6:
-        name: Conversions type inappropriées
-        description: Cast perdant information
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Accuracy
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SAST, SAMT
-        algorithm: 'Type analysis: Check precision loss (DECIMAL→INT)'
-        complexity: O(1)
-      DP#7:
-        name: Troncatures de données
-        description: Données excédant longueur cible
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: SAST
-        algorithm: 'Length analysis: WHERE LENGTH(col) > max_length'
-        complexity: O(1)
-      DP#8:
-        name: Conversions format dates
-        description: Parsing ambigu DD/MM vs MM/DD
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Consistency
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: SAST, MDS
-        algorithm: 'Format distribution: Detect ambiguous dates (day≤12)'
-        complexity: O(n)
-      DP#9:
-        name: Problèmes de transcodage
-        description: Mapping référentiel source→cible incorrect
-        dimension_causale: DP
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: MR, MDS
-        algorithm: 'Domain analysis: Validate lookup table mappings'
-        complexity: O(n)
-      DP#10:
-        name: Conversions unités mesure
-        description: Facteurs conversion erronés
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Accuracy, Consistency
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: SAST, SAMT, MDS
-        algorithm: 'Semantic profiling: Validate conversion factors'
-        complexity: O(n)
-      DP#11:
-        name: Pertes lignes INNER JOIN
-        description: Cardinalité sortie < entrée
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Correctness
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'Cardinality analysis: COUNT(*) before vs after JOIN'
-        complexity: O(n+m)
-      DP#12:
-        name: Duplications jointures 1-N
-        description: Explosion combinatoire JOIN
-        dimension_causale: DP
-        dimensions_academiques: Redundancy, Correctness
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'Cardinality analysis: Detect one-to-many multiplier'
-        complexity: O(n×m)
-      DP#13:
-        name: Clés jointure incorrectes
-        description: JOIN sur attribut non-unique
-        dimension_causale: DP
-        dimensions_academiques: Consistency, Correctness
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'PK/FK analysis: Check join key uniqueness (GAP partiel)'
-        complexity: O(n)
-      DP#14:
-        name: Jointures cartésiennes
-        description: Produit cartésien accidentel (pas de ON)
-        dimension_causale: DP
-        dimensions_academiques: Redundancy, Correctness
-        detection: Auto
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'Cardinality analysis: Detect N×M explosion'
-        complexity: O(n×m)
-      DP#15:
-        name: Fusion IDs conflictuels
-        description: Collision identifiants multi-sources
-        dimension_causale: DP
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: MDS
-        algorithm: 'Cross-domain analysis: Detect ID collisions across systems'
-        complexity: "O(n×s)\n s=nb sources"
-      DP#16:
-        name: Conditions WHERE incorrectes
-        description: Prédicat excluant/incluant à tort
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Relevance
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Query analysis: Validate filter logic (requires business rules)'
-        complexity: O(n)
-      DP#17:
-        name: Fenêtres temporelles incorrectes
-        description: Intervalles mal définis (bornes)
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Timeliness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Temporal analysis: Check boundary conditions'
-        complexity: O(n)
-      DP#18:
-        name: DISTINCT mal placé
-        description: Déduplication supprimant légitimes
-        dimension_causale: DP
-        dimensions_academiques: Redundancy, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT
-        algorithm: 'Query analysis: Detect DISTINCT before aggregation'
-        complexity: O(n log n)
-      DP#19:
-        name: Erreurs GROUP BY
-        description: Agrégation sur mauvais niveau
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Consistency
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SAMT, SR
-        algorithm: 'Semantic profiling: Validate GROUP BY completeness'
-        complexity: O(n log n)
-      DP#20:
-        name: Données non chargées
-        description: Échec partiel chargement
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Availability
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: SR, MR, MDS
-        algorithm: 'Cardinality analysis: Compare expected vs loaded rows'
-        complexity: O(n)
-      DP#21:
-        name: Ordre exécution incorrect
-        description: Séquence violant dépendances
-        dimension_causale: DP
-        dimensions_academiques: Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: 'Dependency analysis: Check execution DAG (requires code inspection)'
-        complexity: Manuel
-      DP#22:
-        name: Transformations non idempotentes
-        description: Réexécution modifie résultats
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Consistency
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SR
-        algorithm: 'Idempotency testing: Re-run and compare results'
-        complexity: Manuel
-      DP#23:
-        name: Données obsolètes cache
-        description: Cache non invalidé après update
-        dimension_causale: DP
-        dimensions_academiques: Currency, Timeliness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MR, MDS
-        algorithm: 'Timestamp analysis: Compare source vs cache freshness'
-        complexity: O(n)
-      DP#24:
-        name: Échecs de propagation
-        description: Modifications source non propagées
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Timeliness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MR, MDS
-        algorithm: 'Lineage analysis: Track changes source→target'
-        complexity: O(n)
-      DP#25:
-        name: Agrégations mauvaise granularité
-        description: Niveau temporel/spatial inadapté
-        dimension_causale: DP
-        dimensions_academiques: Relevance, Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Semantic profiling: Validate aggregation granularity (requires business context)'
-        complexity: O(n)
-      DP#26:
-        name: Valeurs pré-calculées obsolètes
-        description: Colonnes dénormalisées pas à jour
-        dimension_causale: DP
-        dimensions_academiques: Currency, Volatility
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MAST, SR
-        algorithm: 'Semantic profiling: Recalculate and compare'
-        complexity: O(n)
-      DP#27:
-        name: Perte de granularité
-        description: Agrégation détruit info nécessaire
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Relevance
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Granularity analysis: Check if reversible (requires business rules)'
-        complexity: O(n)
-      DP#28:
-        name: Fenêtres temps incorrectes agrégations
-        description: Périodes glissantes mal calculées
-        dimension_causale: DP
-        dimensions_academiques: Timeliness, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Temporal analysis: Validate rolling window logic'
-        complexity: O(n)
-      DP#29:
-        name: Règles déduplication trop agressives
-        description: Fusion entités distinctes
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Redundancy
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SAMT, SR, MR
-        algorithm: 'Matching: Threshold tuning (precision vs recall trade-off)'
-        complexity: O(n²) ou O(n×w)
-      DP#30:
-        name: Règles déduplication trop laxistes
-        description: Vrais doublons non détectés
-        dimension_causale: DP
-        dimensions_academiques: Redundancy, Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR, MR
-        algorithm: 'Matching: Threshold tuning (recall vs precision trade-off)'
-        complexity: O(n²) ou O(n×w)
-      DP#31:
-        name: Choix master record incorrect
-        description: Stratégie survivorship inadaptée
-        dimension_causale: DP
-        dimensions_academiques: Correctness, Currency
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SAMT, SR, MR
-        algorithm: 'Data consolidation: Survivorship rules (requires business rules)'
-        complexity: O(n)
-      DP#32:
-        name: Perte historique déduplication
-        description: Fusion écrase versions temporelles
-        dimension_causale: DP
-        dimensions_academiques: Completeness, Timeliness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR, MR
-        algorithm: 'Data consolidation: Check temporal versioning preservation'
-        complexity: O(n)
-    BR:
-      BR#1:
-        name: Incohérences temporelles
-        description: Relations ordre temporel violées
-        dimension_causale: BR
-        dimensions_academiques: Correctness, Consistency
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: WHERE date_fin < date_debut'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#2:
-        name: Valeurs hors bornes métier
-        description: Seuils business dépassés
-        dimension_causale: BR
-        dimensions_academiques: Validity, Correctness
-        detection: Auto
-        criticality: CRITIQUE
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: WHERE prix_vente < cout_achat'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#3:
-        name: Combinaisons interdites
-        description: Paires/tuples mutuellement exclusifs
-        dimension_causale: BR
-        dimensions_academiques: Correctness, Validity
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: WHERE is_archived=true AND is_active=true'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#4:
-        name: Cardinalités métier violées
-        description: Contraintes multiplicité non respectées
-        dimension_causale: BR
-        dimensions_academiques: Completeness, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Semantic profiling: Check business cardinality rules'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#5:
-        name: Obligations métier non respectées
-        description: Attributs métier obligatoires absents
-        dimension_causale: BR
-        dimensions_academiques: Completeness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: Business-required fields NULL'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#6:
-        name: Non-conformité protection données
-        description: Violations RGPD/CCPA
-        dimension_causale: BR
-        dimensions_academiques: Trust, Security (partiel)
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR, MDS
-        algorithm: Lineage analysis + consent tracking (requires legal expertise)
-        complexity: Manuel
-        frequency: Occasionnel
-      BR#7:
-        name: Non-conformité légale sectorielle
-        description: Violations réglementations spécifiques
-        dimension_causale: BR
-        dimensions_academiques: Trust, Correctness
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR, MDS
-        algorithm: Compliance analysis (requires domain expertise)
-        complexity: Manuel
-        frequency: Rare
-      BR#8:
-        name: Non-conformité fiscale/comptable
-        description: Violations IFRS/GAAP
-        dimension_causale: BR
-        dimensions_academiques: Trust, Correctness
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'Semantic profiling: Accounting rules validation (requires accounting expertise)'
-        complexity: Manuel
-        frequency: Occasionnel
-      BR#9:
-        name: Non-conformité standards métier
-        description: Violations ISO/conventions
-        dimension_causale: BR
-        dimensions_academiques: Trust, Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Compliance analysis: ISO/standards checking'
-        complexity: Manuel
-        frequency: Occasionnel
-      BR#10:
-        name: Exigences audit non satisfaites
-        description: Traçabilité insuffisante
-        dimension_causale: BR
-        dimensions_academiques: Trust, Completeness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SR, MR
-        algorithm: 'Audit trail analysis: Check WHO/WHEN/WHAT logs'
-        complexity: O(n)
-        frequency: Fréquent
-      BR#11:
-        name: Incohérences calculés vs base
-        description: Redondances contradictoires
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: WHERE montant_total <> SUM(lignes)'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#12:
-        name: Sommes de contrôle incorrectes
-        description: Checksums, balances ne concordent pas
-        dimension_causale: BR
-        dimensions_academiques: Correctness, Accuracy
-        detection: Auto
-        criticality: CRITIQUE
-        woodall_level: SAMT, SR
-        algorithm: 'Semantic profiling: SUM(debits) <> SUM(credits)'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#13:
-        name: Ratios métier invalides
-        description: Métriques dérivées hors bornes
-        dimension_causale: BR
-        dimensions_academiques: Validity, Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: WHERE ratio > max_threshold'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#14:
-        name: Dépendances fonctionnelles violées
-        description: Règles if-then non respectées
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST, SR
-        algorithm: 'Semantic profiling: Validate conditional rules'
-        complexity: O(1) à O(n)
-        frequency: Fréquent
-      BR#15:
-        name: Exclusivité mutuelle violée
-        description: États incompatibles simultanés
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Auto
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: Check mutually exclusive states'
-        complexity: O(1)
-        frequency: Fréquent
-      BR#16:
-        name: Hiérarchies incohérentes
-        description: Cycles, niveaux incorrects
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SR
-        algorithm: 'Graph analysis: Cycle detection (DFS)'
-        complexity: O(n×depth)
-        frequency: Occasionnel
-      BR#17:
-        name: Classifications métier incorrectes
-        description: Catégorisation invalide
-        dimension_causale: BR
-        dimensions_academiques: Validity, Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST, MR
-        algorithm: 'Semantic profiling: Validate business taxonomy (requires domain knowledge)'
-        complexity: O(1) à O(n)
-        frequency: Fréquent
-      BR#18:
-        name: Niveau hiérarchique incohérent
-        description: Position incompatible attributs
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MAST, SR
-        algorithm: 'Semantic profiling: Validate hierarchy consistency'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#19:
-        name: Appartenance multiple interdite
-        description: Entité dans classes exclusives
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Auto
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: Check exclusive class membership'
-        complexity: O(1)
-        frequency: Rare
-      BR#20:
-        name: Changements niveau illogiques
-        description: Transitions impossibles/improbables
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: SR
-        algorithm: 'Transition analysis: Validate state machine (requires business rules)'
-        complexity: O(n)
-        frequency: Rare
-      BR#21:
-        name: Politiques internes non respectées
-        description: Règles gouvernance violées
-        dimension_causale: BR
-        dimensions_academiques: Trust (partiel), Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST, MR
-        algorithm: 'Policy compliance: Check against governance rules'
-        complexity: O(n)
-        frequency: Fréquent
-      BR#22:
-        name: Seuils budgétaires dépassés
-        description: Limites dépenses excédées
-        dimension_causale: BR
-        dimensions_academiques: Validity, Correctness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST, SR
-        algorithm: 'Semantic profiling: WHERE depenses > budget'
-        complexity: O(n)
-        frequency: Fréquent
-      BR#23:
-        name: Processus approbation contournés
-        description: Workflows obligatoires non suivis
-        dimension_causale: BR
-        dimensions_academiques: Trust (partiel), Completeness
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SR, MR
-        algorithm: 'Workflow analysis: Check approval chain completeness'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#24:
-        name: Règles éligibilité non vérifiées
-        description: Conditions accès non contrôlées
-        dimension_causale: BR
-        dimensions_academiques: Correctness, Validity
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MAST, MR
-        algorithm: 'Semantic profiling: Validate eligibility criteria'
-        complexity: O(1) à O(n)
-        frequency: Fréquent
-      BR#25:
-        name: Politiques sécurité violées
-        description: Habilitations incorrectes
-        dimension_causale: BR
-        dimensions_academiques: Security (partiel), Trust
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR, MDS
-        algorithm: 'Access control analysis: Check role-based permissions'
-        complexity: "O(n×r)\n r=nb roles"
-        frequency: Occasionnel
-      BR#26:
-        name: Événements dans mauvais ordre
-        description: Séquence processus non respectée
-        dimension_causale: BR
-        dimensions_academiques: Correctness, Consistency
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SR
-        algorithm: 'Sequence analysis: Validate event ordering'
-        complexity: O(n log n)
-        frequency: Fréquent
-      BR#27:
-        name: Délais réglementaires dépassés
-        description: Échéances légales non tenues
-        dimension_causale: BR
-        dimensions_academiques: Timeliness, Trust
-        detection: Semi
-        criticality: CRITIQUE
-        woodall_level: MAST, SR
-        algorithm: 'Temporal analysis: WHERE date_paiement > date_due + delai_legal'
-        complexity: O(n)
-        frequency: Fréquent
-      BR#28:
-        name: Périodes validité incohérentes
-        description: Chevauchements/gaps interdits
-        dimension_causale: BR
-        dimensions_academiques: Consistency, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: Interval overlap detection
-        complexity: O(n log n)
-        frequency: Fréquent
-      BR#29:
-        name: Fréquence événements anormale
-        description: Occurrences trop/pas assez rapprochées
-        dimension_causale: BR
-        dimensions_academiques: Volatility (partiel), Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: 'Frequency analysis: Detect anomalous event rates'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#30:
-        name: Antériorité requise non respectée
-        description: Pré-requis temporel manquant
-        dimension_causale: BR
-        dimensions_academiques: Completeness, Correctness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SR, MR
-        algorithm: 'Dependency analysis: Check prerequisite events exist'
-        complexity: O(n)
-        frequency: Occasionnel
-      BR#31:
-        name: Dossiers incomplets
-        description: Ensemble documents métier partiel
-        dimension_causale: BR
-        dimensions_academiques: Completeness
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MR
-        algorithm: 'Completeness analysis: Check required document set'
-        complexity: "O(n×d)\n d=nb docs requis"
-        frequency: Très fréquent
-      BR#32:
-        name: Validations métier absentes
-        description: Certifications requises manquantes
-        dimension_causale: BR
-        dimensions_academiques: Completeness, Trust
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MR
-        algorithm: 'Validation analysis: Check required certifications exist'
-        complexity: O(n)
-        frequency: Fréquent
-      BR#33:
-        name: Documents justificatifs manquants
-        description: Pièces probantes absentes
-        dimension_causale: BR
-        dimensions_academiques: Completeness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Document linkage: Check supporting evidence exists'
-        complexity: O(n)
-        frequency: Très fréquent
-      BR#34:
-        name: Approbations manquantes
-        description: Signatures/validations absentes
-        dimension_causale: BR
-        dimensions_academiques: Completeness, Trust
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MR
-        algorithm: 'Approval analysis: Check signature/validation trails'
-        complexity: O(n)
-        frequency: Fréquent
-    UP:
-      UP#1:
-        name: Granularité trop fine
-        description: Résolution excessive pour usage
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Appropriate Amount
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: MAST
-        algorithm: 'Usage profiling: Compare data resolution vs use case requirements'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#2:
-        name: Granularité trop large
-        description: Résolution insuffisante
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Usage profiling: Check if aggregation loses required detail'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#3:
-        name: Niveau agrégation incorrect
-        description: Données agrégées/détaillées inadaptées
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Usage profiling: Match aggregation level to decision level'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#4:
-        name: Résolution temporelle inadaptée
-        description: Fréquence échantillonnage inappropriée
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Timeliness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Temporal profiling: Compare sampling frequency vs volatility'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#5:
-        name: Résolution spatiale inadéquate
-        description: Découpage géographique inadapté
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT
-        algorithm: 'Spatial profiling: Match geographic resolution to use case'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#6:
-        name: Données obsolètes
-        description: Âge > durée validité pour usage
-        dimension_causale: UP
-        dimensions_academiques: Currency, Timeliness
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SAMT
-        algorithm: 'Temporal analysis: WHERE last_update < NOW() - validity_period'
-        complexity: O(n)
-        frequency: Très fréquent
-      UP#7:
-        name: Latence excessive
-        description: Délai capture→dispo > SLA
-        dimension_causale: UP
-        dimensions_academiques: Timeliness, Currency
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SR, MDS
-        algorithm: 'Temporal analysis: WHERE capture_time - availability_time > SLA'
-        complexity: O(n)
-        frequency: Fréquent
-      UP#8:
-        name: Fréquence MAJ insuffisante
-        description: Période rafraîchissement > besoins
-        dimension_causale: UP
-        dimensions_academiques: Currency, Volatility, Timeliness
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT, SR
-        algorithm: 'Temporal analysis: Compare refresh rate vs data volatility'
-        complexity: O(n)
-        frequency: Fréquent
-      UP#9:
-        name: Données futures inappropriées
-        description: Prévisions pour usage nécessitant réalisé
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Correctness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Semantic profiling: Check if forecast used where actual required'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#10:
-        name: Version donnée incorrecte
-        description: Snapshot temporel inadapté
-        dimension_causale: UP
-        dimensions_academiques: Currency, Timeliness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT
-        algorithm: 'Version analysis: Check snapshot date matches use case'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#11:
-        name: Précision insuffisante
-        description: Décimales/chiffres significatifs inadéquats
-        dimension_causale: UP
-        dimensions_academiques: Accuracy, Relevance
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Precision analysis: Check significant digits match requirements'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#12:
-        name: Précision excessive
-        description: Fausse impression exactitude
-        dimension_causale: UP
-        dimensions_academiques: Accuracy (inverse), Relevance
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: MAST
-        algorithm: 'Precision analysis: Check precision doesn''t exceed data uncertainty'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#13:
-        name: Marge erreur trop élevée
-        description: Incertitude inacceptable
-        dimension_causale: UP
-        dimensions_academiques: Accuracy, Trust
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MAST
-        algorithm: 'Uncertainty analysis: Check error bounds vs decision threshold'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#14:
-        name: Niveau confiance insuffisant
-        description: Fiabilité trop faible décision
-        dimension_causale: UP
-        dimensions_academiques: Trust, Reputation
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: SAMT, SR
-        algorithm: 'Confidence analysis: Check confidence level meets decision requirements'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#15:
-        name: Source non fiable pour usage
-        description: Provenance inadaptée exigence
-        dimension_causale: UP
-        dimensions_academiques: Trust, Reputation
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MR, MDS
-        algorithm: 'Lineage analysis: Validate source trustworthiness for use case'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#16:
-        name: Taux remplissage insuffisant
-        description: Proportion NULL > seuil acceptable
-        dimension_causale: UP
-        dimensions_academiques: Completeness, Relevance
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: SAMT
-        algorithm: 'Completeness analysis: WHERE COUNT(NULL)/COUNT(*) > threshold'
-        complexity: O(n)
-        frequency: Très fréquent
-      UP#17:
-        name: Attributs manquants pour usage
-        description: Colonnes nécessaires absentes
-        dimension_causale: UP
-        dimensions_academiques: Completeness, Relevance
-        detection: Semi
-        criticality: ÉLEVÉ
-        woodall_level: MAST, MR
-        algorithm: 'Schema analysis: Check required attributes exist'
-        complexity: O(1)
-        frequency: Fréquent
-      UP#18:
-        name: Périmètre incomplet
-        description: Couverture partielle univers métier
-        dimension_causale: UP
-        dimensions_academiques: Completeness, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR, MR
-        algorithm: 'Coverage analysis: Compare data universe vs business universe'
-        complexity: O(n)
-        frequency: Fréquent
-      UP#19:
-        name: Historique insuffisant
-        description: Profondeur temporelle inadéquate
-        dimension_causale: UP
-        dimensions_academiques: Completeness, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: 'Temporal analysis: Check history depth vs analysis requirements'
-        complexity: O(n)
-        frequency: Fréquent
-      UP#20:
-        name: Couverture géographique partielle
-        description: Zones géographiques manquantes
-        dimension_causale: UP
-        dimensions_academiques: Completeness, Appropriate Amount
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SAMT
-        algorithm: 'Geographic analysis: Check coverage vs required regions'
-        complexity: O(n)
-        frequency: Occasionnel
-      UP#21:
-        name: Format inexploitable
-        description: Structure physique inadaptée
-        dimension_causale: UP
-        dimensions_academiques: Accessibility (partiel), Readability
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MDS
-        algorithm: 'Format analysis: Check file format compatibility with use case'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#22:
-        name: Granularité accès inadéquate
-        description: Niveau détail accessible ≠ requis
-        dimension_causale: UP
-        dimensions_academiques: Accessibility (partiel), Relevance
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR, MR
-        algorithm: 'Access analysis: Check available detail vs required granularity'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#23:
-        name: Données non interprétables
-        description: Codes sans métadonnées/référentiel
-        dimension_causale: UP
-        dimensions_academiques: Interpretability, Understandability
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: MR
-        algorithm: 'Metadata analysis: Check code dictionaries exist'
-        complexity: Manuel
-        frequency: Très fréquent
-      UP#24:
-        name: Langue inappropriée
-        description: Langue naturelle inadaptée utilisateurs
-        dimension_causale: UP
-        dimensions_academiques: Understandability, Relevance
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: SAMT
-        algorithm: 'Language analysis: Check data language matches user language'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#25:
-        name: Encodage incompatible
-        description: Format technique inadapté environnement
-        dimension_causale: UP
-        dimensions_academiques: Accessibility (partiel), Readability
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: MDS
-        algorithm: 'Encoding analysis: Check file encoding compatibility'
-        complexity: O(n)
-        frequency: Rare
-      UP#26:
-        name: Périmètre trop large
-        description: Bruit informationnel (hors-sujet)
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Appropriate Amount
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: SR, MR
-        algorithm: 'Relevance analysis: Check for out-of-scope data'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#27:
-        name: Périmètre trop restreint
-        description: Vision tronquée phénomène
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Completeness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR, MR
-        algorithm: 'Scope analysis: Check if data scope covers phenomenon'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#28:
-        name: Population cible incorrecte
-        description: Sous-ensemble inadapté question
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Completeness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: 'Population analysis: Validate target population matches question'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#29:
-        name: Période temporelle inadaptée
-        description: Fenêtre temporelle inadéquate
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Timeliness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: SR
-        algorithm: 'Temporal analysis: Check time window matches analysis requirements'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#30:
-        name: Dimensions analytiques manquantes
-        description: Axes segmentation absents
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Completeness
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Dimensional analysis: Check required dimensions exist'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#31:
-        name: Définition ambiguë
-        description: Sens métier flou ou multiple
-        dimension_causale: UP
-        dimensions_academiques: Interpretability, Understandability, Validity
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Semantic analysis: Check definition clarity (requires metadata)'
-        complexity: Manuel
-        frequency: Très fréquent
-      UP#32:
-        name: Unités non précisées
-        description: Unité de mesure non documentée
-        dimension_causale: UP
-        dimensions_academiques: Understandability, Interpretability
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST
-        algorithm: 'Unit analysis: Check measurement units documented'
-        complexity: Manuel
-        frequency: Très fréquent
-      UP#33:
-        name: Référentiel inadapté
-        description: Base comparaison/normalisation incorrecte
-        dimension_causale: UP
-        dimensions_academiques: Relevance, Validity
-        detection: Manuel
-        criticality: FAIBLE
-        woodall_level: MR
-        algorithm: 'Reference analysis: Check benchmark appropriateness'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#34:
-        name: Contexte métier manquant
-        description: Métadonnées de contexte absentes
-        dimension_causale: UP
-        dimensions_academiques: Interpretability, Understandability
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MR
-        algorithm: 'Metadata analysis: Check business context documented'
-        complexity: Manuel
-        frequency: Très fréquent
-      UP#35:
-        name: Méthode calcul non documentée
-        description: Formule/algorithme non tracé
-        dimension_causale: UP
-        dimensions_academiques: Interpretability, Understandability
-        detection: Manuel
-        criticality: MOYEN
-        woodall_level: MAST, SR
-        algorithm: 'Lineage analysis: Check calculation method documented'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#36:
-        name: Données non conformes usage légal
-        description: Données non-certifiées finalité réglementaire
-        dimension_causale: UP
-        dimensions_academiques: Trust, Validity
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR, MDS
-        algorithm: 'Compliance analysis: Check data certification for legal use'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#37:
-        name: Habilitation insuffisante
-        description: Droits accès inadaptés sensibilité
-        dimension_causale: UP
-        dimensions_academiques: Security (partiel), Trust
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MR
-        algorithm: 'Access control analysis: Check user clearance vs data sensitivity'
-        complexity: Manuel
-        frequency: Occasionnel
-      UP#38:
-        name: Traçabilité inadéquate
-        description: Piste audit insuffisante exigences
-        dimension_causale: UP
-        dimensions_academiques: Trust, Completeness
-        detection: Manuel
-        criticality: ÉLEVÉ
-        woodall_level: SR, MR
-        algorithm: 'Audit trail analysis: Check lineage completeness'
-        complexity: Manuel
-        frequency: Fréquent
-      UP#39:
-        name: Durée conservation dépassée
-        description: Données conservées au-delà durée légale
-        dimension_causale: UP
-        dimensions_academiques: Trust (RGPD), Validity
-        detection: Semi
-        criticality: MOYEN
-        woodall_level: SAMT
-        algorithm: 'Retention analysis: WHERE retention_date < NOW() - legal_period'
-        complexity: O(n)
-        frequency: Occasionnel
-      UP#40:
-        name: Finalité usage non autorisée
-        description: Utilisation hors consentement/finalité
-        dimension_causale: UP
-        dimensions_academiques: Trust (RGPD), Relevance
-        detection: Manuel
-        criticality: CRITIQUE
-        woodall_level: MDS
-        algorithm: 'Purpose analysis: Check data use matches collection purpose'
-        complexity: Manuel
-        frequency: Rare
+        message: 2 valeurs hors [0.08, 0.18]
+        affectedRows: 2
+contractCreatedTs: '2026-03-01T01:17:41Z'
