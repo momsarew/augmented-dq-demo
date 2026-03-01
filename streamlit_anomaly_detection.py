@@ -45,8 +45,8 @@ def render_anomaly_detection_tab():
     with sub_tab1:
         st.subheader("Scanner Dataset")
         
-        st.info("""
-        ✅ **15 détecteurs réels** opérationnels (60 catalogués)
+        st.info(f"""
+        ✅ **15 détecteurs réels** opérationnels ({len(engine.catalog_manager.catalog)} catalogués)
         🧠 **Apprentissage adaptatif** : Le moteur s'améliore à chaque scan
         ⚡ **3 budgets** : QUICK (top 5) | STANDARD (top 10) | DEEP (tous)
         """)

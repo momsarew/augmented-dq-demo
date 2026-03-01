@@ -1,10 +1,11 @@
 """
 extended_anomaly_catalog.py
-Référentiel ÉTENDU : 60 anomalies (15 par dimension)
+Référentiel chargé dynamiquement depuis rules_catalog.yaml
 
 Structure :
 - 15 anomalies avec détecteurs RÉELS complets
-- 45 anomalies avec détecteurs TEMPLATES (structure prête)
+- Les autres anomalies avec détecteurs TEMPLATES (structure prête)
+- Métadonnées (nom, description, criticité, etc.) issues du YAML
 """
 
 from dataclasses import dataclass
@@ -34,6 +35,8 @@ from core_anomaly_catalog import (
     detect_obsolete_data,
     detect_excessive_granularity
 )
+
+from rules_catalog_loader import catalog as _yaml_catalog
 
 
 # ============================================================================
@@ -78,242 +81,102 @@ def detect_template_up(df: pd.DataFrame, **params) -> Dict:
 
 
 # ============================================================================
-# CATALOGUE ÉTENDU : 60 ANOMALIES
+# DÉTECTEURS RÉELS mappés par anomaly_id
 # ============================================================================
 
-EXTENDED_CATALOG = [
-    
-    # ========================================================================
-    # DB : 15 ANOMALIES (5 réelles + 10 templates)
-    # ========================================================================
-    
-    # DB#1-5 : DÉTECTEURS RÉELS
-    CoreAnomaly(
-        id="DB#1", dimension=Dimension.DB,
-        name="NULL dans colonnes obligatoires",
-        description="Attributs (1,1) contenant NULL",
-        criticality=Criticality.CRITIQUE, woodall_level="SAST",
-        detector=detect_null_in_required,
-        sql_template="SELECT * FROM {table} WHERE {column} IS NULL",
-        example="employee_id NULL → Paie bloquée"
-    ),
-    
-    CoreAnomaly(
-        id="DB#2", dimension=Dimension.DB,
-        name="Doublons clé primaire",
-        description="Violations contrainte PK",
-        criticality=Criticality.CRITIQUE, woodall_level="SAMT",
-        detector=detect_pk_duplicates,
-        sql_template="SELECT {pk}, COUNT(*) FROM {table} GROUP BY {pk} HAVING COUNT(*)>1",
-        example="Matricule double → Masse salariale ×2"
-    ),
-    
-    CoreAnomaly(
-        id="DB#3", dimension=Dimension.DB,
-        name="Formats email invalides",
-        description="Email sans @ ou domaine",
-        criticality=Criticality.MOYEN, woodall_level="SAST",
-        detector=detect_invalid_email,
-        sql_template="SELECT * FROM {table} WHERE {email} NOT LIKE '%@%.%'",
-        example="Email invalide → Notification échoue"
-    ),
-    
-    CoreAnomaly(
-        id="DB#4", dimension=Dimension.DB,
-        name="Valeurs hors domaine",
-        description="Valeur ∉ ensemble autorisé",
-        criticality=Criticality.ÉLEVÉ, woodall_level="SAST",
-        detector=detect_out_of_domain,
-        sql_template="SELECT * FROM {table} WHERE {column} NOT IN ({values})",
-        example="Statut hors CDI/CDD/Stage"
-    ),
-    
-    CoreAnomaly(
-        id="DB#5", dimension=Dimension.DB,
-        name="Valeurs négatives interdites",
-        description="< 0 sur champs positifs",
-        criticality=Criticality.MOYEN, woodall_level="SAST",
-        detector=detect_negative_values,
-        sql_template="SELECT * FROM {table} WHERE {column} < 0",
-        example="Age négatif → Calcul faussé"
-    ),
-    
-    # DB#6-15 : TEMPLATES (implémentation progressive)
-    *[CoreAnomaly(
-        id=f"DB#{i}", dimension=Dimension.DB,
-        name=f"Anomalie DB#{i}",
-        description=f"Anomalie base données #{i} - Template",
-        criticality=Criticality.MOYEN, woodall_level="SAMT",
-        detector=detect_template_db,
-        sql_template="-- Template SQL",
-        example=f"Exemple DB#{i}"
-    ) for i in range(6, 16)],
-    
-    # ========================================================================
-    # DP : 15 ANOMALIES (3 réelles + 12 templates)
-    # ========================================================================
-    
-    # DP#1-3 : DÉTECTEURS RÉELS
-    CoreAnomaly(
-        id="DP#1", dimension=Dimension.DP,
-        name="Calculs dérivés incorrects",
-        description="Formule F(A,...) non respectée",
-        criticality=Criticality.ÉLEVÉ, woodall_level="MAST",
-        detector=detect_derived_calc_error,
-        sql_template="SELECT * WHERE {target} != F({sources})",
-        example="Age=35 mais né en 1985"
-    ),
-    
-    CoreAnomaly(
-        id="DP#2", dimension=Dimension.DP,
-        name="Divisions par zéro",
-        description="Dénominateur = 0 ou NULL",
-        criticality=Criticality.MOYEN, woodall_level="SAST",
-        detector=detect_division_by_zero,
-        sql_template="SELECT * WHERE {denominator} = 0",
-        example="Calcul ratio avec dénominateur 0"
-    ),
-    
-    CoreAnomaly(
-        id="DP#3", dimension=Dimension.DP,
-        name="Type données incorrect",
-        description="Type réel ≠ type attendu",
-        criticality=Criticality.MOYEN, woodall_level="SAST",
-        detector=detect_data_type_mismatch,
-        sql_template="SELECT * WHERE TYPEOF({column}) != {expected}",
-        example="Prix VARCHAR au lieu DECIMAL"
-    ),
-    
-    # DP#4-15 : TEMPLATES
-    *[CoreAnomaly(
-        id=f"DP#{i}", dimension=Dimension.DP,
-        name=f"Anomalie DP#{i}",
-        description=f"Anomalie traitement données #{i} - Template",
-        criticality=Criticality.MOYEN, woodall_level="MAST",
-        detector=detect_template_dp,
-        sql_template="-- Template SQL",
-        example=f"Exemple DP#{i}"
-    ) for i in range(4, 16)],
-    
-    # ========================================================================
-    # BR : 15 ANOMALIES (4 réelles + 11 templates)
-    # ========================================================================
-    
-    # BR#1-4 : DÉTECTEURS RÉELS
-    CoreAnomaly(
-        id="BR#1", dimension=Dimension.BR,
-        name="Incohérences temporelles",
-        description="date_début > date_fin",
-        criticality=Criticality.ÉLEVÉ, woodall_level="MAST",
-        detector=detect_temporal_inconsistency,
-        sql_template="SELECT * WHERE {start_date} > {end_date}",
-        example="Date sortie < date entrée"
-    ),
-    
-    CoreAnomaly(
-        id="BR#2", dimension=Dimension.BR,
-        name="Valeurs hors bornes métier",
-        description="Hors [min_business, max_business]",
-        criticality=Criticality.CRITIQUE, woodall_level="MAST",
-        detector=detect_out_of_business_range,
-        sql_template="SELECT * WHERE {column} NOT BETWEEN {min} AND {max}",
-        example="Age = 150 ans"
-    ),
-    
-    CoreAnomaly(
-        id="BR#3", dimension=Dimension.BR,
-        name="Combinaisons interdites",
-        description="États mutuellement exclusifs",
-        criticality=Criticality.ÉLEVÉ, woodall_level="MAST",
-        detector=detect_forbidden_combination,
-        sql_template="SELECT * WHERE {col1}={val1} AND {col2}={val2}",
-        example="Forfait jour ET heures sup"
-    ),
-    
-    CoreAnomaly(
-        id="BR#4", dimension=Dimension.BR,
-        name="Obligations métier",
-        description="SI A ALORS B obligatoire",
-        criticality=Criticality.ÉLEVÉ, woodall_level="MAST",
-        detector=detect_mandatory_business_rule,
-        sql_template="SELECT * WHERE {condition} AND {required} IS NULL",
-        example="Ancienneté>0 MAIS prime=0"
-    ),
-    
-    # BR#5-15 : TEMPLATES
-    *[CoreAnomaly(
-        id=f"BR#{i}", dimension=Dimension.BR,
-        name=f"Anomalie BR#{i}",
-        description=f"Anomalie règles métier #{i} - Template",
-        criticality=Criticality.MOYEN, woodall_level="MAST",
-        detector=detect_template_br,
-        sql_template="-- Template SQL",
-        example=f"Exemple BR#{i}"
-    ) for i in range(5, 16)],
-    
-    # ========================================================================
-    # UP : 15 ANOMALIES (3 réelles + 12 templates)
-    # ========================================================================
-    
-    # UP#1-3 : DÉTECTEURS RÉELS
-    CoreAnomaly(
-        id="UP#1", dimension=Dimension.UP,
-        name="Données obsolètes",
-        description="Date MAJ trop ancienne",
-        criticality=Criticality.ÉLEVÉ, woodall_level="SAMT",
-        detector=detect_obsolete_data,
-        sql_template="SELECT * WHERE {date_col} < NOW() - INTERVAL {days} DAY",
-        example="Prix 2019 en 2025"
-    ),
-    
-    CoreAnomaly(
-        id="UP#2", dimension=Dimension.UP,
-        name="Granularité excessive",
-        description="Trop de valeurs uniques",
-        criticality=Criticality.FAIBLE, woodall_level="SAMT",
-        detector=detect_excessive_granularity,
-        sql_template="SELECT COUNT(DISTINCT {column}) / COUNT(*) FROM {table}",
-        example="Données secondes pour reporting annuel"
-    ),
-    
-    CoreAnomaly(
-        id="UP#3", dimension=Dimension.UP,
-        name="Granularité insuffisante",
-        description="Pas assez de détail",
-        criticality=Criticality.MOYEN, woodall_level="SAMT",
-        detector=lambda df, col, min_unique: {
-            'detected': df[col].nunique() < min_unique if col in df.columns else False,
-            'affected_rows': len(df) if (col in df.columns and df[col].nunique() < min_unique) else 0,
-            'unique_count': df[col].nunique() if col in df.columns else 0,
-            'min_expected': min_unique,
-            'sample': []
-        },
-        sql_template="SELECT COUNT(DISTINCT {column}) FROM {table}",
-        example="Pays avec 3 valeurs uniquement"
-    ),
-    
-    # UP#4-15 : TEMPLATES
-    *[CoreAnomaly(
-        id=f"UP#{i}", dimension=Dimension.UP,
-        name=f"Anomalie UP#{i}",
-        description=f"Anomalie usage #{i} - Template",
-        criticality=Criticality.FAIBLE, woodall_level="SAMT",
-        detector=detect_template_up,
-        sql_template="-- Template SQL",
-        example=f"Exemple UP#{i}"
-    ) for i in range(4, 16)],
-]
+_REAL_DETECTORS: Dict[str, Callable] = {
+    "DB#1": detect_null_in_required,
+    "DB#2": detect_pk_duplicates,
+    "DB#3": detect_invalid_email,
+    "DB#4": detect_out_of_domain,
+    "DB#5": detect_negative_values,
+    "DP#1": detect_derived_calc_error,
+    "DP#2": detect_division_by_zero,
+    "DP#3": detect_data_type_mismatch,
+    "BR#1": detect_temporal_inconsistency,
+    "BR#2": detect_out_of_business_range,
+    "BR#3": detect_forbidden_combination,
+    "BR#4": detect_mandatory_business_rule,
+    "UP#1": detect_obsolete_data,
+    "UP#2": detect_excessive_granularity,
+    "UP#3": lambda df, col, min_unique: {
+        'detected': df[col].nunique() < min_unique if col in df.columns else False,
+        'affected_rows': len(df) if (col in df.columns and df[col].nunique() < min_unique) else 0,
+        'unique_count': df[col].nunique() if col in df.columns else 0,
+        'min_expected': min_unique,
+        'sample': []
+    },
+}
+
+_TEMPLATE_DETECTORS: Dict[str, Callable] = {
+    "DB": detect_template_db,
+    "DP": detect_template_dp,
+    "BR": detect_template_br,
+    "UP": detect_template_up,
+}
+
+_CRITICALITY_MAP = {
+    "CRITIQUE": Criticality.CRITIQUE,
+    "ÉLEVÉ": Criticality.ÉLEVÉ,
+    "MOYEN": Criticality.MOYEN,
+    "FAIBLE": Criticality.FAIBLE,
+    "VARIABLE": Criticality.MOYEN,
+}
+
+_DIMENSION_MAP = {
+    "DB": Dimension.DB,
+    "DP": Dimension.DP,
+    "BR": Dimension.BR,
+    "UP": Dimension.UP,
+}
+
+
+def _build_catalog_from_yaml() -> List[CoreAnomaly]:
+    """Construit la liste CoreAnomaly depuis le catalogue YAML."""
+    anomalies_dict = _yaml_catalog.anomalies
+    rule_types = _yaml_catalog.rule_types
+    result = []
+
+    for aid, info in anomalies_dict.items():
+        dim_str = info.get("dimension", "DB")
+        crit_str = info.get("criticality", "MOYEN")
+
+        # Détecteur réel ou template
+        detector = _REAL_DETECTORS.get(aid, _TEMPLATE_DETECTORS.get(dim_str, detect_template_db))
+
+        # SQL template depuis le rule_type s'il existe
+        rt_key = info.get("default_rule_type", "")
+        rt_cfg = rule_types.get(rt_key, {})
+        odcs = rt_cfg.get("odcs", {})
+        sql_template = odcs.get("query", f"-- {rt_key}")
+
+        # Exemple
+        example = info.get("business_risk", info.get("description", ""))
+
+        result.append(CoreAnomaly(
+            id=aid,
+            dimension=_DIMENSION_MAP.get(dim_str, Dimension.DB),
+            name=info.get("name", aid),
+            description=info.get("description", ""),
+            criticality=_CRITICALITY_MAP.get(crit_str, Criticality.MOYEN),
+            woodall_level=info.get("woodall", "SAST"),
+            detector=detector,
+            sql_template=sql_template,
+            example=example,
+        ))
+
+    return result
 
 
 # ============================================================================
-# MANAGER ÉTENDU
+# MANAGER ÉTENDU — chargé depuis YAML
 # ============================================================================
 
 class ExtendedCatalogManager:
-    """Gestionnaire catalogue étendu 60 anomalies"""
-    
+    """Gestionnaire catalogue chargé depuis rules_catalog.yaml"""
+
     def __init__(self, persistence_file: str = "extended_anomaly_stats.json"):
-        self.catalog = EXTENDED_CATALOG
+        self.catalog = _build_catalog_from_yaml()
         self.persistence_file = Path(persistence_file)
         self._load_stats()
     
@@ -406,13 +269,13 @@ class ExtendedCatalogManager:
 
 if __name__ == "__main__":
     manager = ExtendedCatalogManager()
-    
-    print("📊 CATALOGUE ÉTENDU - 60 ANOMALIES")
+
+    print(f"📊 CATALOGUE ÉTENDU - {len(manager.catalog)} ANOMALIES (depuis YAML)")
     print(f"Total: {len(manager.catalog)}")
     print(f"\nPar dimension:")
     for dim in ['DB', 'DP', 'BR', 'UP']:
         count = len(manager.get_by_dimension(dim))
         print(f"  {dim}: {count}")
-    
+
     print(f"\nDétecteurs réels: {len(manager.get_real_detectors())}")
     print(f"Templates: {len(manager.catalog) - len(manager.get_real_detectors())}")
