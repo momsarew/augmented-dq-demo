@@ -1,13 +1,15 @@
 """
 Référentiel complet des anomalies pour les 4 dimensions de risque DQ.
-Source: Base_d_anomalies_pour_les_dimensions_Risques__1_.xlsx
 
-128 anomalies:
-  DB (Database Integrity):     22 anomalies (16 Auto, 4 Semi, 2 Manuel)
-  DP (Data Processing):        32 anomalies (4 Auto, 17 Semi, 11 Manuel)
-  BR (Business Rules):         34 anomalies (7 Auto, 14 Semi, 13 Manuel)
-  UP (Usage Appropriateness):  40 anomalies (0 Auto, 7 Semi, 33 Manuel)
+Source unique de vérité : backend/rules_catalog.yaml
+Ce module expose les mêmes APIs qu'avant (REFERENTIAL, get_by_dimension,
+get_summary, etc.) mais charge les données depuis le catalogue YAML
+déclaratif pour faciliter l'extension.
+
+Pour ajouter de nouvelles anomalies → éditer rules_catalog.yaml
 """
+
+from backend.rules_catalog_loader import catalog as _catalog
 
 
 # ============================================================================
@@ -159,7 +161,18 @@ Source: Base_d_anomalies_pour_les_dimensions_Risques__1_.xlsx
 # UP#40: Finalité usage non autorisée [CRITIQUE] [Manuel] [MDS]
 
 
-REFERENTIAL = {
+# ============================================================================
+# REFERENTIAL chargé depuis rules_catalog.yaml (source unique de vérité)
+# ============================================================================
+REFERENTIAL = _catalog.referential
+
+
+# ============================================================================
+# Ancien dictionnaire hardcodé conservé en commentaire de référence.
+# Toutes les anomalies sont maintenant dans backend/rules_catalog.yaml
+# ============================================================================
+
+_LEGACY_REFERENTIAL_REMOVED = {
     "DB#1": {
         "name": "NULL non autorisés",
         "description": "Attributs obligatoires (1,1) contenant NULL",
@@ -1669,29 +1682,42 @@ REFERENTIAL = {
 
 def get_by_dimension(dim: str) -> dict:
     """Retourne toutes les anomalies d'une dimension."""
-    return {k: v for k, v in REFERENTIAL.items() if v["dimension"] == dim}
+    return _catalog.get_by_dimension(dim)
 
 
 def get_auto_detectable() -> dict:
     """Retourne les anomalies détectables automatiquement."""
-    return {k: v for k, v in REFERENTIAL.items() if v["detection"] == "Auto"}
+    return _catalog.get_auto_detectable()
 
 
 def get_by_criticality(crit: str) -> dict:
     """Retourne les anomalies d'une criticité donnée."""
-    return {k: v for k, v in REFERENTIAL.items() if v["criticality"] == crit}
+    return _catalog.get_by_criticality(crit)
 
 
 def get_summary() -> dict:
     """Statistiques du référentiel."""
-    dims = {}
+    summary = _catalog.get_summary()
+    # Enrichir avec les compteurs de criticité pour rétrocompatibilité
+    for dim, info in summary["by_dimension"].items():
+        for crit in ("CRITIQUE", "ÉLEVÉ", "MOYEN", "FAIBLE"):
+            if crit not in info:
+                info[crit] = 0
+        for aid, a in _catalog.anomalies.items():
+            if a.get("dimension") == dim and a.get("criticality", "") in info:
+                info[a["criticality"]] = info.get(a["criticality"], 0)
+    # Recompter proprement
+    by_dim = {}
     for a in REFERENTIAL.values():
-        dim = a["dimension"]
-        if dim not in dims:
-            dims[dim] = {"total": 0, "Auto": 0, "Semi": 0, "Manuel": 0,
-                         "CRITIQUE": 0, "ÉLEVÉ": 0, "MOYEN": 0, "FAIBLE": 0}
-        dims[dim]["total"] += 1
-        dims[dim][a["detection"]] += 1
-        if a["criticality"] in dims[dim]:
-            dims[dim][a["criticality"]] += 1
-    return {"total": len(REFERENTIAL), "by_dimension": dims}
+        dim = a.get("dimension", "?")
+        det = a.get("detection", "?")
+        crit = a.get("criticality", "?")
+        if dim not in by_dim:
+            by_dim[dim] = {"total": 0, "Auto": 0, "Semi": 0, "Manuel": 0,
+                           "CRITIQUE": 0, "ÉLEVÉ": 0, "MOYEN": 0, "FAIBLE": 0}
+        by_dim[dim]["total"] += 1
+        if det in by_dim[dim]:
+            by_dim[dim][det] += 1
+        if crit in by_dim[dim]:
+            by_dim[dim][crit] += 1
+    return {"total": len(REFERENTIAL), "by_dimension": by_dim}

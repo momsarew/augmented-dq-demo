@@ -17,11 +17,12 @@ import json
 import yaml
 from datetime import datetime
 
-# Import du référentiel complet
+# Import du référentiel + catalogue déclaratif
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from backend.anomaly_referential import REFERENTIAL, get_summary, get_by_dimension
+from backend.rules_catalog_loader import catalog as _catalog
 
 
 # ============================================================================
@@ -1090,180 +1091,21 @@ _TYPE_MAP = {
     "unknown": "string",
 }
 
-# Mapping des rule types internes vers les ODCS quality metric types
-_QUALITY_METRIC_MAP = {
-    "null_check": "nullValues",
-    "pk_unique": "duplicateValues",
-    "unique": "duplicateValues",
-    "exact_duplicates": "duplicateValues",
-    "enum": "invalidValues",
-    "range": "invalidValues",
-    "email_format": "invalidValues",
-    "type_mix": "invalidValues",
-    "no_negative": "invalidValues",
-    "no_zero": "invalidValues",
-    "overflow": "invalidValues",
-    "ratio_bounds": "invalidValues",
-    "null_legitimate": "nullValues",
-    "column_empty": "nullValues",
-    "fill_rate": "missingValues",
-}
-
-
+# Mapping ODCS chargé depuis le catalogue déclaratif (rules_catalog.yaml)
+# Plus besoin de modifier ce fichier pour ajouter des rule_types.
 def _map_odcs_quality_type(rule_type: str) -> str:
-    """Map un type de règle interne vers un type quality ODCS."""
-    return _QUALITY_METRIC_MAP.get(rule_type, "custom")
+    """Map un type de règle interne vers un type quality ODCS (via catalog)."""
+    return _catalog.get_odcs_metric(rule_type)
 
 
 def _build_odcs_quality_entry(rule: dict, col_name: str = "", dataset_name: str = "dataset") -> dict:
-    """Convertit une règle interne en entrée quality ODCS v3.1.0."""
-    metric_name = _map_odcs_quality_type(rule.get("type", ""))
-    # ODCS v3.1.0: type = "library"|"custom", metric = nullValues|duplicateValues|...
-    is_library = metric_name in ("nullValues", "duplicateValues", "invalidValues", "missingValues", "rowCount")
-    entry = {
-        "type": "library" if is_library else "custom",
-        "description": rule.get("description", ""),
-    }
-    if is_library:
-        entry["metric"] = metric_name
+    """Convertit une règle interne en entrée quality ODCS v3.1.0.
 
-    t = dataset_name  # alias table pour les requêtes SQL
-    c = col_name      # alias colonne
-
-    # Ajouter les paramètres spécifiques selon le type
-    rt = rule.get("type", "")
-    if rt == "null_check":
-        entry["mustBeLessThan"] = rule.get("threshold", 10.0)
-        entry["unit"] = "percent"
-    elif rt in ("range", "ratio_bounds"):
-        entry["mustBeBetween"] = [rule.get("min", 0), rule.get("max", 0)]
-    elif rt == "enum":
-        pass  # validValues ajouté dans customProperties ci-dessous
-    elif rt == "freshness":
-        entry["mustBeLessThan"] = rule.get("max_age_days", 365)
-        entry["unit"] = "days"
-    elif rt == "length":
-        entry["mustBeLessThan"] = rule.get("max_length", 255)
-        entry["unit"] = "characters"
-    elif rt == "fill_rate":
-        entry["mustBeGreaterThan"] = rule.get("min_fill_rate", 70)
-        entry["unit"] = "percent"
-    # ── Requêtes SQL paramétrées pour règles Semi/Manuel ──
-    # Placeholders: {column} = colonne courante, {table} = dataset
-    # Le programme consommateur résout via query.replace("{column}", col).replace("{table}", tbl)
-    elif rt == "fuzzy_duplicates" and col_name:
-        entry["query"] = (
-            "SELECT a.{column}, b.{column}, "
-            "LEVENSHTEIN(a.{column}, b.{column}) AS dist "
-            "FROM {table} a JOIN {table} b ON a.rowid < b.rowid "
-            "WHERE dist <= 2 AND a.{column} <> b.{column}")
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "rows"
-    elif rt == "synonyms" and col_name:
-        entry["query"] = (
-            "SELECT LOWER(TRIM({column})) AS norm, "
-            "GROUP_CONCAT(DISTINCT {column}) AS variantes, "
-            "COUNT(DISTINCT {column}) AS nb "
-            "FROM {table} GROUP BY norm HAVING nb > 1")
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "groups"
-    elif rt == "unit_heterogeneity" and col_name:
-        entry["query"] = (
-            "SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, "
-            "MAX({column})/NULLIF(MIN({column}),0) AS amplitude "
-            "FROM {table} WHERE {column} > 0 HAVING amplitude > 100")
-        entry["mustBeLessThan"] = 100
-        entry["unit"] = "amplitude_ratio"
-    elif rt == "format_consistency" and col_name:
-        entry["query"] = (
-            "SELECT {column}, LENGTH({column}) AS len FROM {table} "
-            "WHERE {column} IS NOT NULL "
-            "AND {column} NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'")
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "rows"
-    elif rt == "missing_rows" and col_name:
-        entry["query"] = (
-            "SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} "
-            "-- Comparer avec le nombre attendu dans l'univers de référence")
-        entry["mustBeGreaterThan"] = 0
-        entry["unit"] = "rows"
-    elif rt == "date_format_ambiguity" and col_name:
-        entry["query"] = (
-            "SELECT {column} FROM {table} "
-            "WHERE CAST(SUBSTR({column},6,2) AS INT) <= 12 "
-            "AND CAST(SUBSTR({column},9,2) AS INT) <= 12 "
-            "AND SUBSTR({column},6,2) <> SUBSTR({column},9,2)")
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "rows"
-    elif rt == "cartesian_join_risk" and col_name:
-        entry["query"] = (
-            "SELECT {column}, COUNT(*) AS nb FROM {table} "
-            "GROUP BY {column} HAVING nb > 1")
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "rows"
-    elif rt == "temporal_order":
-        sc = rule.get("start_col", col_name)
-        ec = rule.get("end_col", "")
-        if ec:
-            entry["query"] = (
-                "SELECT {start_column}, {end_column} FROM {table} "
-                "WHERE {start_column} > {end_column} "
-                "AND {start_column} IS NOT NULL AND {end_column} IS NOT NULL")
-            entry["mustBeLessThan"] = 0
-            entry["unit"] = "rows"
-            entry["queryParams"] = {"start_column": sc, "end_column": ec}
-    elif rt == "conditional_required":
-        cc = rule.get("condition_col", "")
-        cv = rule.get("condition_val", "")
-        if cc and col_name:
-            entry["query"] = (
-                "SELECT * FROM {table} "
-                "WHERE {condition_column} = '{condition_value}' "
-                "AND {column} IS NULL")
-            entry["mustBeLessThan"] = 0
-            entry["unit"] = "rows"
-            entry["queryParams"] = {"condition_column": cc, "condition_value": cv}
-    elif rt == "derived_calc":
-        sources = rule.get("sources", [])
-        formula = rule.get("formula", "")
-        entry["query"] = (
-            "SELECT * FROM {table} "
-            "WHERE {column} IS NOT NULL "
-            "-- Vérifier formule: " + formula)
-        entry["mustBeLessThan"] = 0
-        entry["unit"] = "rows"
-        if sources:
-            entry["queryParams"] = {"sources": sources, "formula": formula}
-    elif rt == "granularity_max" and col_name:
-        entry["query"] = (
-            "SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique "
-            "FROM {table}")
-        entry["mustBeLessThan"] = rule.get("max_unique_ratio", 0.9) * 100
-        entry["unit"] = "percent"
-    elif rt == "granularity_min" and col_name:
-        entry["query"] = (
-            "SELECT COUNT(DISTINCT {column}) AS nb_unique FROM {table}")
-        entry["mustBeGreaterThan"] = rule.get("min_unique", 3)
-        entry["unit"] = "distinct_values"
-
-    # Enrichissements custom (Woodall, anomaly_id, validValues, etc.)
-    custom = {}
-    if rule.get("type") == "enum" and rule.get("values"):
-        custom["validValues"] = rule["values"]
-    if rule.get("anomaly_id"):
-        custom["anomalyId"] = rule["anomaly_id"]
-    if rule.get("dimension"):
-        custom["causalDimension"] = rule["dimension"]
-    if rule.get("detection"):
-        custom["detectionMethod"] = rule["detection"]
-    if rule.get("criticality_ref"):
-        custom["criticality"] = rule["criticality_ref"]
-    if rule.get("woodall"):
-        custom["woodallClass"] = rule["woodall"]
-    if custom:
-        entry["customProperties"] = custom
-
-    return entry
+    Délègue au catalogue déclaratif (rules_catalog.yaml) pour le mapping
+    ODCS, les requêtes SQL et les seuils. Ainsi, ajouter un nouveau
+    rule_type dans le YAML suffit — pas besoin de modifier ce code.
+    """
+    return _catalog.build_odcs_entry(rule, col_name, dataset_name)
 
 
 def convert_to_odcs(contracts: dict, dama_scores: dict, violations: dict,
