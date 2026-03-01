@@ -9,10 +9,18 @@ venv/
 .venv/
 ENV/
 
-# Data files (keep samples)
+# Data files
 exports/
 resultats_*.xlsx
 resultats_*.csv
+
+# Generated data contracts (exports YAML/JSON)
+data_contract_*.yaml
+data_contract_*.json
+
+# Runtime directories
+.audit/
+.contracts/
 
 # Tests generated files
 tests/test_dataset_*.xlsx
