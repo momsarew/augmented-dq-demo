@@ -247,6 +247,179 @@ class RulesCatalog:
             custom["woodallClass"] = rule["woodall"]
         return custom
 
+    # ──────────────────────────────────────────────────────────────────────
+    # Import CSV / DataFrame
+    # ──────────────────────────────────────────────────────────────────────
+
+    # Colonnes obligatoires dans le CSV d'import
+    REQUIRED_CSV_COLS = {"anomaly_id", "name", "description", "dimension", "detection", "criticality"}
+    # Colonnes optionnelles reconnues
+    OPTIONAL_CSV_COLS = {"woodall", "algorithm", "complexity", "business_risk",
+                         "frequency", "academic_dims", "default_rule_type"}
+    VALID_DIMENSIONS = {"DB", "DP", "BR", "UP"}
+    VALID_DETECTIONS = {"Auto", "Semi", "Manuel"}
+    VALID_CRITICALITIES = {"CRITIQUE", "ÉLEVÉ", "MOYEN", "FAIBLE", "VARIABLE"}
+
+    def validate_import_df(self, df) -> List[str]:
+        """Valide un DataFrame d'import et retourne la liste des erreurs."""
+        errors = []
+        cols = set(df.columns)
+
+        # Colonnes manquantes
+        missing = self.REQUIRED_CSV_COLS - cols
+        if missing:
+            errors.append(f"Colonnes obligatoires manquantes : {', '.join(sorted(missing))}")
+            return errors  # Pas la peine de continuer
+
+        if len(df) == 0:
+            errors.append("Le fichier est vide")
+            return errors
+
+        # Anomaly ID format
+        for i, row in df.iterrows():
+            aid = str(row.get("anomaly_id", "")).strip()
+            if not aid:
+                errors.append(f"Ligne {i+1}: anomaly_id vide")
+                continue
+            # Format XX#N
+            parts = aid.split("#")
+            if len(parts) != 2 or parts[0] not in self.VALID_DIMENSIONS:
+                errors.append(f"Ligne {i+1}: anomaly_id '{aid}' invalide (format: DB#1, DP#2, BR#3, UP#4)")
+
+        # Dimension
+        bad_dims = df[~df["dimension"].isin(self.VALID_DIMENSIONS)]
+        if len(bad_dims) > 0:
+            errors.append(f"{len(bad_dims)} lignes avec dimension invalide (attendu: {', '.join(self.VALID_DIMENSIONS)})")
+
+        # Detection
+        bad_det = df[~df["detection"].isin(self.VALID_DETECTIONS)]
+        if len(bad_det) > 0:
+            errors.append(f"{len(bad_det)} lignes avec détection invalide (attendu: {', '.join(self.VALID_DETECTIONS)})")
+
+        # Criticality
+        bad_crit = df[~df["criticality"].isin(self.VALID_CRITICALITIES)]
+        if len(bad_crit) > 0:
+            errors.append(f"{len(bad_crit)} lignes avec criticité invalide (attendu: {', '.join(self.VALID_CRITICALITIES)})")
+
+        return errors
+
+    def import_from_dataframe(self, df, overwrite: bool = False) -> dict:
+        """Importe des anomalies depuis un DataFrame dans le catalogue.
+
+        Args:
+            df: DataFrame avec colonnes anomaly_id, name, description, etc.
+            overwrite: Si True, écrase les anomalies existantes.
+
+        Returns:
+            dict avec {added: int, updated: int, skipped: int, errors: list}
+        """
+        result = {"added": 0, "updated": 0, "skipped": 0, "errors": []}
+
+        errors = self.validate_import_df(df)
+        if errors:
+            result["errors"] = errors
+            return result
+
+        anomalies = self._data.setdefault("anomalies", {})
+
+        for _, row in df.iterrows():
+            aid = str(row["anomaly_id"]).strip()
+
+            if aid in anomalies and not overwrite:
+                result["skipped"] += 1
+                continue
+
+            entry = {}
+            for col in self.REQUIRED_CSV_COLS | self.OPTIONAL_CSV_COLS:
+                if col == "anomaly_id":
+                    continue
+                val = row.get(col)
+                if val is not None and str(val).strip() and str(val).lower() != "nan":
+                    entry[col] = str(val).strip()
+
+            if aid in anomalies:
+                anomalies[aid].update(entry)
+                result["updated"] += 1
+            else:
+                anomalies[aid] = entry
+                result["added"] += 1
+
+        # Persister dans le YAML
+        if result["added"] > 0 or result["updated"] > 0:
+            self._save()
+
+        return result
+
+    def _save(self):
+        """Persiste le catalogue dans le fichier YAML."""
+        class _Dumper(yaml.SafeDumper):
+            pass
+
+        def _str_repr(dumper, data):
+            if "\n" in data:
+                return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+        _Dumper.add_representer(str, _str_repr)
+
+        with open(self._path, "w", encoding="utf-8") as f:
+            f.write("# ============================================================================\n")
+            f.write("# Rules Catalog — Augmented DQ Framework\n")
+            f.write("# ============================================================================\n")
+            f.write("#\n")
+            f.write("# Ce fichier est le catalogue déclaratif de toutes les règles de qualité.\n")
+            f.write("# Pour ajouter une nouvelle anomalie pour un cas d'usage :\n")
+            f.write("#\n")
+            f.write("#   1. Ajouter l'entrée dans la section 'anomalies' (ex: BR#35)\n")
+            f.write("#   2. Si le rule_type existe déjà (null_check, range, enum...) → c'est tout !\n")
+            f.write("#   3. Si c'est un nouveau rule_type → l'ajouter dans 'rule_types' + son validateur Python\n")
+            f.write("#\n")
+            f.write("# Aucune modification de code Python n'est nécessaire pour les cas 1 et 2.\n")
+            f.write("# ============================================================================\n\n")
+            yaml.dump(self._data, f, Dumper=_Dumper, default_flow_style=False,
+                      allow_unicode=True, sort_keys=False, width=120)
+
+    def generate_csv_template(self) -> str:
+        """Génère un CSV template pour l'import d'anomalies."""
+        import io
+        import csv
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        headers = ["anomaly_id", "name", "description", "dimension",
+                    "detection", "criticality", "woodall", "algorithm",
+                    "complexity", "business_risk", "frequency", "default_rule_type"]
+        writer.writerow(headers)
+
+        # Exemples
+        writer.writerow([
+            "BR#35", "Incohérence date livraison",
+            "Date de livraison antérieure à la date de commande",
+            "BR", "Auto", "ÉLEVÉ", "MAST",
+            "WHERE date_livraison < date_commande", "O(n)",
+            "Risque de livraisons planifiées avant la commande",
+            "Fréquent", "temporal_order"
+        ])
+        writer.writerow([
+            "DB#23", "IBAN invalide",
+            "Format IBAN non conforme à la norme ISO 13616",
+            "DB", "Auto", "CRITIQUE", "SAST",
+            "Regex: ^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,}$", "O(1)",
+            "Risque de rejet de virement bancaire",
+            "Fréquent", "email_format"
+        ])
+        writer.writerow([
+            "UP#41", "Données trop anciennes pour ML",
+            "Données d'entraînement datant de plus de 2 ans",
+            "UP", "Semi", "ÉLEVÉ", "SAMT",
+            "WHERE date_collecte < NOW() - INTERVAL 2 YEAR", "O(n)",
+            "Risque de drift du modèle ML",
+            "Fréquent", "freshness"
+        ])
+
+        return output.getvalue()
+
 
 # ── Singleton ──────────────────────────────────────────────────────────────
 catalog = RulesCatalog()

@@ -60,7 +60,7 @@ def render_data_contracts_tab():
         padding: 1.25rem;
         margin-bottom: 1.5rem;
     ">
-        <h3 style="color: white; margin: 0 0 0.5rem 0;">📜 Data Contracts v3 — Référentiel {ref_summary['total']} anomalies</h3>
+        <h3 style="color: white; margin: 0 0 0.5rem 0;">📜 Data Contracts v3 — Référentiel {ref_summary['total']} anomalies (extensible)</h3>
         <p style="color: rgba(255,255,255,0.8); margin: 0;">
             DB: {ref_summary['by_dimension']['DB']['total']} ·
             DP: {ref_summary['by_dimension']['DP']['total']} ·
@@ -80,9 +80,10 @@ def render_data_contracts_tab():
         return
 
     # =====================================================================
-    # RÉFÉRENTIEL (collapsible)
+    # RÉFÉRENTIEL (collapsible) — chargé depuis rules_catalog.yaml
     # =====================================================================
-    with st.expander("📚 Référentiel complet (128 anomalies)", expanded=False):
+    ref_total = len(_catalog.anomalies)
+    with st.expander(f"📚 Référentiel complet ({ref_total} anomalies)", expanded=False):
         for dim in ["DB", "DP", "BR", "UP"]:
             dim_anomalies = get_by_dimension(dim)
             color = DIM_COLORS[dim]
@@ -101,11 +102,95 @@ def render_data_contracts_tab():
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     # =====================================================================
+    # IMPORT CSV — Enrichir le référentiel
+    # =====================================================================
+    with st.expander("📥 Importer de nouvelles anomalies (CSV)", expanded=False):
+        st.markdown("""
+        <div style="
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        ">
+            <strong>Enrichissez le référentiel</strong> en chargeant un CSV avec vos anomalies métier.<br/>
+            <span style="color: rgba(255,255,255,0.7);">
+                Colonnes obligatoires : <code>anomaly_id</code>, <code>name</code>, <code>description</code>,
+                <code>dimension</code>, <code>detection</code>, <code>criticality</code><br/>
+                Colonnes optionnelles : <code>woodall</code>, <code>algorithm</code>, <code>business_risk</code>,
+                <code>frequency</code>, <code>default_rule_type</code>
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Télécharger le template
+        csv_template = _catalog.generate_csv_template()
+        st.download_button(
+            label="📄 Télécharger le template CSV",
+            data=csv_template,
+            file_name="anomalies_template.csv",
+            mime="text/csv",
+        )
+
+        # Upload CSV
+        csv_file = st.file_uploader(
+            "📁 Charger un CSV d'anomalies",
+            type=["csv"],
+            key="anomaly_csv_upload",
+        )
+
+        if csv_file is not None:
+            try:
+                import_df = pd.read_csv(csv_file, dtype=str).fillna("")
+                st.markdown(f"**Aperçu** — {len(import_df)} anomalies trouvées :")
+                st.dataframe(import_df, use_container_width=True, hide_index=True)
+
+                # Validation
+                errors = _catalog.validate_import_df(import_df)
+                if errors:
+                    for err in errors:
+                        st.error(f"❌ {err}")
+                else:
+                    # Identifier nouvelles vs existantes
+                    existing = set(_catalog.anomalies.keys())
+                    new_ids = set(import_df["anomaly_id"].str.strip()) - existing
+                    update_ids = set(import_df["anomaly_id"].str.strip()) & existing
+
+                    if new_ids:
+                        st.info(f"🆕 {len(new_ids)} nouvelles anomalies : {', '.join(sorted(new_ids))}")
+                    if update_ids:
+                        st.warning(f"♻️ {len(update_ids)} anomalies déjà existantes : {', '.join(sorted(update_ids))}")
+
+                    col_a, col_b = st.columns(2)
+                    with col_a:
+                        overwrite = st.checkbox("Écraser les anomalies existantes", value=False)
+                    with col_b:
+                        if st.button("✅ Importer dans le catalogue", type="primary"):
+                            result = _catalog.import_from_dataframe(import_df, overwrite=overwrite)
+                            if result["errors"]:
+                                for err in result["errors"]:
+                                    st.error(f"❌ {err}")
+                            else:
+                                msg_parts = []
+                                if result["added"] > 0:
+                                    msg_parts.append(f"🆕 {result['added']} ajoutées")
+                                if result["updated"] > 0:
+                                    msg_parts.append(f"♻️ {result['updated']} mises à jour")
+                                if result["skipped"] > 0:
+                                    msg_parts.append(f"⏭️ {result['skipped']} ignorées (déjà existantes)")
+                                st.success(f"✅ Import réussi — {' · '.join(msg_parts)}")
+                                st.info(f"📊 Le référentiel contient maintenant **{len(_catalog.anomalies)} anomalies**")
+                                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Erreur de lecture CSV : {e}")
+
+    # =====================================================================
     # GÉNÉRATION
     # =====================================================================
     st.subheader("⚡ Génération automatique")
 
-    if st.button("🔄 Générer les contrats (128 anomalies)", type="primary", use_container_width=True):
+    if st.button(f"🔄 Générer les contrats ({ref_total} anomalies)", type="primary", use_container_width=True):
         contracts = _auto_generate_contracts(df)
         st.session_state.data_contracts = contracts
         total_rules = sum(len(c.get("rules", [])) for c in contracts.values())
