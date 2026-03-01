@@ -763,91 +763,95 @@ class ContractRepository:
 
 
 def create_template_contract() -> DataContract:
-    """Crée un template de Data Contract à personnaliser"""
+    """Crée un template de Data Contract basé sur le référentiel d'anomalies.
+
+    Le template inclut la structure complète avec les règles de qualité
+    organisées par dimension causale (DB, DP, BR, UP) et les rule_types
+    du catalogue, conformes au standard ODCS v3.1.0.
+    """
+    from backend.rules_catalog_loader import catalog
+
+    # Construire les quality_rules depuis le référentiel (anomalies auto-détectables)
+    quality_rules = []
+    for anomaly_id, anomaly in catalog.anomalies.items():
+        if anomaly.get("detection") != "Auto":
+            continue
+        rule_type = anomaly.get("default_rule_type", "")
+        odcs_cfg = catalog.get_odcs_config(rule_type) if rule_type else {}
+
+        entry = {
+            "anomaly_id": anomaly_id,
+            "rule": rule_type or "custom",
+            "name": anomaly.get("name", ""),
+            "description": anomaly.get("description", ""),
+            "dimension": anomaly.get("dimension", ""),
+            "criticality": anomaly.get("criticality", "MOYEN"),
+            "detection": "Auto",
+            "woodall": anomaly.get("woodall", ""),
+            "columns": ["<À_REMPLIR>"],
+            "threshold": 0.99,
+        }
+        if odcs_cfg:
+            entry["odcs"] = {
+                "type": odcs_cfg.get("type", "custom"),
+                "metric": odcs_cfg.get("metric", "custom"),
+            }
+        quality_rules.append(entry)
+
+    # Construire les business_rules (anomalies Semi/Manuel)
+    business_rules = []
+    for anomaly_id, anomaly in catalog.anomalies.items():
+        if anomaly.get("detection") == "Auto":
+            continue
+        business_rules.append({
+            "anomaly_id": anomaly_id,
+            "name": anomaly.get("name", ""),
+            "type": anomaly.get("default_rule_type", "custom"),
+            "description": anomaly.get("description", ""),
+            "dimension": anomaly.get("dimension", ""),
+            "criticality": anomaly.get("criticality", "MOYEN"),
+            "detection": anomaly.get("detection", "Semi"),
+            "woodall": anomaly.get("woodall", ""),
+            "severity": _criticality_to_severity(anomaly.get("criticality", "MOYEN")),
+        })
+
+    # Rule types disponibles (pour documentation dans le template)
+    rule_types_summary = []
+    for rt_name, rt_cfg in catalog.rule_types.items():
+        rule_types_summary.append({
+            "name": rt_name,
+            "category": rt_cfg.get("category", ""),
+            "odcs_metric": rt_cfg.get("odcs", {}).get("metric", "custom"),
+        })
+
+    # Résumé du référentiel
+    summary = catalog.get_summary()
+
     template = {
         "name": "Mon Dataset",
         "version": "1.0.0",
-        "description": "Description du dataset et de son usage",
+        "description": "Data Contract généré depuis le référentiel Augmented DQ (128 anomalies, 4 dimensions causales)",
         "owner": "equipe@exemple.com",
+        "odcs_version": "3.1.0",
+
+        "referentiel": {
+            "total_anomalies": summary["total"],
+            "dimensions": summary["by_dimension"],
+            "rule_types": rule_types_summary,
+        },
 
         "schema": [
             {
-                "name": "ID",
+                "name": "<NOM_COLONNE>",
                 "type": "string",
-                "description": "Identifiant unique",
+                "description": "Remplacer par vos colonnes réelles",
                 "nullable": False,
-                "unique": True,
-                "pattern": "^[A-Z]{3}[0-9]{6}$",
-            },
-            {
-                "name": "Nom",
-                "type": "string",
-                "description": "Nom complet",
-                "nullable": False,
-                "min_length": 2,
-                "max_length": 100,
-            },
-            {
-                "name": "Email",
-                "type": "email",
-                "description": "Adresse email",
-                "nullable": True,
-            },
-            {
-                "name": "Date_Creation",
-                "type": "date",
-                "description": "Date de création",
-                "format": "YYYY-MM-DD",
-                "nullable": False,
-                "rules": ["must_be_past"],
-            },
-            {
-                "name": "Montant",
-                "type": "decimal",
-                "description": "Montant en euros",
-                "nullable": True,
-                "range": [0, 1000000],
-            },
-            {
-                "name": "Statut",
-                "type": "string",
-                "description": "Statut actuel",
-                "enum": ["Actif", "Inactif", "En attente"],
+                "unique": False,
             },
         ],
 
-        "quality_rules": [
-            {
-                "rule": "completeness",
-                "description": "Complétude minimale requise",
-                "columns": ["ID", "Nom"],
-                "threshold": 0.99,
-            },
-            {
-                "rule": "uniqueness",
-                "description": "Unicité de l'identifiant",
-                "columns": ["ID"],
-            },
-        ],
-
-        "business_rules": [
-            {
-                "name": "date_coherente",
-                "type": "comparison",
-                "description": "La date de création doit être dans le passé",
-                "severity": "high",
-            },
-            {
-                "name": "montant_si_actif",
-                "type": "conditional",
-                "description": "Si Statut=Actif, Montant doit être renseigné",
-                "if_column": "Statut",
-                "if_value": "Actif",
-                "then_column": "Montant",
-                "then_check": "not_null",
-                "severity": "medium",
-            },
-        ],
+        "quality_rules": quality_rules,
+        "business_rules": business_rules,
 
         "sla": {
             "freshness": "24h",
@@ -856,16 +860,124 @@ def create_template_contract() -> DataContract:
         },
 
         "consumers": [
-            {"name": "Application Paie", "contact": "paie@exemple.com"},
-            {"name": "Dashboard RH", "contact": "rh@exemple.com"},
+            {"name": "Application Exemple", "contact": "equipe@exemple.com"},
         ],
 
-        "tags": ["RH", "SIRH", "Production"],
+        "tags": ["Production"],
     }
 
     return DataContract(template)
 
 
+def create_referentiel_contract() -> dict:
+    """Génère le data contract complet du référentiel, organisé par dimension.
+
+    Retourne un dict structuré avec toutes les anomalies groupées par
+    dimension causale (DB, DP, BR, UP), chaque anomalie contenant ses
+    métadonnées complètes et son mapping ODCS.
+    """
+    from backend.rules_catalog_loader import catalog
+
+    dimensions_order = ["DB", "DP", "BR", "UP"]
+    dim_labels = {
+        "DB": "Database Integrity",
+        "DP": "Data Processing",
+        "BR": "Business Rules",
+        "UP": "Usage & Pertinence",
+    }
+
+    # Construire les anomalies par dimension
+    anomalies_by_dim = {}
+    for dim in dimensions_order:
+        dim_anomalies = catalog.get_by_dimension(dim)
+        entries = []
+        for anomaly_id, anomaly in sorted(dim_anomalies.items(),
+                                           key=lambda x: int(x[0].split("#")[1])):
+            rule_type = anomaly.get("default_rule_type", "")
+            odcs_cfg = catalog.get_odcs_config(rule_type) if rule_type else {}
+
+            entry = {
+                "id": anomaly_id,
+                "name": anomaly.get("name", ""),
+                "description": anomaly.get("description", ""),
+                "detection": anomaly.get("detection", ""),
+                "criticality": anomaly.get("criticality", ""),
+                "woodall": anomaly.get("woodall", ""),
+                "algorithm": anomaly.get("algorithm", ""),
+                "complexity": anomaly.get("complexity", ""),
+                "business_risk": anomaly.get("business_risk", ""),
+                "rule_type": rule_type,
+                "academic_dims": anomaly.get("academic_dims", ""),
+            }
+            if odcs_cfg:
+                entry["odcs"] = {
+                    "type": odcs_cfg.get("type", "custom"),
+                    "metric": odcs_cfg.get("metric", "custom"),
+                }
+            entries.append(entry)
+
+        anomalies_by_dim[dim] = {
+            "label": dim_labels.get(dim, dim),
+            "count": len(entries),
+            "anomalies": entries,
+        }
+
+    # Rule types
+    rule_types = {}
+    for rt_name, rt_cfg in catalog.rule_types.items():
+        rule_types[rt_name] = {
+            "category": rt_cfg.get("category", ""),
+            "validator": rt_cfg.get("validator", ""),
+            "odcs": rt_cfg.get("odcs", {}),
+        }
+
+    summary = catalog.get_summary()
+
+    contract = {
+        "name": "Référentiel Augmented DQ",
+        "version": "1.0.0",
+        "description": "Référentiel complet des 128 anomalies de qualité de données, organisé selon les 4 dimensions causales du risque data",
+        "odcs_version": "3.1.0",
+        "owner": "equipe-data@organisation.com",
+        "created_at": datetime.now().isoformat(),
+
+        "summary": {
+            "total_anomalies": summary["total"],
+            "dimensions": summary["by_dimension"],
+            "total_rule_types": len(rule_types),
+        },
+
+        "rule_types": rule_types,
+        "dimensions": anomalies_by_dim,
+
+        "sla": {
+            "freshness": "24h",
+            "availability": "99.9%",
+            "quality_score_min": 0.95,
+        },
+    }
+
+    return contract
+
+
+def get_referentiel_yaml() -> str:
+    """Retourne le référentiel complet en YAML structuré."""
+    contract = create_referentiel_contract()
+    return yaml.dump(contract, default_flow_style=False, allow_unicode=True, sort_keys=False, width=120)
+
+
+def _criticality_to_severity(criticality: str) -> str:
+    """Convertit une criticité du référentiel en severity pour data contract."""
+    mapping = {
+        "CRITIQUE": "critical",
+        "ÉLEVÉ": "high",
+        "MOYEN": "medium",
+        "FAIBLE": "low",
+        "VARIABLE": "medium",
+    }
+    return mapping.get(criticality, "medium")
+
+
 def get_template_yaml() -> str:
-    """Retourne le template YAML à télécharger"""
+    """Retourne le template YAML à télécharger (basé sur le référentiel)"""
     return create_template_contract().to_yaml()

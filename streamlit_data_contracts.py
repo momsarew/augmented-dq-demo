@@ -15,7 +15,7 @@ import io
 try:
     from backend.data_contracts import (
         DataContract, ContractValidator, ContractRepository,
-        create_template_contract, get_template_yaml
+        create_template_contract, get_template_yaml, get_referentiel_yaml
     )
     CONTRACTS_OK = True
 except ImportError as e:
@@ -71,20 +71,42 @@ def render_data_contracts_tab():
         with col1:
             st.markdown("### 📄 Télécharger le template")
             st.markdown("""
-            Téléchargez le template YAML, complétez-le avec vos spécifications,
+            Le template est pré-rempli avec les **128 anomalies** du référentiel,
+            organisées par dimension causale (DB, DP, BR, UP) et conformes au
+            standard **ODCS v3.1.0**. Complétez le schéma avec vos colonnes,
             puis importez-le ci-dessous.
             """)
 
             template_yaml = get_template_yaml()
 
             st.download_button(
-                label="📥 Télécharger template YAML",
+                label="📥 Télécharger template (avec référentiel)",
                 data=template_yaml,
                 file_name="data_contract_template.yaml",
                 mime="text/yaml",
                 use_container_width=True,
                 type="primary",
                 key="dl_template_yaml"
+            )
+
+            st.markdown("---")
+
+            st.markdown("### 📚 Référentiel complet")
+            st.markdown("""
+            Téléchargez le **référentiel complet** des anomalies avec toutes les
+            métadonnées : algorithmes, complexité, risques métier, classification
+            Woodall, mapping ODCS.
+            """)
+
+            referentiel_yaml = get_referentiel_yaml()
+
+            st.download_button(
+                label="📥 Télécharger le référentiel complet (YAML)",
+                data=referentiel_yaml,
+                file_name="referentiel_augmented_dq.yaml",
+                mime="text/yaml",
+                use_container_width=True,
+                key="dl_referentiel_yaml"
             )
 
             st.markdown("---")
