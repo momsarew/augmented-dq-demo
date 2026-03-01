@@ -185,12 +185,11 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
         "dama": "Compare DAMA vs Probabiliste en 3 phrases : limites, avantage, ROI.",
         "global": "Synthèse dashboard en 4 phrases : situation, critiques, actions.",
         "elicitation": "Explique ces pondérations en 3 phrases : justification métier, impact sur calculs, recommandations.",
-        "beta": "Tu es un expert data quality qui vulgarise pour un public non-technique. "
-                "Explique les distributions Beta affichées en langage simple, sans formules mathématiques. "
-                "Pour chaque dimension (DB, DP, BR, UP) : 1) Traduis alpha et beta en nombre d'observations "
-                "problématiques vs correctes. 2) Explique ce que P signifie concrètement (ex: '3% de risque "
-                "d'erreur de structure'). 3) Indique le niveau de confiance (beaucoup de données = forte confiance). "
-                "Utilise des analogies simples. Termine par un résumé en 1 phrase de l'état global de l'attribut.",
+        "beta": "Tu es un expert data quality qui vulgarise pour un non-technique. "
+                "Explique les 4 distributions Beta (DB, DP, BR, UP) en langage simple, sans formules. "
+                "Pour chaque dimension, en 2 lignes max : traduis P en risque concret et indique la confiance. "
+                "DB=Structure, DP=Traitement, BR=Règles métier, UP=Utilisabilité. "
+                "Termine par 1 phrase de résumé global. Sois concis.",
     }
     
     try:
@@ -663,7 +662,7 @@ if st.session_state.analysis_done:
                             "BR": {"alpha": vec['alpha_BR'], "beta": vec['beta_BR'], "P": vec['P_BR']},
                             "UP": {"alpha": vec['alpha_UP'], "beta": vec['beta_UP'], "P": vec['P_UP']},
                         }
-                        exp = explain_with_ai("beta", beta_data, beta_key, 500)
+                        exp = explain_with_ai("beta", beta_data, beta_key, 800)
                         st.session_state[f"{beta_key}_exp"] = exp
                 with col_exp:
                     if f"{beta_key}_exp" in st.session_state:
