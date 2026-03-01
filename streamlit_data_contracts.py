@@ -22,6 +22,19 @@ except ImportError as e:
     CONTRACTS_OK = False
     print(f"Module data_contracts non disponible: {e}")
 
+# Import du système v4 dynamique (génération contextuelle)
+try:
+    from frontend.tabs.data_contracts import (
+        _auto_generate_contracts,
+        _validate_contracts,
+        _compute_dama_scores,
+        export_odcs_yaml,
+    )
+    DYNAMIC_OK = True
+except ImportError as e:
+    DYNAMIC_OK = False
+    print(f"Génération dynamique non disponible: {e}")
+
 
 def render_data_contracts_tab():
     """Rendu de l'onglet Data Contracts"""
@@ -69,25 +82,99 @@ def render_data_contracts_tab():
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("### 📄 Télécharger le template")
-            st.markdown("""
-            Le template est pré-rempli avec les **128 anomalies** du référentiel,
-            organisées par dimension causale (DB, DP, BR, UP) et conformes au
-            standard **ODCS v3.1.0**. Complétez le schéma avec vos colonnes,
-            puis importez-le ci-dessous.
-            """)
+            df = st.session_state.get("df")
 
-            template_yaml = get_template_yaml()
+            # =============================================================
+            # CAS 1: DataFrame chargé → contrat contextuel dynamique
+            # =============================================================
+            if df is not None and DYNAMIC_OK:
+                st.markdown("### 📄 Contrat contextuel (votre dataset)")
+                st.markdown(f"""
+                Génère un **Data Contract ODCS v3.1.0** adapté aux
+                **{len(df.columns)} colonnes** de votre dataset. Seules les
+                règles **applicables** sont incluses (détection automatique
+                des types, rôles et seuils calibrés sur vos données).
+                """)
 
-            st.download_button(
-                label="📥 Télécharger template (avec référentiel)",
-                data=template_yaml,
-                file_name="data_contract_template.yaml",
-                mime="text/yaml",
-                use_container_width=True,
-                type="primary",
-                key="dl_template_yaml"
-            )
+                # Génération dynamique via le système v4
+                contracts = _auto_generate_contracts(df)
+                violations = _validate_contracts(df, contracts)
+                dama_scores = _compute_dama_scores(df, contracts, violations)
+
+                dataset_name = st.session_state.get("uploaded_filename", "dataset")
+                if dataset_name and "." in dataset_name:
+                    dataset_name = dataset_name.rsplit(".", 1)[0]
+
+                odcs_yaml = export_odcs_yaml(
+                    contracts, dama_scores, violations,
+                    dataset_name or "dataset"
+                )
+
+                total_rules = sum(
+                    len(c.get("rules", [])) for c in contracts.values()
+                )
+                st.caption(
+                    f"{len(contracts)} colonnes, {total_rules} regles applicables"
+                )
+
+                st.download_button(
+                    label="📥 Telecharger Data Contract (ODCS YAML)",
+                    data=odcs_yaml,
+                    file_name=f"data_contract_{dataset_name}.odcs.yaml",
+                    mime="application/x-yaml",
+                    use_container_width=True,
+                    type="primary",
+                    key="dl_template_yaml"
+                )
+
+                # Export JSON complémentaire
+                export_data = {
+                    "version": "3.0",
+                    "generated_at": datetime.now().isoformat(),
+                    "dataset": dataset_name,
+                    "contracts": contracts,
+                    "dama_scores": {
+                        k: {dk: dv for dk, dv in v.items() if dv is not None}
+                        for k, v in dama_scores.items()
+                    },
+                }
+                st.download_button(
+                    label="📥 Telecharger Data Contract (JSON)",
+                    data=json.dumps(export_data, ensure_ascii=False, indent=2, default=str),
+                    file_name=f"data_contract_{dataset_name}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key="dl_template_json"
+                )
+
+            # =============================================================
+            # CAS 2: Pas de DataFrame → template structurel léger
+            # =============================================================
+            else:
+                st.markdown("### 📄 Télécharger le template")
+                if not DYNAMIC_OK:
+                    st.markdown("""
+                    Le template est pré-rempli avec les **128 anomalies** du référentiel.
+                    Complétez le schéma avec vos colonnes, puis importez-le ci-dessous.
+                    """)
+                else:
+                    st.markdown("""
+                    **Chargez un dataset** dans la sidebar pour generer un contrat
+                    **contextuel** adapte a vos colonnes reelles.
+
+                    En attendant, vous pouvez telecharger le template generique.
+                    """)
+
+                template_yaml = get_template_yaml()
+                st.download_button(
+                    label="📥 Télécharger template (générique)",
+                    data=template_yaml,
+                    file_name="data_contract_template.yaml",
+                    mime="text/yaml",
+                    use_container_width=True,
+                    type="primary",
+                    key="dl_template_yaml"
+                )
 
             st.markdown("---")
 
