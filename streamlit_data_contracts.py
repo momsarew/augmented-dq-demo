@@ -83,7 +83,8 @@ def render_data_contracts_tab():
                 file_name="data_contract_template.yaml",
                 mime="text/yaml",
                 use_container_width=True,
-                type="primary"
+                type="primary",
+                key="dl_template_yaml"
             )
 
             st.markdown("---")
@@ -462,12 +463,13 @@ def _render_contract_editor(contract: DataContract, repo: ContractRepository):
             pass  # Export button outside form
 
     # Export YAML (outside form)
-    if st.button("📥 Exporter YAML"):
+    if st.button("📥 Exporter YAML", key="btn_export_yaml_contract"):
         st.download_button(
             "💾 Télécharger",
             data=contract.to_yaml(),
             file_name=f"{contract.name.lower().replace(' ', '_')}_v{contract.version}.yaml",
-            mime="text/yaml"
+            mime="text/yaml",
+            key="dl_export_yaml_contract"
         )
 
 
