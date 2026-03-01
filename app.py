@@ -1574,6 +1574,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     idx += 1
 
     # ========================================================================
+    # TAB DATA CONTRACTS
+    # ========================================================================
+    with tabs[idx]:
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("📜 Data Contracts")
+            st.warning("Module Data Contracts non disponible")
+
+    idx += 1
+
+    # ========================================================================
     # TAB HISTORIQUE - Audit Trail
     # ========================================================================
     with tabs[idx]:
@@ -2190,6 +2202,16 @@ else:
             render_data_contracts_tab()
         else:
             st.header("Data Contracts", anchor=False)
+            st.warning("Module Data Contracts non disponible")
+
+    # ========================================================================
+    # ONGLET DATA CONTRACTS (avant analyse)
+    # ========================================================================
+    with tabs[1]:  # 📜 Contracts
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("📜 Data Contracts")
             st.warning("Module Data Contracts non disponible")
 
     # ========================================================================
