@@ -1,11 +1,11 @@
 """
-Tab Data Contracts v3 - Intègre le référentiel complet 128 anomalies.
+Tab Data Contracts v4 — Génération dynamique depuis le catalogue YAML.
 
-Source: Base_d_anomalies_pour_les_dimensions_Risques__1_.xlsx
-  DB: 22 anomalies (16 Auto, 4 Semi, 2 Manuel)
-  DP: 32 anomalies (4 Auto, 17 Semi, 11 Manuel)
-  BR: 34 anomalies (7 Auto, 14 Semi, 13 Manuel)
-  UP: 40 anomalies (0 Auto, 7 Semi, 33 Manuel)
+Architecture évolutive:
+  - Les anomalies sont lues depuis rules_catalog.yaml (extensible par CSV)
+  - Chaque rule_type a un applicateur Python qui détermine SI la règle s'applique
+  - Ajouter une anomalie avec un rule_type existant = prise en charge automatique
+  - Ajouter un nouveau rule_type = ajouter applicateur + validateur Python
 """
 
 import re
@@ -411,19 +411,412 @@ def render_data_contracts_tab():
 
 
 # ============================================================================
-# GÉNÉRATION AUTOMATIQUE — 128 ANOMALIES
+# APPLICATEURS DE RÈGLES — dispatch dynamique par rule_type
+# ============================================================================
+# Pour ajouter le support d'un nouveau rule_type:
+#   1. Ajouter le rule_type dans rules_catalog.yaml (section rule_types)
+#   2. Ajouter un applicateur ci-dessous avec @_applicator("rule_type")
+#   3. Ajouter son validateur dans _check_rule()
+#
+# Les anomalies ajoutées par CSV/YAML utilisant un rule_type existant
+# sont AUTOMATIQUEMENT prises en charge — aucune modif Python nécessaire.
+# ============================================================================
+
+_RULE_APPLICATORS = {}
+_MULTI_COL_APPLICATORS = {}
+
+
+def _applicator(rule_type):
+    """Enregistre un applicateur pour un rule_type per-column."""
+    def decorator(fn):
+        _RULE_APPLICATORS[rule_type] = fn
+        return fn
+    return decorator
+
+
+def _multi_applicator(rule_type):
+    """Enregistre un applicateur multi-colonnes."""
+    def decorator(fn):
+        _MULTI_COL_APPLICATORS[rule_type] = fn
+        return fn
+    return decorator
+
+
+# ── Per-column applicators ───────────────────────────────────────────────
+
+@_applicator("null_check")
+def _apply_null_check(series, col, col_config, df, contract):
+    null_pct = series.isnull().mean() * 100
+    threshold = 0.0 if null_pct == 0 else 10.0
+    return [{"description": f"Taux nulls \u2264 {threshold}% (actuel: {null_pct:.1f}%)", "threshold": threshold}]
+
+
+@_applicator("pk_unique")
+def _apply_pk_unique(series, col, col_config, df, contract):
+    if col not in col_config["pk_columns"]:
+        return None
+    return [{"description": f"Pas de doublons PK (actuel: {series.duplicated(keep='first').sum()})"}]
+
+
+@_applicator("unique")
+def _apply_unique(series, col, col_config, df, contract):
+    if not contract.get("unique"):
+        return None
+    return [{"description": "Toutes valeurs doivent \u00eatre uniques"}]
+
+
+@_applicator("enum")
+def _apply_enum(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna()
+    if len(clean) == 0 or clean.nunique() > 30:
+        return None
+    values = sorted(clean.unique().tolist())
+    desc = f"Valeurs autoris\u00e9es ({clean.nunique()}): {', '.join(str(v) for v in values[:10])}{'...' if len(values) > 10 else ''}"
+    return [{"description": desc, "values": [str(v) for v in values]}]
+
+
+@_applicator("range")
+def _apply_range(series, col, col_config, df, contract):
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if len(clean) == 0:
+        return None
+    q01, q99 = float(clean.quantile(0.01)), float(clean.quantile(0.99))
+    return [{"description": f"Valeurs dans [{q01:.2f}, {q99:.2f}]", "min": q01, "max": q99}]
+
+
+@_applicator("email_format")
+def _apply_email_format(series, col, col_config, df, contract):
+    if col not in col_config["email_columns"]:
+        return None
+    return [{"description": "Format email valide (xxx@domain.tld)"}]
+
+
+@_applicator("type_mix")
+def _apply_type_mix(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    non_null = series.dropna()
+    if len(non_null) == 0:
+        return None
+    numeric_converted = pd.to_numeric(non_null, errors="coerce")
+    numeric_rate = float(numeric_converted.notna().sum() / len(non_null))
+    if not (0.1 < numeric_rate < 0.9):
+        return None
+    return [{"description": f"Types mixtes ({numeric_rate:.0%} num\u00e9riques dans texte)", "numeric_rate": numeric_rate}]
+
+
+@_applicator("exact_duplicates")
+def _apply_exact_duplicates(series, col, col_config, df, contract):
+    if col in col_config["pk_columns"]:
+        return None
+    if contract.get("expected_type") == "string":
+        return None
+    dup_count = int(series.duplicated(keep="first").sum())
+    if dup_count == 0:
+        return None
+    return [{"description": f"{dup_count} doublons exacts"}]
+
+
+@_applicator("fuzzy_duplicates")
+def _apply_fuzzy_duplicates(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    if col in col_config["pk_columns"]:
+        return None
+    return [{"description": "Doublons fuzzy (variations syntaxiques)"}]
+
+
+@_applicator("synonyms")
+def _apply_synonyms(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna()
+    if len(clean) == 0 or not (3 <= clean.nunique() <= 50):
+        return None
+    return [{"description": "V\u00e9rifier synonymes/variantes m\u00eame concept"}]
+
+
+@_applicator("unit_heterogeneity")
+def _apply_unit_heterogeneity(series, col, col_config, df, contract):
+    if col not in col_config["positive_columns"]:
+        return None
+    return [{"description": "V\u00e9rifier homog\u00e9n\u00e9it\u00e9 des unit\u00e9s"}]
+
+
+@_applicator("format_consistency")
+def _apply_format_consistency(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    if col not in col_config["date_columns"]:
+        return None
+    return [{"description": "V\u00e9rifier coh\u00e9rence formats dates"}]
+
+
+@_applicator("null_legitimate")
+def _apply_null_legitimate(series, col, col_config, df, contract):
+    null_pct = series.isnull().mean() * 100
+    if null_pct == 0:
+        return None
+    return [{"description": f"NULL l\u00e9gitimes: {null_pct:.1f}% (\u00e0 documenter si > 30%)"}]
+
+
+@_applicator("missing_rows")
+def _apply_missing_rows(series, col, col_config, df, contract):
+    return [{"description": "V\u00e9rifier compl\u00e9tude vs univers attendu"}]
+
+
+@_applicator("column_empty")
+def _apply_column_empty(series, col, col_config, df, contract):
+    if series.isnull().mean() * 100 != 100:
+        return None
+    return [{"description": "Colonne 100% vide"}]
+
+
+@_applicator("encoding_issues")
+def _apply_encoding_issues(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna().astype(str)
+    if len(clean) == 0:
+        return None
+    issues = clean.str.contains(r'[Ã¢Ã©Ã¨Ã´Ã¼]|ï¿½|\?{3,}', regex=True, na=False).sum()
+    if issues == 0:
+        return None
+    return [{"description": f"{issues} valeurs avec probl\u00e8mes d'encodage"}]
+
+
+@_applicator("special_chars")
+def _apply_special_chars(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna().astype(str)
+    if len(clean) == 0:
+        return None
+    special = clean.str.contains(r"""['"\\<>]""", regex=True, na=False).sum()
+    if special == 0:
+        return None
+    return [{"description": f"{special} valeurs avec caract\u00e8res sp\u00e9ciaux"}]
+
+
+@_applicator("whitespace")
+def _apply_whitespace(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna().astype(str)
+    if len(clean) == 0:
+        return None
+    ws = (clean != clean.str.strip()).sum()
+    if ws == 0:
+        return None
+    return [{"description": f"{ws} valeurs avec espaces parasites"}]
+
+
+@_applicator("case_inconsistency")
+def _apply_case_inconsistency(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna().astype(str)
+    if len(clean) == 0:
+        return None
+    upper_count = clean.str.isupper().sum()
+    lower_count = clean.str.islower().sum()
+    mixed = len(clean) - upper_count - lower_count
+    if not (mixed > 0 and upper_count > 0 and lower_count > 0):
+        return None
+    return [{"description": f"Casse incoh\u00e9rente ({upper_count} UPPER, {lower_count} lower, {mixed} Mixed)"}]
+
+
+@_applicator("overflow")
+def _apply_overflow(series, col, col_config, df, contract):
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if len(clean) == 0:
+        return None
+    if not (clean.max() > 1e15 or clean.min() < -1e15):
+        return None
+    return [{"description": f"Valeurs extr\u00eames (max: {clean.max():.2e})"}]
+
+
+@_applicator("no_zero")
+def _apply_no_zero(series, col, col_config, df, contract):
+    if col not in col_config["denominator_columns"]:
+        return None
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    zero_count = int((pd.to_numeric(series, errors="coerce") == 0).sum())
+    return [{"description": f"Pas de z\u00e9ros d\u00e9nominateur (actuel: {zero_count})"}]
+
+
+@_applicator("length")
+def _apply_length(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    clean = series.dropna().astype(str)
+    if len(clean) == 0:
+        return None
+    max_len = int(clean.str.len().max())
+    return [{"description": f"Longueur max \u2264 {max_len} car.", "max_length": max_len}]
+
+
+@_applicator("date_format_ambiguity")
+def _apply_date_format_ambiguity(series, col, col_config, df, contract):
+    if col not in col_config["date_columns"]:
+        return None
+    if contract.get("expected_type") != "string":
+        return None
+    return [{"description": "V\u00e9rifier parsing dates (DD/MM vs MM/DD)"}]
+
+
+@_applicator("cartesian_join_risk")
+def _apply_cartesian_join_risk(series, col, col_config, df, contract):
+    if col not in col_config["pk_columns"]:
+        return None
+    return [{"description": "Risque jointure cart\u00e9sienne si PK non unique"}]
+
+
+@_applicator("no_negative")
+def _apply_no_negative(series, col, col_config, df, contract):
+    if col not in col_config["positive_columns"]:
+        return None
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    neg_count = int((pd.to_numeric(series, errors="coerce") < 0).sum())
+    return [{"description": f"Pas de n\u00e9gatifs sur champ positif (actuel: {neg_count})"}]
+
+
+@_applicator("ratio_bounds")
+def _apply_ratio_bounds(series, col, col_config, df, contract):
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if len(clean) == 0:
+        return None
+    if not col.lower().startswith(("taux", "ratio", "pct", "pourcentage")):
+        return None
+    return [{"description": "Ratio dans [0, 1] ou [0, 100]", "min": 0, "max": 100}]
+
+
+@_applicator("granularity_max")
+def _apply_granularity_max(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    total = len(series)
+    if total == 0:
+        return None
+    ratio = series.nunique() / total
+    if ratio <= 0.9:
+        return None
+    return [{"description": f"Granularit\u00e9 excessive ({ratio:.0%} uniques)", "max_unique_ratio": 0.9}]
+
+
+@_applicator("granularity_min")
+def _apply_granularity_min(series, col, col_config, df, contract):
+    if contract.get("expected_type") != "string":
+        return None
+    total = len(series)
+    if total <= 50:
+        return None
+    nunique = series.nunique()
+    if nunique > 2:
+        return None
+    return [{"description": f"Granularit\u00e9 insuffisante ({nunique} uniques / {total} lignes)", "min_unique": 3}]
+
+
+@_applicator("freshness")
+def _apply_freshness(series, col, col_config, df, contract):
+    if col not in col_config["date_columns"]:
+        return None
+    return [{"description": "Donn\u00e9es de moins de 365 jours", "max_age_days": 365}]
+
+
+@_applicator("fill_rate")
+def _apply_fill_rate(series, col, col_config, df, contract):
+    null_pct = series.isnull().mean() * 100
+    if null_pct <= 30:
+        return None
+    return [{"description": f"Taux remplissage {100-null_pct:.1f}% (seuil: 70%)", "min_fill_rate": 70}]
+
+
+@_applicator("outlier_iqr")
+def _apply_outlier_iqr(series, col, col_config, df, contract):
+    if not pd.api.types.is_numeric_dtype(series):
+        return None
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if len(clean) <= 10:
+        return None
+    q1, q3 = float(clean.quantile(0.25)), float(clean.quantile(0.75))
+    iqr = q3 - q1
+    if iqr <= 0:
+        return None
+    lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+    outlier_count = int(((clean < lower) | (clean > upper)).sum())
+    if outlier_count == 0:
+        return None
+    return [{"description": f"Outliers IQR: {outlier_count} hors [{lower:.2f}, {upper:.2f}]",
+             "lower": lower, "upper": upper, "dimension": "UP", "detection": "Auto"}]
+
+
+# ── Multi-column applicators ─────────────────────────────────────────────
+
+@_multi_applicator("temporal_order")
+def _apply_temporal_order(df, col_config, contracts):
+    results = []
+    for start_col in col_config["date_start_columns"]:
+        for end_col in col_config["date_end_columns"]:
+            if end_col != start_col and end_col in df.columns:
+                results.append((start_col, {
+                    "description": f"{start_col} doit \u00eatre \u2264 {end_col}",
+                    "start_col": start_col, "end_col": end_col,
+                }))
+    return results
+
+
+@_multi_applicator("derived_calc")
+def _apply_derived_calc(df, col_config, contracts):
+    results = []
+    for formula_info in col_config.get("derived_formulas", []):
+        target = formula_info["target"]
+        if target in contracts:
+            results.append((target, {
+                "description": f"Formule: {formula_info['description']}",
+                "sources": formula_info["sources"],
+                "target": target,
+                "formula": formula_info["formula"],
+            }))
+    return results
+
+
+@_multi_applicator("conditional_required")
+def _apply_conditional_required(df, col_config, contracts):
+    results = []
+    for col, (cond_col, cond_val) in col_config.get("conditional_required_columns", {}).items():
+        if cond_col in df.columns and col in contracts:
+            results.append((col, {
+                "description": f"SI {cond_col}={cond_val} ALORS {col} NOT NULL",
+                "condition_col": cond_col, "condition_val": cond_val,
+            }))
+    return results
+
+
+# ============================================================================
+# G\u00c9N\u00c9RATION AUTOMATIQUE — dynamique depuis le catalogue
 # ============================================================================
 
 def _auto_generate_contracts(df: pd.DataFrame) -> dict:
-    """Génère des contrats couvrant les 128 anomalies du référentiel."""
+    """G\u00e9n\u00e8re des contrats depuis le catalogue YAML \u2014 toute anomalie avec
+    un default_rule_type est automatiquement prise en charge."""
     contracts = {}
     col_config = _auto_detect_columns(df)
 
+    # Phase 1: R\u00e8gles per-column (it\u00e8re sur le catalogue)
     for col in df.columns:
         series = df[col]
-        total = len(series)
         expected_type = _infer_type(series)
-        null_pct = series.isnull().mean() * 100
 
         contract = {
             "expected_type": expected_type,
@@ -432,272 +825,52 @@ def _auto_generate_contracts(df: pd.DataFrame) -> dict:
             "rules": [],
         }
         rules = contract["rules"]
+        seen_rule_types = set()
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # DB — Database Integrity (22 anomalies)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        for anomaly_id, anomaly in _catalog.anomalies.items():
+            rule_type = anomaly.get("default_rule_type")
+            if not rule_type or rule_type in _MULTI_COL_APPLICATORS:
+                continue
+            applicator = _RULE_APPLICATORS.get(rule_type)
+            if not applicator:
+                continue
+            results = applicator(series, col, col_config, df, contract)
+            if results:
+                for params in results:
+                    params = dict(params)
+                    desc = params.pop("description")
+                    rules.append(_rule(anomaly_id, desc, rule_type, **params))
+                seen_rule_types.add(rule_type)
 
-        # DB#1: NULL non autorisés [Auto]
-        threshold = 0.0 if null_pct == 0 else 10.0
-        rules.append(_rule("DB#1", f"Taux nulls ≤ {threshold}% (actuel: {null_pct:.1f}%)", "null_check", threshold=threshold))
-
-        # DB#2: Violations clé primaire [Auto]
-        if col in col_config["pk_columns"]:
-            rules.append(_rule("DB#2", f"Pas de doublons PK (actuel: {series.duplicated(keep='first').sum()})", "pk_unique"))
-
-        # DB#3: Violations clé étrangère [Auto] — structure prête
-        # Nécessite tables de référence, tagué comme Semi
-
-        # DB#4: Violations contraintes unicité [Auto]
-        if contract["unique"]:
-            rules.append(_rule("DB#4", "Toutes valeurs doivent être uniques", "unique"))
-
-        # DB#5: Valeurs hors domaine [Auto]
-        if expected_type == "string":
-            clean = series.dropna()
-            if len(clean) > 0 and clean.nunique() <= 30:
-                values = sorted(clean.unique().tolist())
-                rules.append(_rule("DB#5", f"Valeurs autorisées ({clean.nunique()}): {', '.join(str(v) for v in values[:10])}{'...' if len(values) > 10 else ''}", "enum", values=[str(v) for v in values]))
-
-        # DB#6: Valeurs hors plage numérique [Auto]
-        if pd.api.types.is_numeric_dtype(series):
-            clean = pd.to_numeric(series, errors="coerce").dropna()
-            if len(clean) > 0:
-                q01, q99 = float(clean.quantile(0.01)), float(clean.quantile(0.99))
-                rules.append(_rule("DB#6", f"Valeurs dans [{q01:.2f}, {q99:.2f}]", "range", min=q01, max=q99))
-
-        # DB#7: Violations de format [Auto]
-        if col in col_config["email_columns"]:
-            rules.append(_rule("DB#7", "Format email valide (xxx@domain.tld)", "email_format"))
-
-        # DB#8: Erreurs type données [Auto]
-        if expected_type == "string":
-            non_null = series.dropna()
-            if len(non_null) > 0:
-                numeric_converted = pd.to_numeric(non_null, errors="coerce")
-                numeric_rate = float(numeric_converted.notna().sum() / len(non_null))
-                if 0.1 < numeric_rate < 0.9:
-                    rules.append(_rule("DB#8", f"Types mixtes ({numeric_rate:.0%} numériques dans texte)", "type_mix", numeric_rate=numeric_rate))
-
-        # DB#9: Doublons exacts [Auto]
-        if col in col_config["pk_columns"]:
-            pass  # Already covered by DB#2
-        else:
-            dup_count = int(series.duplicated(keep="first").sum())
-            if dup_count > 0 and expected_type != "string":
-                rules.append(_rule("DB#9", f"{dup_count} doublons exacts", "exact_duplicates"))
-
-        # DB#10: Doublons proches (fuzzy) [Semi]
-        if expected_type == "string" and col not in col_config["pk_columns"]:
-            rules.append(_rule("DB#10", "Doublons fuzzy (variations syntaxiques)", "fuzzy_duplicates"))
-
-        # DB#11: Redondance inter-tables [Semi] — tagged only
-
-        # DB#12: Synonymes [Semi]
-        if expected_type == "string":
-            clean = series.dropna()
-            if len(clean) > 0 and 3 <= clean.nunique() <= 50:
-                rules.append(_rule("DB#12", "Vérifier synonymes/variantes même concept", "synonyms"))
-
-        # DB#13: Homonymes [Manuel]
-        # DB#14: Hétérogénéité unités [Semi]
-        if col in col_config["positive_columns"]:
-            rules.append(_rule("DB#14", "Vérifier homogénéité des unités", "unit_heterogeneity"))
-
-        # DB#15: Incohérences format colonnes [Auto]
-        if expected_type == "string" and col in col_config["date_columns"]:
-            rules.append(_rule("DB#15", "Vérifier cohérence formats dates", "format_consistency"))
-
-        # DB#16: Données manquantes (NULL légitimes) [Auto]
-        if null_pct > 0:
-            rules.append(_rule("DB#16", f"NULL légitimes: {null_pct:.1f}% (à documenter si > 30%)", "null_legitimate"))
-
-        # DB#17: Lignes manquantes [Manuel]
-        rules.append(_rule("DB#17", "Vérifier complétude vs univers attendu", "missing_rows"))
-
-        # DB#18: Colonnes entières vides [Auto]
-        if null_pct == 100:
-            rules.append(_rule("DB#18", "Colonne 100% vide", "column_empty"))
-
-        # DB#19: Problèmes encodage [Auto]
-        if expected_type == "string":
-            clean = series.dropna().astype(str)
-            if len(clean) > 0:
-                encoding_issues = clean.str.contains(r'[Ã¢Ã©Ã¨Ã´Ã¼]|ï¿½|\?{3,}', regex=True, na=False).sum()
-                if encoding_issues > 0:
-                    rules.append(_rule("DB#19", f"{encoding_issues} valeurs avec problèmes d'encodage", "encoding_issues"))
-
-        # DB#20: Caractères spéciaux non échappés [Auto]
-        if expected_type == "string":
-            clean = series.dropna().astype(str)
-            if len(clean) > 0:
-                special = clean.str.contains(r"""['"\\<>]""", regex=True, na=False).sum()
-                if special > 0:
-                    rules.append(_rule("DB#20", f"{special} valeurs avec caractères spéciaux", "special_chars"))
-
-        # DB#21: Espaces parasites [Auto]
-        if expected_type == "string":
-            clean = series.dropna().astype(str)
-            if len(clean) > 0:
-                whitespace = (clean != clean.str.strip()).sum()
-                if whitespace > 0:
-                    rules.append(_rule("DB#21", f"{whitespace} valeurs avec espaces parasites", "whitespace"))
-
-        # DB#22: Casse incohérente [Auto]
-        if expected_type == "string":
-            clean = series.dropna().astype(str)
-            if len(clean) > 0:
-                upper_count = clean.str.isupper().sum()
-                lower_count = clean.str.islower().sum()
-                mixed = len(clean) - upper_count - lower_count
-                if mixed > 0 and upper_count > 0 and lower_count > 0:
-                    rules.append(_rule("DB#22", f"Casse incohérente ({upper_count} UPPER, {lower_count} lower, {mixed} Mixed)", "case_inconsistency"))
-
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # DP — Data Processing (32 anomalies)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-        # DP#1: Calculs dérivés incorrects [Semi]
-        # Handled at multi-column level below
-
-        # DP#3: Débordements numériques [Auto]
-        if pd.api.types.is_numeric_dtype(series):
-            clean = pd.to_numeric(series, errors="coerce").dropna()
-            if len(clean) > 0:
-                if clean.max() > 1e15 or clean.min() < -1e15:
-                    rules.append(_rule("DB#3_DP", f"Valeurs extrêmes (max: {clean.max():.2e})", "overflow"))
-
-        # DP#4: Divisions par zéro [Auto]
-        if col in col_config["denominator_columns"] and pd.api.types.is_numeric_dtype(series):
-            zero_count = int((pd.to_numeric(series, errors="coerce") == 0).sum())
-            rules.append(_rule("DP#4", f"Pas de zéros dénominateur (actuel: {zero_count})", "no_zero"))
-
-        # DP#5: Erreurs d'agrégations [Semi]
-        # DP#6: Conversions type inappropriées [Semi]
-        # DP#7: Troncatures de données [Auto]
-        if expected_type == "string":
-            clean = series.dropna().astype(str)
-            if len(clean) > 0:
-                max_len = int(clean.str.len().max())
-                rules.append(_rule("DP#7", f"Longueur max ≤ {max_len} car.", "length", max_length=max_len))
-
-        # DP#8: Conversions format dates [Semi]
-        if col in col_config["date_columns"] and expected_type == "string":
-            rules.append(_rule("DP#8", "Vérifier parsing dates (DD/MM vs MM/DD)", "date_format_ambiguity"))
-
-        # DP#9–DP#15: Transcodage, jointures, fusions [Semi/Manuel]
-        # Tagged informatif
-        if col in col_config["pk_columns"]:
-            rules.append(_rule("DP#14", "Risque jointure cartésienne si PK non unique", "cartesian_join_risk"))
-
-        # DP#20: Données non chargées [Semi]
-        # DP#22: Transformations non idempotentes [Manuel]
-        # DP#29–32: Déduplication [Manuel]
-
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # BR — Business Rules (34 anomalies)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-        # BR#1: Incohérences temporelles [Auto]
-        if col in col_config["date_start_columns"]:
-            for end_col in col_config["date_end_columns"]:
-                if end_col != col and end_col in df.columns:
-                    rules.append(_rule("BR#1", f"{col} doit être ≤ {end_col}", "temporal_order", start_col=col, end_col=end_col))
-
-        # BR#2: Valeurs hors bornes métier [Auto]
-        if col in col_config["positive_columns"] and pd.api.types.is_numeric_dtype(series):
-            neg_count = int((pd.to_numeric(series, errors="coerce") < 0).sum())
-            rules.append(_rule("BR#2", f"Pas de négatifs sur champ positif (actuel: {neg_count})", "no_negative"))
-
-        # BR#3: Combinaisons interdites [Semi]
-        # Structure prête pour config manuelle
-
-        # BR#5: Obligations métier [Semi]
-        if col in col_config["conditional_required_columns"]:
-            cond_col, cond_val = col_config["conditional_required_columns"][col]
-            if cond_col in df.columns:
-                rules.append(_rule("BR#5", f"SI {cond_col}={cond_val} ALORS {col} NOT NULL", "conditional_required", condition_col=cond_col, condition_val=cond_val))
-
-        # BR#6–9: Conformité (RGPD, légal, fiscal, standards) [Manuel]
-        # BR#10: Exigences audit [Semi]
-        # BR#11: Incohérences calculés vs base [Auto]
-        # BR#12: Sommes de contrôle [Auto]
-        # BR#13: Ratios métier invalides [Auto]
-        if pd.api.types.is_numeric_dtype(series):
-            clean = pd.to_numeric(series, errors="coerce").dropna()
-            if len(clean) > 0 and col.lower().startswith(("taux", "ratio", "pct", "pourcentage")):
-                rules.append(_rule("BR#13", "Ratio dans [0, 1] ou [0, 100]", "ratio_bounds", min=0, max=100))
-
-        # BR#14: Dépendances fonctionnelles [Semi]
-        # BR#15: Exclusivité mutuelle [Auto]
-        # BR#16–20: Hiérarchies, classifications [Semi/Manuel]
-        # BR#21–25: Politiques, seuils, processus [Manuel]
-        # BR#26: Événements dans mauvais ordre [Semi]
-        # BR#27: Délais réglementaires [Semi]
-        # BR#28–30: Périodes, fréquences, antériorité [Semi]
-        # BR#31–34: Dossiers, validations, documents [Manuel]
-
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # UP — Usage Appropriateness (40 anomalies)
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-        # UP#1: Granularité trop fine [Manuel]
-        if expected_type == "string" and total > 0:
-            ratio = series.nunique() / total
-            if ratio > 0.9:
-                rules.append(_rule("UP#1", f"Granularité excessive ({ratio:.0%} uniques)", "granularity_max", max_unique_ratio=0.9))
-
-        # UP#2: Granularité trop large [Manuel]
-        if expected_type == "string" and total > 0:
-            nunique = series.nunique()
-            if nunique <= 2 and total > 50:
-                rules.append(_rule("UP#2", f"Granularité insuffisante ({nunique} uniques / {total} lignes)", "granularity_min", min_unique=3))
-
-        # UP#6: Données obsolètes [Semi]
-        if col in col_config["date_columns"]:
-            rules.append(_rule("UP#6", "Données de moins de 365 jours", "freshness", max_age_days=365))
-
-        # UP#7: Latence excessive [Semi]
-        # UP#8: Fréquence MAJ insuffisante [Semi]
-
-        # UP#16: Taux remplissage insuffisant [Semi]
-        if null_pct > 30:
-            rules.append(_rule("UP#16", f"Taux remplissage {100-null_pct:.1f}% (seuil: 70%)", "fill_rate", min_fill_rate=70))
-
-        # UP#17: Attributs manquants [Semi]
-        # UP#23: Données non interprétables [Manuel]
-        # UP#25: Encodage incompatible [Semi]
-
-        # UP#36: Données non conformes usage légal [Manuel]
-        # UP#37: Habilitation insuffisante [Manuel]
-        # UP#39: Durée conservation dépassée [Semi]
-        # UP#40: Finalité usage non autorisée [Manuel]
-
-        # Outliers IQR (complément UP)
-        if pd.api.types.is_numeric_dtype(series):
-            clean = pd.to_numeric(series, errors="coerce").dropna()
-            if len(clean) > 10:
-                q1, q3 = float(clean.quantile(0.25)), float(clean.quantile(0.75))
-                iqr = q3 - q1
-                if iqr > 0:
-                    lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-                    outlier_count = int(((clean < lower) | (clean > upper)).sum())
-                    if outlier_count > 0:
-                        rules.append(_rule("", f"Outliers IQR: {outlier_count} hors [{lower:.2f}, {upper:.2f}]", "outlier_iqr", lower=lower, upper=upper, dimension="UP", detection="Auto"))
+        # Outlier IQR: compl\u00e9ment statistique (si pas d\u00e9j\u00e0 couvert par une anomalie)
+        if "outlier_iqr" not in seen_rule_types:
+            applicator = _RULE_APPLICATORS.get("outlier_iqr")
+            if applicator:
+                results = applicator(series, col, col_config, df, contract)
+                if results:
+                    for params in results:
+                        params = dict(params)
+                        desc = params.pop("description")
+                        rules.append(_rule("", desc, "outlier_iqr", **params))
 
         contracts[col] = contract
 
-    # ── Multi-colonnes: DP#1 Calculs dérivés ──────────────────────────────
-    for formula_info in col_config.get("derived_formulas", []):
-        target = formula_info["target"]
-        if target in contracts:
-            contracts[target]["rules"].append(
-                _rule("DP#1", f"Formule: {formula_info['description']}", "derived_calc",
-                      sources=formula_info["sources"], target=target, formula=formula_info["formula"])
-            )
+    # Phase 2: R\u00e8gles multi-colonnes
+    for anomaly_id, anomaly in _catalog.anomalies.items():
+        rule_type = anomaly.get("default_rule_type")
+        if not rule_type or rule_type not in _MULTI_COL_APPLICATORS:
+            continue
+        applicator = _MULTI_COL_APPLICATORS[rule_type]
+        results = applicator(df, col_config, contracts)
+        if results:
+            for target_col, params in results:
+                if target_col in contracts:
+                    params = dict(params)
+                    desc = params.pop("description")
+                    contracts[target_col]["rules"].append(
+                        _rule(anomaly_id, desc, rule_type, **params))
 
     return contracts
-
 
 def _rule(anomaly_id: str, description: str, rule_type: str, **kwargs) -> dict:
     """Crée une règle de contrat liée au référentiel."""
@@ -1039,8 +1212,20 @@ def _violation(anomaly_id, rule_name, message, criticality, dimension, affected_
 # SCORES DAMA / ISO 8000
 # ============================================================================
 
+def _get_dama_category(anomaly_id: str) -> str:
+    """Retourne la catégorie DAMA d'une anomalie via son rule_type dans le catalogue."""
+    anomaly = _catalog.anomalies.get(anomaly_id, {})
+    rule_type = anomaly.get("default_rule_type", "")
+    rt_config = _catalog.rule_types.get(rule_type, {})
+    return rt_config.get("category", "")
+
+
 def _compute_dama_scores(df, contracts, violations):
-    """Calcule les 6 dimensions DAMA pour chaque colonne."""
+    """Calcule les 6 dimensions DAMA pour chaque colonne.
+
+    Utilise les catégories déclaratives du catalogue YAML (rule_types.category)
+    pour mapper dynamiquement violations → dimensions DAMA.
+    """
     scores = {}
     for col_name in contracts:
         if col_name not in df.columns:
@@ -1053,15 +1238,21 @@ def _compute_dama_scores(df, contracts, violations):
         completude = 1 - (series.isnull().sum() / total)
         unicite = 1 - (series.duplicated(keep="first").sum() / total)
 
-        validity_viols = sum(v.get("affected_rows", 0) for v in violations.get(col_name, []) if v.get("anomaly_id") in ("DB#5", "DB#7", "DB#8"))
+        # Validité: violations dont le rule_type a category="Validité"
+        validity_viols = sum(v.get("affected_rows", 0) for v in violations.get(col_name, [])
+                            if _get_dama_category(v.get("anomaly_id", "")) == "Validité")
         validite = 1 - (validity_viols / total) if validity_viols > 0 else None
 
+        # Cohérence: violations dimension BR (déjà dynamique)
         br_viols = sum(v.get("affected_rows", 0) for v in violations.get(col_name, []) if v.get("dimension") == "BR")
         coherence = 1 - (br_viols / total) if br_viols > 0 else None
 
-        fresh_viols = [v for v in violations.get(col_name, []) if v.get("anomaly_id") == "UP#6"]
+        # Fraîcheur: violations dont le rule_type a category="Fraîcheur"
+        fresh_viols = [v for v in violations.get(col_name, [])
+                      if _get_dama_category(v.get("anomaly_id", "")) == "Fraîcheur"]
         fraicheur = 1 - (fresh_viols[0].get("affected_rows", 0) / total) if fresh_viols else None
 
+        # Exactitude: violations dimension DP (déjà dynamique)
         dp_viols = sum(v.get("affected_rows", 0) for v in violations.get(col_name, []) if v.get("dimension") == "DP")
         exactitude = 1 - (dp_viols / total) if dp_viols > 0 else None
 
