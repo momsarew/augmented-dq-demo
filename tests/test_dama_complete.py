@@ -506,7 +506,7 @@ def calculate_dama_metrics(df, anomalies_info):
                 age_embauche = (embauche - naissance).dt.days / 365.25
                 coherent_count = (age_embauche >= 16).sum()
                 extended_dama[col]['consistency'] = coherent_count / n_total
-            except:
+            except (ValueError, TypeError, KeyError):
                 extended_dama[col]['consistency'] = 0
 
         elif col == 'Anciennete_Annees':
@@ -519,7 +519,7 @@ def calculate_dama_metrics(df, anomalies_info):
                 # Tolérance de 1 an
                 coherent_count = (abs(calc_anciennete - declared) < 1).sum()
                 extended_dama[col]['consistency'] = coherent_count / n_total
-            except:
+            except (ValueError, TypeError, KeyError):
                 extended_dama[col]['consistency'] = 0
         else:
             extended_dama[col]['consistency'] = 1.0  # Pas de règle de cohérence
@@ -535,7 +535,7 @@ def calculate_dama_metrics(df, anomalies_info):
                 # Frais si < 365 jours
                 fresh_count = (age_days < 365).sum()
                 extended_dama[col]['timeliness'] = fresh_count / n_total
-            except:
+            except (ValueError, TypeError):
                 extended_dama[col]['timeliness'] = 0
 
         elif col == 'Date_Embauche':
@@ -546,7 +546,7 @@ def calculate_dama_metrics(df, anomalies_info):
                 # Considérer "frais" si < 10 ans
                 fresh_count = (age_years < 10).sum()
                 extended_dama[col]['timeliness'] = fresh_count / n_total
-            except:
+            except (ValueError, TypeError):
                 extended_dama[col]['timeliness'] = 0
         else:
             extended_dama[col]['timeliness'] = 1.0  # Non applicable

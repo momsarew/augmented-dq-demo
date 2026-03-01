@@ -1,6 +1,16 @@
 """
-Framework Probabiliste DQ - Version FINALE COMPLÈTE
-Tous les onglets + Élicitation AHP + Reporting Contextuel
+DataQualityLab - Orchestrateur principal Streamlit.
+
+Point d'entree de l'application. Ce fichier:
+- Configure la page Streamlit et le session_state
+- Charge les modules backend (engine, audit, scan, contracts)
+- Definit la sidebar (upload CSV, status API)
+- Instancie les onglets selon l'etat (avant/apres analyse)
+- Delegue le rendu de chaque onglet aux modules frontend/tabs/
+
+Les onglets post-analyse sont: Dashboard, Vecteurs, Priorites,
+Elicitation AHP, Profil Risque, Lineage, DAMA, Reporting,
+Data Contracts, Historique, Parametres, Aide.
 """
 
 import os
@@ -114,7 +124,7 @@ except Exception as e:
 # CONFIG
 # ============================================================================
 
-st.set_page_config(page_title="Framework Probabiliste DQ", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="DataQualityLab", page_icon=":material/analytics:", layout="wide")
 st.markdown(get_gray_css(), unsafe_allow_html=True)
 
 # Session state
@@ -139,12 +149,23 @@ for k, v in defaults.items():
 
 def get_risk_color(s):
     """Couleurs modernes pour les niveaux de risque"""
-    if s >= 0.40: return "#eb3349"   # Rouge moderne
+    if s >= 0.40: return "#e53e3e"   # Rouge moderne
     if s >= 0.25: return "#F2994A"   # Orange moderne
     if s >= 0.15: return "#F2C94C"   # Jaune moderne
-    return "#38ef7d"                 # Vert moderne
+    return "#38a169"                 # Vert moderne
 
 def explain_with_ai(scope, data, cache_key, max_tokens=400):
+    """Appelle l'API Claude pour generer une explication contextuelle.
+
+    Args:
+        scope: Type d'explication (vector, priority, lineage, dama, global, elicitation).
+        data: Donnees a transmettre au modele (dict JSON-serialisable).
+        cache_key: Cle de cache dans session_state.ai_explanations.
+        max_tokens: Limite de tokens pour la reponse.
+
+    Returns:
+        str: Texte d'explication ou message d'erreur si l'API n'est pas configuree.
+    """
     # Check cache
     if cache_key in st.session_state.ai_explanations:
         return st.session_state.ai_explanations[cache_key]
@@ -152,10 +173,10 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
     # Valider API key
     api_key = st.session_state.get("anthropic_api_key", "").strip()
     if not api_key:
-        return "⚠️ Configure ta clé API Claude dans la sidebar"
+        return "Configure ta cle API Claude dans la sidebar"
     
     if not api_key.startswith("sk-ant-"):
-        return "⚠️ Clé API invalide (doit commencer par 'sk-ant-')"
+        return "Cle API invalide (doit commencer par 'sk-ant-')"
     
     prompts = {
         "vector": "Explique vecteur 4D en 3 phrases : dimension critique, cause, action.",
@@ -164,6 +185,11 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
         "dama": "Compare DAMA vs Probabiliste en 3 phrases : limites, avantage, ROI.",
         "global": "Synthèse dashboard en 4 phrases : situation, critiques, actions.",
         "elicitation": "Explique ces pondérations en 3 phrases : justification métier, impact sur calculs, recommandations.",
+        "beta": "Tu es un expert data quality qui vulgarise pour un non-technique. "
+                "Explique les 4 distributions Beta (DB, DP, BR, UP) en langage simple, sans formules. "
+                "Pour chaque dimension, en 2 lignes max : traduis P en risque concret et indique la confiance. "
+                "DB=Structure, DP=Traitement, BR=Règles métier, UP=Utilisabilité. "
+                "Termine par 1 phrase de résumé global. Sois concis.",
     }
     
     try:
@@ -194,11 +220,11 @@ def explain_with_ai(scope, data, cache_key, max_tokens=400):
                 pass
         return explanation
     except anthropic.AuthenticationError as e:
-        return f"⚠️ Erreur authentification : Vérifie ta clé API dans la sidebar (doit être valide et active)"
+        return f"Erreur authentification : Vérifie ta clé API dans la sidebar (doit être valide et active)"
     except anthropic.RateLimitError as e:
-        return f"⚠️ Limite de taux atteinte : Attends quelques secondes et réessaye"
+        return f"Limite de taux atteinte : Attends quelques secondes et réessaye"
     except Exception as e:
-        return f"⚠️ Erreur : {str(e)[:200]}"
+        return f"Erreur : {str(e)[:200]}"
 
 def create_vector_chart(v):
     """Graphique moderne pour vecteur 4D avec gradients"""
@@ -232,14 +258,14 @@ def create_vector_chart(v):
         margin=dict(l=40, r=40, t=60, b=40),
         xaxis=dict(
             showgrid=False,
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
+            tickfont=dict(color="#4a6fa5", size=12),
             title=None
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor="rgba(255,255,255,0.1)",
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Probabilité (%)", font=dict(color="rgba(255,255,255,0.7)"))
+            gridcolor="rgba(44, 82, 130, 0.2)",
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Probabilité (%)", font=dict(color="#4a6fa5"))
         ),
         hoverlabel=dict(
             bgcolor="rgba(26,26,46,0.95)",
@@ -250,7 +276,18 @@ def create_vector_chart(v):
     return fig
 
 def create_heatmap(scores):
-    """Heatmap moderne avec palette personnalisée"""
+    """Cree une heatmap Plotly [Attribut x Usage] des scores de risque.
+
+    Les cles de `scores` suivent le format "attribut_usage" (ex: "Salaire_paie").
+    La matrice est construite en parsant ces cles pour extraire attributs et usages.
+
+    Args:
+        scores: Dict[str, float] - scores de risque par couple attribut_usage.
+
+    Returns:
+        go.Figure: Heatmap Plotly.
+    """
+    # Parser les cles "attribut_usage" pour extraire les axes
     attrs, usages = set(), set()
     for k in scores.keys():
         p = k.rsplit("_", 1)
@@ -259,15 +296,17 @@ def create_heatmap(scores):
             usages.add(p[1])
 
     attrs, usages = sorted(attrs), sorted(usages)
+    # Construire la matrice [attributs x usages] en pourcentage
     matrix = [[float(scores.get(f"{a}_{u}", 0)) * 100 for u in usages] for a in attrs]
 
-    # Palette de couleurs moderne
+    # Palette discrete alignee sur les seuils de risque :
+    # 0% = vert (faible), 25% = jaune, 50% = orange, 75% = rouge-orange, 100% = rouge
     custom_colorscale = [
-        [0.0, "#38ef7d"],    # Vert (faible risque)
-        [0.25, "#F2C94C"],   # Jaune
-        [0.5, "#F2994A"],    # Orange
-        [0.75, "#f45c43"],   # Orange-rouge
-        [1.0, "#eb3349"]     # Rouge (haut risque)
+        [0.0, "#38a169"],
+        [0.25, "#F2C94C"],
+        [0.5, "#F2994A"],
+        [0.75, "#f45c43"],
+        [1.0, "#e53e3e"]
     ]
 
     fig = go.Figure(data=go.Heatmap(
@@ -277,7 +316,7 @@ def create_heatmap(scores):
         colorscale=custom_colorscale,
         colorbar=dict(
             title=dict(text="Risque (%)", font=dict(color="white")),
-            tickfont=dict(color="rgba(255,255,255,0.7)"),
+            tickfont=dict(color="#4a6fa5"),
             bgcolor="rgba(0,0,0,0)",
             borderwidth=0
         ),
@@ -298,12 +337,12 @@ def create_heatmap(scores):
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=100, r=40, t=60, b=60),
         xaxis=dict(
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Profils d'Usage", font=dict(color="rgba(255,255,255,0.7)"))
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Profils d'Usage", font=dict(color="#4a6fa5"))
         ),
         yaxis=dict(
-            tickfont=dict(color="rgba(255,255,255,0.7)", size=12),
-            title=dict(text="Attributs", font=dict(color="rgba(255,255,255,0.7)"))
+            tickfont=dict(color="#4a6fa5", size=12),
+            title=dict(text="Attributs", font=dict(color="#4a6fa5"))
         ),
         hoverlabel=dict(
             bgcolor="rgba(26,26,46,0.95)",
@@ -314,6 +353,16 @@ def create_heatmap(scores):
     return fig
 
 def export_excel(results):
+    """Exporte les resultats d'analyse en fichier Excel multi-feuilles.
+
+    Feuilles generees:
+      - Vecteurs : P_DB, P_DP, P_BR, P_UP par attribut
+      - Scores : score de risque par couple (attribut, usage)
+      - Priorites : top priorites triees par score decroissant
+
+    Returns:
+        str: Chemin du fichier Excel genere.
+    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out = f"resultats_{ts}.xlsx"
     with pd.ExcelWriter(out, engine="openpyxl") as w:
@@ -328,15 +377,15 @@ def export_excel(results):
 
 st.markdown("""
 <div style="text-align: center; padding: 1rem 0 2rem 0;">
-    <h1 style="margin-bottom: 0.5rem;">🎯 Framework Probabiliste DQ</h1>
-    <p style="color: rgba(255,255,255,0.6); font-size: 1.1rem; margin: 0;">
+    <h1 style="margin-bottom: 0.5rem;">DataQualityLab</h1>
+    <p style="color: #6b8bb5; font-size: 1.1rem; margin: 0;">
         Analyse de qualité des données basée sur les distributions Beta
     </p>
 </div>
 """, unsafe_allow_html=True)
 
 if not ENGINE_OK:
-    st.error(f"❌ Engine : {ENGINE_ERROR}")
+    st.error(f"Engine indisponible : {ENGINE_ERROR}")
     st.stop()
 
 # ============================================================================
@@ -344,7 +393,7 @@ if not ENGINE_OK:
 # ============================================================================
 
 with st.sidebar:
-    st.header("📊 Données")
+    st.header("Donnees", anchor=False)
 
     # Charger la clé API automatiquement depuis secrets au démarrage
     if "anthropic_api_key" not in st.session_state:
@@ -370,15 +419,15 @@ with st.sidebar:
 
     # Indicateur status API (discret)
     if st.session_state.get("anthropic_api_key"):
-        st.success("🤖 IA Active", icon="✅")
+        st.success("IA Active", icon=":material/check_circle:")
     else:
-        st.info("🤖 IA Inactive", icon="ℹ️")
+        st.info("IA Inactive", icon=":material/info:")
 
     st.markdown("---")
 
-    st.subheader("1️⃣ Dataset")
-    st.caption(f"📏 Taille max: {MAX_FILE_SIZE_MB} MB")
-    up = st.file_uploader("📁 CSV/Excel", type=["csv", "xlsx"])
+    st.subheader("Dataset")
+    st.caption(f"Taille max: {MAX_FILE_SIZE_MB} MB")
+    up = st.file_uploader("CSV / Excel", type=["csv", "xlsx"])
     if up:
         # Validation sécurisée du fichier uploadé
         is_valid, error_msg, validated_df = validate_uploaded_file(up)
@@ -387,7 +436,7 @@ with st.sidebar:
             # Sanitiser le DataFrame
             df = sanitize_dataframe(validated_df)
             st.session_state.df = df
-            st.success(f"✅ {len(df)} lignes × {len(df.columns)} colonnes")
+            st.success(f"{len(df)} lignes x {len(df.columns)} colonnes")
 
             # Audit: Log upload fichier
             if AUDIT_OK:
@@ -407,29 +456,29 @@ with st.sidebar:
                 except Exception:
                     pass  # Ne pas bloquer si audit échoue
         elif error_msg:
-            st.error(f"❌ {error_msg}")
+            st.error(f"{error_msg}")
         else:
             # Fallback: ancien comportement si module sécurité non chargé
             try:
                 up.seek(0)
                 df = pd.read_csv(up) if up.name.endswith(".csv") else pd.read_excel(up)
                 st.session_state.df = df
-                st.success(f"✅ {len(df)} lignes")
+                st.success(f"{len(df)} lignes")
             except Exception as e:
-                st.error(f"❌ {safe_error_message(e, 'file_upload')}")
+                st.error(f"{safe_error_message(e, 'file_upload')}")
     
     if st.session_state.df is not None:
-        st.subheader("2️⃣ Colonnes")
+        st.subheader("Colonnes")
         cols = st.session_state.df.columns.tolist()
         sel_cols = st.multiselect("Sélectionner", cols, cols[:3])
         
-        st.subheader("3️⃣ Usages")
+        st.subheader("Usages")
         usages_map = {"Paie": "paie_reglementaire", "Reporting": "reporting_social", "Dashboard": "dashboard_operationnel"}
         sel_usages = st.multiselect("Sélectionner", list(usages_map.keys()), ["Paie", "Reporting"])
         
-        if st.button("🚀 ANALYSE", type="primary", use_container_width=True):
+        if st.button(":material/play_arrow: ANALYSE", type="primary", use_container_width=True):
             if not sel_cols or not sel_usages:
-                st.error("⚠️ Sélectionne colonnes + usages")
+                st.error("Selectionnez colonnes + usages")
             else:
                 with st.spinner("⏳"):
                     try:
@@ -455,7 +504,7 @@ with st.sidebar:
                         
                         st.session_state.results = {"stats": stats, "vecteurs_4d": vecteurs, "weights": weights, "scores": scores, "top_priorities": priorities, "lineage": lineage, "comparaison": dama}
                         st.session_state.analysis_done = True
-                        st.success("✅ OK")
+                        st.success("OK")
 
                         # Audit: Log analyse complète
                         if AUDIT_OK:
@@ -500,7 +549,7 @@ with st.sidebar:
                             except Exception:
                                 pass  # Ne pas bloquer si audit échoue
                     except Exception as e:
-                        st.error(f"❌ {e}")
+                        st.error(f"{e}")
                         import traceback
                         with st.expander("Trace"):
                             st.code(traceback.format_exc())
@@ -513,11 +562,11 @@ with st.sidebar:
 if st.session_state.analysis_done:
     tab_names = []
     if SCAN_OK:
-        tab_names.append("🔍 Scan")
-    tab_names += ["📊 Dashboard", "🎯 Vecteurs", "⚠️ Priorités", "🎚️ Élicitation", "🎭 Profil Risque", "🔄 Lineage", "📈 DAMA", "📋 Reporting", "📜 Contracts", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
+        tab_names.append(":material/search: Scan")
+    tab_names += [":material/dashboard: Dashboard", ":material/target: Vecteurs", ":material/priority_high: Priorités", ":material/tune: Élicitation", ":material/shield: Profil Risque", ":material/account_tree: Lineage", ":material/compare: DAMA", ":material/description: Reporting", ":material/handshake: Contracts", ":material/history: Historique", ":material/settings: Paramètres", ":material/help: Aide"]
 else:
     # Avant analyse : seulement Accueil, Contracts, Historique, Paramètres et Aide
-    tab_names = ["🏠 Accueil", "📜 Contracts", "📜 Historique", "⚙️ Paramètres", "❓ Aide"]
+    tab_names = [":material/home: Accueil", ":material/handshake: Contracts", ":material/history: Historique", ":material/settings: Paramètres", ":material/help: Aide"]
 
 tabs = st.tabs(tab_names)
 idx = 0
@@ -533,14 +582,14 @@ if st.session_state.analysis_done:
 
     # TAB DASHBOARD
     with tabs[idx]:
-        st.header("📊 Dashboard Qualité")
+        st.header("Dashboard Qualite", anchor=False)
         
-        if st.button("📥 Export Excel", type="primary"):
+        if st.button(":material/download: Export Excel", type="primary"):
             try:
                 out = export_excel(r)
                 with open(out, "rb") as f:
-                    st.download_button("💾 Télécharger", f, out, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                st.success(f"✅ {out}")
+                    st.download_button(":material/download: Telecharger", f, out, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                st.success(f"{out}")
                 # Audit: Log export
                 if AUDIT_OK:
                     try:
@@ -549,7 +598,7 @@ if st.session_state.analysis_done:
                     except Exception:
                         pass
             except Exception as e:
-                st.error(f"❌ {e}")
+                st.error(f"{e}")
         
         st.markdown("---")
         
@@ -565,11 +614,11 @@ if st.session_state.analysis_done:
             st.plotly_chart(create_heatmap(r["scores"]), use_container_width=True)
         
         st.markdown("---")
-        st.subheader("💬 Assistance IA")
+        st.subheader("Assistance IA")
         
         col1, col2 = st.columns([1, 4])
         with col1:
-            if st.button("🤖 Analyser", key="dash"):
+            if st.button(":material/smart_toy: Analyser", key="dash"):
                 exp = explain_with_ai("global", {"nb": len(r["vecteurs_4d"]), "max": max(r["scores"].values())}, "dash", 500)
                 st.session_state.dash_exp = exp
         with col2:
@@ -580,27 +629,44 @@ if st.session_state.analysis_done:
     
     # TAB VECTEURS
     with tabs[idx]:
-        st.header("🎯 Vecteurs 4D")
+        st.header("Vecteurs 4D", anchor=False)
         
         for attr, vec in r["vecteurs_4d"].items():
-            st.subheader(f"📌 {attr}")
+            st.subheader(f"{attr}")
             st.plotly_chart(create_vector_chart(vec), use_container_width=True, key=f"vec_{attr}")
             
             col1, col2 = st.columns([1, 4])
             with col1:
-                if st.button("💬 Expliquer", key=f"v_{attr}"):
+                if st.button(":material/chat: Expliquer", key=f"v_{attr}"):
                     exp = explain_with_ai("vector", {f"P_{d}": vec[f"P_{d}"] for d in ["DB","DP","BR","UP"]}, f"v_{attr}", 400)
                     st.session_state[f"v_{attr}_exp"] = exp
             with col2:
                 if f"v_{attr}_exp" in st.session_state:
                     st.info(st.session_state[f"v_{attr}_exp"])
             
-            with st.expander("🔬 Détails Beta"):
+            with st.expander(":material/science: Details Beta"):
                 c1,c2,c3,c4 = st.columns(4)
                 c1.markdown(f"**DB**: Beta({vec['alpha_DB']:.1f}, {vec['beta_DB']:.1f})\nP={vec['P_DB']:.3f}")
                 c2.markdown(f"**DP**: Beta({vec['alpha_DP']:.1f}, {vec['beta_DP']:.1f})\nP={vec['P_DP']:.3f}")
                 c3.markdown(f"**BR**: Beta({vec['alpha_BR']:.1f}, {vec['beta_BR']:.1f})\nP={vec['P_BR']:.3f}")
                 c4.markdown(f"**UP**: Beta({vec['alpha_UP']:.1f}, {vec['beta_UP']:.1f})\nP={vec['P_UP']:.3f}")
+
+                beta_key = f"beta_{attr}"
+                col_btn, col_exp = st.columns([1, 4])
+                with col_btn:
+                    if st.button(":material/help: Expliquer les Beta", key=beta_key):
+                        beta_data = {
+                            "attribut": attr,
+                            "DB": {"alpha": vec['alpha_DB'], "beta": vec['beta_DB'], "P": vec['P_DB']},
+                            "DP": {"alpha": vec['alpha_DP'], "beta": vec['beta_DP'], "P": vec['P_DP']},
+                            "BR": {"alpha": vec['alpha_BR'], "beta": vec['beta_BR'], "P": vec['P_BR']},
+                            "UP": {"alpha": vec['alpha_UP'], "beta": vec['beta_UP'], "P": vec['P_UP']},
+                        }
+                        exp = explain_with_ai("beta", beta_data, beta_key, 800)
+                        st.session_state[f"{beta_key}_exp"] = exp
+                with col_exp:
+                    if f"{beta_key}_exp" in st.session_state:
+                        st.info(st.session_state[f"{beta_key}_exp"])
             
             st.markdown("---")
     
@@ -608,16 +674,16 @@ if st.session_state.analysis_done:
     
     # TAB PRIORITÉS
     with tabs[idx]:
-        st.header("⚠️ Top Priorités")
+        st.header("Top Priorites", anchor=False)
         
         for i, p in enumerate(r["top_priorities"], 1):
-            emoji = "🚨" if p.get("severite")=="CRITIQUE" else "⚠️"
+            emoji = "●" if p.get("severite")=="CRITIQUE" else "▲"
             st.markdown(f"### {emoji} #{i} - {p.get('attribut')} × {p.get('usage')}")
             st.markdown(f"**Risque** : {p.get('score', 0):.1%}")
             
             col1, col2 = st.columns([1, 4])
             with col1:
-                if st.button("💬 Analyser", key=f"p{i}"):
+                if st.button(":material/chat: Analyser", key=f"p{i}"):
                     exp = explain_with_ai("priority", {"score": p.get("score"), "sev": p.get("severite")}, f"p{i}", 500)
                     st.session_state[f"p{i}_exp"] = exp
             with col2:
@@ -633,13 +699,13 @@ if st.session_state.analysis_done:
     # ========================================================================
     
     with tabs[idx]:
-        st.header("🎚️ Élicitation Pondérations AHP")
+        st.header("Elicitation Ponderations AHP", anchor=False)
         
         st.info("Configure les pondérations pour chaque usage. Utilise les presets ou définis tes propres valeurs.")
         
         # Pour chaque usage
         for usage_nom, weights in r.get("weights", {}).items():
-            st.subheader(f"📌 {usage_nom}")
+            st.subheader(f"{usage_nom}")
             
             col1, col2 = st.columns([2, 1])
             
@@ -652,20 +718,22 @@ if st.session_state.analysis_done:
                 w_br = st.slider(f"BR (Règles Métier)", 0.0, 1.0, float(weights.get("w_BR", 0.25)), 0.05, key=f"w_br_{usage_nom}")
                 w_up = st.slider(f"UP (Utilisabilité)", 0.0, 1.0, float(weights.get("w_UP", 0.25)), 0.05, key=f"w_up_{usage_nom}")
                 
-                # Normaliser
+                # Normaliser pour que la somme des poids = 1.0
+                # (contrainte AHP : Sigma(w_d) = 1)
                 total = w_db + w_dp + w_br + w_up
                 if total > 0:
                     w_db_norm, w_dp_norm, w_br_norm, w_up_norm = w_db/total, w_dp/total, w_br/total, w_up/total
                 else:
+                    # Fallback equipondere si tous les sliders sont a zero
                     w_db_norm = w_dp_norm = w_br_norm = w_up_norm = 0.25
                 
                 st.markdown("**Pondérations normalisées** :")
                 st.json({"w_DB": f"{w_db_norm:.2%}", "w_DP": f"{w_dp_norm:.2%}", "w_BR": f"{w_br_norm:.2%}", "w_UP": f"{w_up_norm:.2%}"})
                 
-                if st.button(f"💾 Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
+                if st.button(f":material/save: Sauvegarder pour {usage_nom}", key=f"save_{usage_nom}"):
                     new_weights = {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}
                     st.session_state.custom_weights[usage_nom] = new_weights
-                    st.success(f"✅ Pondérations sauvegardées pour {usage_nom}. Relance analyse pour appliquer.")
+                    st.success(f"Ponderations sauvegardees pour {usage_nom}. Relancez l'analyse pour appliquer.")
                     # Audit: Log pondérations AHP
                     if AUDIT_OK:
                         try:
@@ -681,7 +749,7 @@ if st.session_state.analysis_done:
                     x=dim_labels,
                     y=[w_db_norm*100, w_dp_norm*100, w_br_norm*100, w_up_norm*100],
                     marker=dict(
-                        color=["#667eea", "#764ba2", "#f093fb", "#38ef7d"],
+                        color=["#2c5282", "#2a4365", "#805ad5", "#38a169"],
                         line=dict(width=0),
                         opacity=0.9
                     ),
@@ -703,12 +771,12 @@ if st.session_state.analysis_done:
                     margin=dict(l=30, r=30, t=50, b=30),
                     xaxis=dict(
                         showgrid=False,
-                        tickfont=dict(color="rgba(255,255,255,0.7)", size=11)
+                        tickfont=dict(color="#4a6fa5", size=11)
                     ),
                     yaxis=dict(
                         showgrid=True,
-                        gridcolor="rgba(255,255,255,0.1)",
-                        tickfont=dict(color="rgba(255,255,255,0.7)", size=11)
+                        gridcolor="rgba(44, 82, 130, 0.2)",
+                        tickfont=dict(color="#4a6fa5", size=11)
                     ),
                     hoverlabel=dict(
                         bgcolor="rgba(26,26,46,0.95)",
@@ -722,7 +790,7 @@ if st.session_state.analysis_done:
             st.markdown("---")
             col_btn, col_exp = st.columns([1, 4])
             with col_btn:
-                if st.button("💬 Justifier", key=f"elicit_{usage_nom}"):
+                if st.button(":material/chat: Justifier", key=f"elicit_{usage_nom}"):
                     exp = explain_with_ai("elicitation", {"usage": usage_nom, "weights": {"w_DB": w_db_norm, "w_DP": w_dp_norm, "w_BR": w_br_norm, "w_UP": w_up_norm}}, f"elicit_{usage_nom}", 500)
                     st.session_state[f"elicit_{usage_nom}_exp"] = exp
             with col_exp:
@@ -737,18 +805,18 @@ if st.session_state.analysis_done:
     # TAB PROFIL DE RISQUE - Ajustement des pondérations selon appétence
     # ========================================================================
     with tabs[idx]:
-        st.header("🎭 Profil de Risque")
+        st.header("Profil de Risque", anchor=False)
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 Qu'est-ce que c'est ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">Qu'est-ce que c'est ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1rem;">
                 Ton <strong>profil de risque</strong> détermine comment les scores sont ajustés selon ton appétence au risque.
                 Un profil <strong>prudent</strong> amplifiera les alertes, tandis qu'un profil <strong>tolérant</strong> les atténuera.
             </p>
@@ -756,35 +824,35 @@ if st.session_state.analysis_done:
         """, unsafe_allow_html=True)
 
         # Sélection du profil de risque
-        st.subheader("1️⃣ Choisis ton profil")
+        st.subheader("Choisis ton profil")
 
         profils_risque = {
             "tres_prudent": {
-                "nom": "🛡️ Très Prudent",
+                "nom": "Tres Prudent",
                 "description": "Zéro tolérance aux risques. Idéal pour contextes réglementaires stricts (Paie, Audit).",
                 "multiplicateur": 1.3,
                 "seuils": {"critique": 0.30, "eleve": 0.20, "modere": 0.10}
             },
             "prudent": {
-                "nom": "🔒 Prudent",
+                "nom": "Prudent",
                 "description": "Préférence pour la sécurité. Alertes précoces recommandées.",
                 "multiplicateur": 1.15,
                 "seuils": {"critique": 0.35, "eleve": 0.22, "modere": 0.12}
             },
             "equilibre": {
-                "nom": "⚖️ Équilibré",
+                "nom": "Equilibre",
                 "description": "Balance risque/efficacité. Profil par défaut recommandé.",
                 "multiplicateur": 1.0,
                 "seuils": {"critique": 0.40, "eleve": 0.25, "modere": 0.15}
             },
             "tolerant": {
-                "nom": "🎯 Tolérant",
+                "nom": "Tolerant",
                 "description": "Accepte certains risques pour plus d'agilité. Pour environnements flexibles.",
                 "multiplicateur": 0.85,
                 "seuils": {"critique": 0.50, "eleve": 0.35, "modere": 0.20}
             },
             "tres_tolerant": {
-                "nom": "🚀 Très Tolérant",
+                "nom": "Tres Tolerant",
                 "description": "Focus sur l'essentiel uniquement. Pour POC ou environnements de test.",
                 "multiplicateur": 0.70,
                 "seuils": {"critique": 0.60, "eleve": 0.45, "modere": 0.30}
@@ -799,8 +867,8 @@ if st.session_state.analysis_done:
         for i, (key, profil) in enumerate(profils_risque.items()):
             with cols_profil[i]:
                 is_selected = st.session_state.profil_risque == key
-                border_color = "#667eea" if is_selected else "rgba(255,255,255,0.1)"
-                bg_color = "rgba(102, 126, 234, 0.2)" if is_selected else "rgba(255,255,255,0.03)"
+                border_color = "#2c5282" if is_selected else "rgba(44, 82, 130, 0.2)"
+                bg_color = "rgba(44, 82, 130, 0.15)" if is_selected else "rgba(44, 82, 130, 0.05)"
 
                 st.markdown(f"""
                 <div style="
@@ -811,9 +879,8 @@ if st.session_state.analysis_done:
                     text-align: center;
                     min-height: 120px;
                 ">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{profil['nom'].split()[0]}</div>
-                    <div style="color: white; font-weight: 600; font-size: 0.85rem;">{profil['nom'].split(maxsplit=1)[1]}</div>
-                    <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem; margin-top: 0.25rem;">×{profil['multiplicateur']}</div>
+                    <div style="color: #1a365d; font-weight: 600; font-size: 0.85rem;">{profil['nom']}</div>
+                    <div style="color: #718096; font-size: 0.7rem; margin-top: 0.25rem;">×{profil['multiplicateur']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -837,13 +904,13 @@ if st.session_state.analysis_done:
         profil_actuel = profils_risque[st.session_state.profil_risque]
         st.markdown("---")
 
-        st.subheader(f"2️⃣ Ton profil : {profil_actuel['nom']}")
-        st.info(f"📋 {profil_actuel['description']}")
+        st.subheader(f"Ton profil : {profil_actuel['nom']}")
+        st.info(f"{profil_actuel['description']}")
 
         col1, col2 = st.columns(2)
 
         with col1:
-            st.markdown("**🔢 Multiplicateur de risque**")
+            st.markdown("**Multiplicateur de risque**")
             mult = profil_actuel['multiplicateur']
             if mult > 1:
                 st.warning(f"Les scores sont **amplifiés** de {(mult-1)*100:.0f}%")
@@ -853,21 +920,21 @@ if st.session_state.analysis_done:
                 st.info("Scores **non modifiés** (profil neutre)")
 
         with col2:
-            st.markdown("**🚨 Seuils d'alerte ajustés**")
+            st.markdown("**Seuils d'alerte ajustes**")
             seuils = profil_actuel['seuils']
             st.markdown(f"""
             | Niveau | Seuil |
             |--------|-------|
-            | 🔴 Critique | ≥ {seuils['critique']:.0%} |
+            | ● Critique | ≥ {seuils['critique']:.0%} |
             | 🟠 Élevé | ≥ {seuils['eleve']:.0%} |
-            | 🟡 Modéré | ≥ {seuils['modere']:.0%} |
-            | 🟢 Faible | < {seuils['modere']:.0%} |
+            | ● Modere | ≥ {seuils['modere']:.0%} |
+            | ● Faible | < {seuils['modere']:.0%} |
             """)
 
         st.markdown("---")
 
         # Aperçu de l'impact sur les scores actuels
-        st.subheader("3️⃣ Impact sur tes scores actuels")
+        st.subheader("Impact sur tes scores actuels")
 
         scores = r.get("scores", {})
         if scores:
@@ -884,17 +951,17 @@ if st.session_state.analysis_done:
 
                 # Déterminer le niveau selon les seuils ajustés
                 if score_ajuste >= seuils['critique']:
-                    niveau = "🔴 Critique"
-                    color = "#eb3349"
+                    niveau = "● Critique"
+                    color = "#e53e3e"
                 elif score_ajuste >= seuils['eleve']:
                     niveau = "🟠 Élevé"
                     color = "#F2994A"
                 elif score_ajuste >= seuils['modere']:
-                    niveau = "🟡 Modéré"
+                    niveau = "● Modere"
                     color = "#F2C94C"
                 else:
-                    niveau = "🟢 Faible"
-                    color = "#38ef7d"
+                    niveau = "● Faible"
+                    color = "#38a169"
 
                 scores_ajustes.append({
                     "attribut": attr,
@@ -922,10 +989,10 @@ if st.session_state.analysis_done:
             nb_modere = len([s for s in scores_ajustes if "Modéré" in s['niveau']])
             nb_faible = len([s for s in scores_ajustes if "Faible" in s['niveau']])
 
-            col1.metric("🔴 Critiques", nb_critique)
+            col1.metric("Critiques", nb_critique)
             col2.metric("🟠 Élevés", nb_eleve)
-            col3.metric("🟡 Modérés", nb_modere)
-            col4.metric("🟢 Faibles", nb_faible)
+            col3.metric("Moderes", nb_modere)
+            col4.metric("Faibles", nb_faible)
 
             # Sauvegarder les scores ajustés dans session state
             st.session_state.scores_ajustes = {
@@ -938,9 +1005,9 @@ if st.session_state.analysis_done:
 
         # Demande à l'IA des recommandations
         st.markdown("---")
-        if st.button("🤖 Obtenir recommandations IA selon mon profil", type="primary"):
+        if st.button(":material/smart_toy: Obtenir recommandations IA", type="primary"):
             if st.session_state.get("anthropic_api_key"):
-                with st.spinner("🤖 Analyse en cours..."):
+                with st.spinner(":material/smart_toy: Analyse en cours..."):
                     try:
                         import anthropic
                         client = anthropic.Anthropic(api_key=st.session_state.anthropic_api_key)
@@ -972,19 +1039,19 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                         st.session_state.ai_tokens_used += response.usage.input_tokens + response.usage.output_tokens
                         st.session_state.profil_risque_reco = response.content[0].text
                     except Exception as e:
-                        st.error(f"❌ Erreur IA : {e}")
+                        st.error(f"Erreur IA : {e}")
             else:
-                st.warning("⚠️ Configure ta clé API dans l'onglet ⚙️ Paramètres")
+                st.warning("Configure ta cle API dans l'onglet Parametres")
 
         if "profil_risque_reco" in st.session_state:
-            with st.expander("💡 Recommandations IA personnalisées", expanded=True):
+            with st.expander(":material/lightbulb: Recommandations IA personnalisees", expanded=True):
                 st.markdown(st.session_state.profil_risque_reco)
 
     idx += 1
 
     # TAB LINEAGE
     with tabs[idx]:
-        st.header("🔄 Propagation Lineage")
+        st.header("Propagation Lineage", anchor=False)
         
         lineage = r.get("lineage")
         if lineage:
@@ -996,7 +1063,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
             
             col1, col2 = st.columns([1, 4])
             with col1:
-                if st.button("💬 Analyser Propagation", key="lineage"):
+                if st.button(":material/chat: Analyser Propagation", key="lineage"):
                     exp = explain_with_ai("lineage", {"risk_source": lineage.get("risk_source"), "risk_final": lineage.get("risk_final")}, "lineage", 450)
                     st.session_state.lineage_exp = exp
             with col2:
@@ -1009,7 +1076,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
     
     # TAB DAMA
     with tabs[idx]:
-        st.header("📈 Comparaison DAMA")
+        st.header("Comparaison DAMA", anchor=False)
 
         comp = r.get("comparaison", {})
         if comp:
@@ -1018,19 +1085,19 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
             # Fonction pour obtenir la couleur selon le score
             def get_score_color(score):
                 if score is None: return "#6b7280"  # Gris pour N/A
-                if score >= 0.8: return "#38ef7d"   # Vert
+                if score >= 0.8: return "#38a169"   # Vert
                 if score >= 0.6: return "#F2C94C"   # Jaune
                 if score >= 0.4: return "#F2994A"   # Orange
-                return "#eb3349"                    # Rouge
+                return "#e53e3e"                    # Rouge
 
             # Mapping des dimensions DAMA avec icônes
             dim_info = {
-                "completeness": {"label": "Complétude", "icon": "📊", "desc": "Données présentes vs attendues"},
-                "consistency": {"label": "Cohérence", "icon": "🔗", "desc": "Uniformité entre sources"},
-                "accuracy": {"label": "Exactitude", "icon": "🎯", "desc": "Conformité à la réalité"},
-                "timeliness": {"label": "Fraîcheur", "icon": "⏱️", "desc": "Actualité des données"},
-                "validity": {"label": "Validité", "icon": "✅", "desc": "Respect des règles métier"},
-                "uniqueness": {"label": "Unicité", "icon": "🔑", "desc": "Données sans doublons"}
+                "completeness": {"label": "Complétude", "icon": ":material/pie_chart:", "desc": "Donnees presentes vs attendues"},
+                "consistency": {"label": "Cohérence", "icon": ":material/link:", "desc": "Uniformite entre sources"},
+                "accuracy": {"label": "Exactitude", "icon": ":material/target:", "desc": "Conformite a la realite"},
+                "timeliness": {"label": "Fraîcheur", "icon": ":material/schedule:", "desc": "Actualite des donnees"},
+                "validity": {"label": "Validité", "icon": ":material/verified:", "desc": "Respect des regles metier"},
+                "uniqueness": {"label": "Unicité", "icon": ":material/fingerprint:", "desc": "Donnees sans doublons"}
             }
 
             # Afficher chaque attribut dans une card
@@ -1039,14 +1106,14 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 safe_attr_name = sanitize_column_name(attr_name)
                 st.markdown(f"""
                 <div style="
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.1);
+                    background: rgba(44, 82, 130, 0.05);
+                    border: 1px solid rgba(44, 82, 130, 0.15);
                     border-radius: 16px;
                     padding: 1.5rem;
                     margin-bottom: 1.5rem;
                 ">
-                    <h3 style="color: white; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                        📌 {safe_attr_name}
+                    <h3 style="color: #1a365d; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        {safe_attr_name}
                     </h3>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1065,9 +1132,9 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                         value=score_global * 100,
                         number={"suffix": "%", "font": {"size": 36, "color": "white"}},
                         gauge={
-                            "axis": {"range": [0, 100], "tickcolor": "rgba(255,255,255,0.3)"},
+                            "axis": {"range": [0, 100], "tickcolor": "rgba(44, 82, 130, 0.3)"},
                             "bar": {"color": get_score_color(score_global)},
-                            "bgcolor": "rgba(255,255,255,0.1)",
+                            "bgcolor": "rgba(44, 82, 130, 0.2)",
                             "borderwidth": 0,
                             "steps": [
                                 {"range": [0, 40], "color": "rgba(235,51,73,0.2)"},
@@ -1076,7 +1143,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                                 {"range": [80, 100], "color": "rgba(56,239,125,0.2)"}
                             ]
                         },
-                        title={"text": "Score Global", "font": {"size": 14, "color": "rgba(255,255,255,0.7)"}}
+                        title={"text": "Score Global", "font": {"size": 14, "color": "#4a6fa5"}}
                     ))
                     fig_gauge.update_layout(
                         height=200,
@@ -1089,24 +1156,24 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 with col_info:
                     st.markdown(f"""
                     <div style="
-                        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+                        background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
                         border-radius: 12px;
                         padding: 1rem;
                         margin-bottom: 0.5rem;
                     ">
-                        <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 0.85rem;">Dimensions analysables</p>
-                        <p style="color: white; margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 600;">
-                            {dims_calc} <span style="color: rgba(255,255,255,0.5); font-size: 1rem;">/ {dims_total}</span>
+                        <p style="color: #6b8bb5; margin: 0; font-size: 0.85rem;">Dimensions analysables</p>
+                        <p style="color: #1a365d; margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 600;">
+                            {dims_calc} <span style="color: #718096; font-size: 1rem;">/ {dims_total}</span>
                         </p>
                     </div>
                     """, unsafe_allow_html=True)
 
                     note = attr_data.get("note", "")
                     if note:
-                        st.caption(f"ℹ️ {note}")
+                        st.caption(f"{note}")
 
                 # Grille des 6 dimensions DAMA
-                st.markdown("<p style='color: rgba(255,255,255,0.7); margin: 1rem 0 0.5rem 0; font-weight: 500;'>Dimensions DAMA</p>", unsafe_allow_html=True)
+                st.markdown("<p style='color: #4a6fa5; margin: 1rem 0 0.5rem 0; font-weight: 500;'>Dimensions DAMA</p>", unsafe_allow_html=True)
 
                 cols = st.columns(3)
                 dims_list = ["completeness", "consistency", "accuracy", "timeliness", "validity", "uniqueness"]
@@ -1114,7 +1181,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                 for i, dim_key in enumerate(dims_list):
                     with cols[i % 3]:
                         dim_value = attr_data.get(dim_key)
-                        info = dim_info.get(dim_key, {"label": dim_key, "icon": "📊", "desc": ""})
+                        info = dim_info.get(dim_key, {"label": dim_key, "icon": "", "desc": ""})
 
                         if dim_value is None:
                             display_value = "N/A"
@@ -1139,9 +1206,9 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                             text-align: center;
                         ">
                             <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">{info['icon']}</div>
-                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">{info['label']}</div>
+                            <div style="color: #4a6fa5; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">{info['label']}</div>
                             <div style="color: {color}; font-size: 1.5rem; font-weight: 700; margin: 0.25rem 0;">{display_value}</div>
-                            <div style="color: rgba(255,255,255,0.5); font-size: 0.7rem;">{info['desc']}</div>
+                            <div style="color: #718096; font-size: 0.7rem;">{info['desc']}</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -1149,7 +1216,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
 
             # Graphique comparatif de tous les attributs
             if len(dama_scores) > 1:
-                st.subheader("📊 Vue Comparative")
+                st.subheader("Vue Comparative")
 
                 attr_names = list(dama_scores.keys())
                 global_scores = [dama_scores[a].get("score_global", 0) * 100 for a in attr_names]
@@ -1173,11 +1240,11 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                     template="plotly_dark",
                     paper_bgcolor="rgba(0,0,0,0)",
                     plot_bgcolor="rgba(0,0,0,0)",
-                    xaxis=dict(tickfont=dict(color="rgba(255,255,255,0.7)")),
+                    xaxis=dict(tickfont=dict(color="#4a6fa5")),
                     yaxis=dict(
-                        tickfont=dict(color="rgba(255,255,255,0.7)"),
-                        gridcolor="rgba(255,255,255,0.1)",
-                        title=dict(text="Score (%)", font=dict(color="rgba(255,255,255,0.7)"))
+                        tickfont=dict(color="#4a6fa5"),
+                        gridcolor="rgba(44, 82, 130, 0.2)",
+                        title=dict(text="Score (%)", font=dict(color="#4a6fa5"))
                     ),
                     hoverlabel=dict(bgcolor="rgba(26,26,46,0.95)", font_size=13)
                 )
@@ -1188,7 +1255,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
             # Assistance IA
             col1, col2 = st.columns([1, 4])
             with col1:
-                if st.button("💬 Synthétiser", key="dama"):
+                if st.button(":material/chat: Synthetiser", key="dama"):
                     exp = explain_with_ai("dama", {"dama": comp.get("dama_scores"), "masked": len(comp.get("problemes_masques", []))}, "dama", 500)
                     st.session_state.dama_exp = exp
             with col2:
@@ -1204,31 +1271,31 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
     # ========================================================================
     
     with tabs[idx]:
-        st.header("📋 Restitution Adaptative")
+        st.header("Restitution Adaptative", anchor=False)
 
-        st.info("🎯 Rapport personnalisé selon TON profil métier")
+        st.info("Rapport personnalise selon ton profil metier")
 
         # Sélection profil
         profils = {
-            "cfo": "💰 CFO (Chief Financial Officer)",
-            "data_engineer": "🔧 Data Engineer / Développeur",
-            "drh": "👥 DRH (Directeur Ressources Humaines)",
-            "auditeur": "🔍 Auditeur / Compliance Officer",
-            "gouvernance": "📊 Responsable Gouvernance Données",
-            "manager_ops": "⚡ Manager Opérationnel",
-            "custom": "✏️ Profil personnalisé..."
+            "cfo": "CFO (Chief Financial Officer)",
+            "data_engineer": "Data Engineer / Developpeur",
+            "drh": "DRH (Directeur Ressources Humaines)",
+            "auditeur": "Auditeur / Compliance Officer",
+            "gouvernance": "Responsable Gouvernance Donnees",
+            "manager_ops": "Manager Operationnel",
+            "custom": "Profil personnalise..."
         }
 
         col1, col2 = st.columns(2)
 
         with col1:
-            profil_select = st.selectbox("👤 Ton profil", options=list(profils.keys()), format_func=lambda x: profils[x], index=4)
+            profil_select = st.selectbox("Votre profil", options=list(profils.keys()), format_func=lambda x: profils[x], index=4)
             st.session_state.selected_profile = profil_select
 
             # Si profil personnalisé, afficher les champs de saisie
             if profil_select == "custom":
                 st.markdown("---")
-                st.markdown("**📝 Définir ton profil personnalisé**")
+                st.markdown("**Definir un profil personnalise**")
 
                 custom_titre_raw = st.text_input(
                     "Intitulé du poste",
@@ -1260,14 +1327,14 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
 
                 # Construire le profil personnalisé
                 if custom_titre:
-                    profils["custom"] = f"✏️ {escape_html(custom_titre)}"
+                    profils["custom"] = f"{escape_html(custom_titre)}"
 
         with col2:
             # Sélection attributs (multiselect)
             attributs = list(r.get("vecteurs_4d", {}).keys())
             if attributs:
                 attributs_focus = st.multiselect(
-                    "📌 Attribut(s) à analyser",
+                    "Attribut(s) a analyser",
                     options=attributs,
                     default=[attributs[0]] if attributs else [],
                     help="Sélectionne un ou plusieurs attributs pour le rapport"
@@ -1279,7 +1346,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
         # Sélection usage
         usages_list = list(r.get("weights", {}).keys())
         if usages_list and attributs_focus:
-            usage_focus = st.selectbox("🎯 Usage métier", options=usages_list)
+            usage_focus = st.selectbox("Usage metier", options=usages_list)
             
             st.markdown("---")
             
@@ -1287,15 +1354,15 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
             can_generate = True
             if profil_select == "custom":
                 if not st.session_state.get("custom_profile_title"):
-                    st.warning("⚠️ Renseigne l'intitulé de ton profil personnalisé")
+                    st.warning("Renseignez l'intitule du profil personnalise")
                     can_generate = False
 
             # Afficher nombre d'attributs sélectionnés
-            st.info(f"📊 **{len(attributs_focus)} attribut(s) sélectionné(s)** pour le rapport")
+            st.info(f"**{len(attributs_focus)} attribut(s) selectionne(s)** pour le rapport")
 
             # Générer rapport
-            if st.button("📄 Générer Rapport Personnalisé", type="primary", use_container_width=True) and can_generate:
-                with st.spinner("🤖 Claude génère ton rapport..."):
+            if st.button(":material/description: Generer le rapport", type="primary", use_container_width=True) and can_generate:
+                with st.spinner(":material/smart_toy: Claude genere le rapport..."):
                     try:
                         # Récupérer les pondérations réelles
                         weights_data = r.get("weights", {}).get(usage_focus, {})
@@ -1308,7 +1375,7 @@ Utilise les données JSON fournies. Sois concis et actionnable.""",
                             custom_titre = st.session_state.get("custom_profile_title", "Profil personnalisé")
                             custom_desc = st.session_state.get("custom_profile_desc", "")
                             custom_focus_input = st.session_state.get("custom_profile_focus", "")
-                            profil_pour_prompt = f"✏️ {custom_titre}"
+                            profil_pour_prompt = f"{custom_titre}"
                             if custom_desc:
                                 profil_pour_prompt += f"\nDescription : {custom_desc}"
                             if custom_focus_input:
@@ -1408,11 +1475,11 @@ Nombre d'attributs analysés : {nb_attrs}
 Génère un rapport structuré en 3 parties en utilisant EXCLUSIVEMENT les données réelles fournies :
 
 **PARTIE 1 : SYNTHÈSE EXÉCUTIVE (2 min lecture)**
-- 🚨 Vue d'ensemble : {nb_attrs} attribut(s) analysé(s) pour l'usage "{usage_focus}"
-- 📊 Tableau récapitulatif des scores de risque par attribut (du plus critique au moins critique)
-- 💡 L'essentiel en 3-5 points (basé sur les données réelles)
-- 🔴 Focus sur l'attribut le plus critique et pourquoi
-- ✅ Top 3 actions prioritaires (basées sur les dimensions critiques réelles)
+- Vue d'ensemble : {nb_attrs} attribut(s) analysé(s) pour l'usage "{usage_focus}"
+- Tableau recapitulatif des scores de risque par attribut (du plus critique au moins critique)
+- L'essentiel en 3-5 points (basé sur les données réelles)
+- Focus sur l'attribut le plus critique et pourquoi
+- Top 3 actions prioritaires (basées sur les dimensions critiques réelles)
 
 **PARTIE 2 : DÉTAILS PAR ATTRIBUT (5-10 min lecture)**
 Pour chaque attribut analysé, affiche un bloc avec :
@@ -1423,11 +1490,11 @@ Pour chaque attribut analysé, affiche un bloc avec :
 - Actions recommandées spécifiques
 
 **PARTIE 3 : SYNTHÈSE & RECOMMANDATIONS PROFIL (3 min lecture)**
-- 📊 KPIs globaux : score moyen, min, max, nb alertes critiques
-- ⚖️ Pondérations utilisées pour l'usage "{usage_focus}"
-- 💼 Impact business global basé sur les scores de risque réels
-- 📈 Plan de monitoring et prochaines étapes
-- 🎯 Recommandations spécifiques pour le profil {profil_pour_prompt}
+- KPIs globaux : score moyen, min, max, nb alertes critiques
+- Ponderations utilisees pour l'usage "{usage_focus}"
+- Impact business global basé sur les scores de risque réels
+- Plan de monitoring et prochaines étapes
+- Recommandations specifiques pour le profil {profil_pour_prompt}
 
 Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans les données JSON."""
 
@@ -1442,10 +1509,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                         rapport = response.content[0].text
                         st.session_state.rapport_genere = rapport
                         
-                        st.success("✅ Rapport généré !")
+                        st.success("Rapport genere")
                     
                     except Exception as e:
-                        st.error(f"❌ Erreur génération rapport : {e}")
+                        st.error(f"Erreur generation rapport : {e}")
             
             # Afficher rapport généré
             if "rapport_genere" in st.session_state:
@@ -1461,7 +1528,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
                 nb_attrs_rapport = len(attributs_focus)
                 attrs_str = ", ".join(attributs_focus[:3]) + ("..." if nb_attrs_rapport > 3 else "")
-                st.success(f"✅ Rapport généré pour : **{profil_affiche}** | {nb_attrs_rapport} attribut(s) : {attrs_str}")
+                st.success(f"Rapport genere pour : **{profil_affiche}** | {nb_attrs_rapport} attribut(s) : {attrs_str}")
 
                 # Audit: Log génération rapport
                 if AUDIT_OK:
@@ -1475,22 +1542,34 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     except Exception:
                         pass
 
-                with st.expander("📄 Ton Rapport Personnalisé", expanded=True):
+                with st.expander(":material/description: Rapport Personnalise", expanded=True):
                     st.markdown(st.session_state.rapport_genere)
 
                 # Download
                 st.markdown("---")
-                st.subheader("📥 Télécharger")
+                st.subheader("Telecharger")
 
                 col1, col2 = st.columns(2)
                 with col1:
                     rapport_bytes = st.session_state.rapport_genere.encode('utf-8')
-                    st.download_button("📝 Markdown (.md)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.md", mime="text/markdown")
+                    st.download_button(":material/download: Markdown (.md)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.md", mime="text/markdown")
                 with col2:
-                    st.download_button("📄 Texte (.txt)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
+                    st.download_button(":material/download: Texte (.txt)", data=rapport_bytes, file_name=f"rapport_{profil_filename}_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain")
         
         else:
-            st.warning("⚠️ Sélectionne au moins un usage ET un attribut pour générer un rapport")
+            st.warning("Selectionnez au moins un usage et un attribut pour generer un rapport")
+
+    idx += 1
+
+    # ========================================================================
+    # TAB DATA CONTRACTS
+    # ========================================================================
+    with tabs[idx]:
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("Data Contracts", anchor=False)
+            st.warning("Module Data Contracts non disponible")
 
     idx += 1
 
@@ -1513,7 +1592,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         if AUDIT_OK:
             render_audit_tab()
         else:
-            st.header("📜 Historique")
+            st.header("Historique", anchor=False)
             st.warning("Module d'audit non disponible")
 
     idx += 1
@@ -1522,7 +1601,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     # TAB PARAMÈTRES - Configuration API et préférences
     # ========================================================================
     with tabs[idx]:
-        st.header("⚙️ Paramètres")
+        st.header("Parametres", anchor=False)
 
         # =====================================================================
         # CHARGEMENT AUTOMATIQUE DE LA CLÉ API DEPUIS SECRETS
@@ -1582,51 +1661,51 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">Configuration de l'application</h3>
+            <p style="color: #2d4a7a; margin: 0;">
                 Statut de l'application et préférences utilisateur.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
         # Section Status API (lecture seule pour utilisateur normal)
-        st.subheader("🔑 Statut API Claude")
+        st.subheader("Statut API Claude")
 
         col1, col2 = st.columns([2, 1])
 
         with col1:
             st.markdown("""
             L'API Claude permet d'activer les fonctionnalités d'**assistance IA** :
-            - 💬 Explications contextuelles des résultats
-            - 📋 Génération de rapports personnalisés
-            - 🎭 Recommandations selon ton profil de risque
-            - 🧠 Synthèses intelligentes
+            - Explications contextuelles des resultats
+            - Generation de rapports personnalises
+            - Recommandations selon le profil de risque
+            - Syntheses intelligentes
             """)
 
             has_key = bool(st.session_state.get("anthropic_api_key"))
 
             if has_key:
-                st.success("✅ L'API Claude est configurée et prête à l'emploi")
+                st.success("L'API Claude est configuree et prete")
                 # Afficher consommation
                 tokens = st.session_state.get("ai_tokens_used", 0)
                 cost = (tokens / 1e6) * 9
                 st.metric("Tokens utilisés (session)", f"{tokens:,}", delta=f"≈ ${cost:.4f}")
             else:
-                st.warning("⚠️ L'API Claude n'est pas configurée")
-                st.info("💡 Contactez l'administrateur pour activer les fonctionnalités IA")
+                st.warning("L'API Claude n'est pas configuree")
+                st.info("Contactez l'administrateur pour activer les fonctionnalites IA")
 
         with col2:
             # Status card
             has_key = bool(st.session_state.get("anthropic_api_key"))
-            status_color = "#38ef7d" if has_key else "#eb3349"
+            status_color = "#38a169" if has_key else "#e53e3e"
             status_text = "Active" if has_key else "Inactive"
-            status_icon = "✅" if has_key else "⏸️"
+            status_icon = "Actif" if has_key else "Inactif"
 
             st.markdown(f"""
             <div style="
@@ -1647,8 +1726,8 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         # SECTION ADMIN (protégée par mot de passe)
         # =====================================================================
 
-        with st.expander("🔐 Administration (accès restreint)", expanded=False):
-            st.warning("⚠️ Cette section est réservée à l'administrateur")
+        with st.expander(":material/admin_panel_settings: Administration (acces restreint)", expanded=False):
+            st.warning("Cette section est reservee a l'administrateur")
 
             # Vérifier si déjà authentifié
             if not st.session_state.get("admin_authenticated", False):
@@ -1659,24 +1738,24 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     placeholder="Entrer le mot de passe admin..."
                 )
 
-                if st.button("🔓 Se connecter", type="primary"):
+                if st.button(":material/lock_open: Se connecter", type="primary"):
                     correct_pwd = check_admin_password()
                     if admin_pwd == correct_pwd:
                         st.session_state.admin_authenticated = True
                         st.rerun()
                     else:
-                        st.error("❌ Mot de passe incorrect")
+                        st.error("Mot de passe incorrect")
 
             else:
                 # Admin authentifié - afficher les options de configuration
-                st.success("✅ Connecté en tant qu'administrateur")
+                st.success("Connecte en tant qu'administrateur")
 
-                if st.button("🚪 Se déconnecter"):
+                if st.button(":material/logout: Se deconnecter"):
                     st.session_state.admin_authenticated = False
                     st.rerun()
 
                 st.markdown("---")
-                st.subheader("🔑 Configuration API Claude")
+                st.subheader("Configuration API Claude")
 
                 # Afficher la clé actuelle (masquée)
                 current_key = st.session_state.get("anthropic_api_key", "")
@@ -1692,96 +1771,96 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     max_chars=200
                 )
 
-                if st.button("💾 Sauvegarder la clé", type="primary"):
+                if st.button(":material/save: Sauvegarder la cle", type="primary"):
                     if new_api_key:
                         clean_key = new_api_key.strip()
                         is_valid, error_msg = validate_api_key(clean_key)
 
                         if is_valid:
                             st.session_state.anthropic_api_key = clean_key
-                            st.success(f"✅ Clé API mise à jour: {mask_api_key(clean_key)}")
+                            st.success(f"Cle API mise a jour: {mask_api_key(clean_key)}")
 
                             # Instructions pour rendre persistant
                             st.info("""
                             **Pour rendre cette clé persistante:**
 
-                            📁 **En local:** Modifiez le fichier `.streamlit/secrets.toml`:
+                            **En local :** Modifiez le fichier `.streamlit/secrets.toml`:
                             ```toml
                             [api]
                             ANTHROPIC_API_KEY = "votre-clé-ici"
                             ```
 
-                            ☁️ **Sur Streamlit Cloud:** Allez dans Settings > Secrets et ajoutez:
+                            **Sur Streamlit Cloud :** Allez dans Settings > Secrets et ajoutez:
                             ```toml
                             [api]
                             ANTHROPIC_API_KEY = "votre-clé-ici"
                             ```
                             """)
                         else:
-                            st.error(f"❌ {error_msg}")
+                            st.error(f"{error_msg}")
                     else:
                         st.warning("Entrez une clé API")
 
                 st.markdown("---")
 
                 # Modifier le mot de passe admin
-                st.subheader("🔒 Sécurité")
+                st.subheader("Securite")
                 st.caption("Pour modifier le mot de passe admin, éditez `.streamlit/secrets.toml`")
 
         st.markdown("---")
 
         # Section Préférences (accessible à tous)
-        st.subheader("🎨 Préférences d'affichage")
+        st.subheader("Preferences d'affichage")
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.selectbox(
-                "🌍 Langue des rapports IA",
+                "Langue des rapports IA",
                 options=["Français", "English"],
                 index=0,
                 help="Langue utilisée pour la génération des rapports",
                 disabled=True
             )
-            st.caption("🔜 Bientôt disponible")
+            st.caption("Bientot disponible")
 
         with col2:
             st.selectbox(
-                "📊 Niveau de détail par défaut",
+                "Niveau de detail par defaut",
                 options=["Synthétique", "Standard", "Détaillé"],
                 index=1,
                 help="Niveau de détail pour les explications IA",
                 disabled=True
             )
-            st.caption("🔜 Bientôt disponible")
+            st.caption("Bientot disponible")
 
         st.markdown("---")
 
         # Section Données
-        st.subheader("💾 Gestion des données")
+        st.subheader("Gestion des donnees")
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            if st.button("🗑️ Réinitialiser session", use_container_width=True):
+            if st.button(":material/delete: Reinitialiser session", use_container_width=True):
                 for key in list(st.session_state.keys()):
                     if key not in ["anthropic_api_key"]:  # Garder la clé API
                         del st.session_state[key]
-                st.success("✅ Session réinitialisée")
+                st.success("Session reinitialisee")
                 st.rerun()
 
         with col2:
-            if st.button("🧹 Vider cache IA", use_container_width=True):
+            if st.button(":material/cleaning_services: Vider cache IA", use_container_width=True):
                 st.session_state.ai_explanations = {}
                 if "profil_risque_reco" in st.session_state:
                     del st.session_state.profil_risque_reco
                 if "rapport_genere" in st.session_state:
                     del st.session_state.rapport_genere
-                st.success("✅ Cache IA vidé")
+                st.success("Cache IA vide")
 
         with col3:
-            if st.button("📊 Infos debug", use_container_width=True):
-                with st.expander("🔍 État session", expanded=True):
+            if st.button(":material/bug_report: Infos debug", use_container_width=True):
+                with st.expander(":material/bug_report: Etat session", expanded=True):
                     debug_info = {
                         "df_loaded": st.session_state.df is not None,
                         "analysis_done": st.session_state.get("analysis_done", False),
@@ -1795,26 +1874,26 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         st.markdown("---")
 
         # Section À propos
-        st.subheader("ℹ️ À propos")
+        st.subheader("A propos")
 
         st.markdown("""
         <div style="
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(44, 82, 130, 0.05);
+            border: 1px solid rgba(44, 82, 130, 0.15);
             border-radius: 12px;
             padding: 1.5rem;
         ">
-            <h4 style="color: white; margin: 0 0 1rem 0;">🎯 Framework Probabiliste DQ</h4>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <h4 style="color: #1a365d; margin: 0 0 1rem 0;">DataQualityLab</h4>
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Version :</strong> 1.2.0
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Moteur IA :</strong> Claude Sonnet 4 (Anthropic)
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 1rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 1rem 0;">
                 <strong>Framework :</strong> Streamlit + Plotly
             </p>
-            <p style="color: rgba(255,255,255,0.5); margin: 0; font-size: 0.85rem;">
+            <p style="color: #718096; margin: 0; font-size: 0.85rem;">
                 Outil de démonstration pour l'analyse de qualité des données avec approche probabiliste basée sur les distributions Beta.
             </p>
         </div>
@@ -1827,33 +1906,33 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
     # ========================================================================
 
     with tabs[idx]:
-        st.header("❓ Guide Utilisateur")
+        st.header("Guide Utilisateur", anchor=False)
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1.1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">En 30 secondes : C'est quoi ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1.1rem;">
                 Un outil qui mesure la qualité de vos données <strong>ET leur impact selon l'usage</strong>
             </p>
         </div>
         """, unsafe_allow_html=True)
 
         # Comparaison DAMA vs Probabiliste
-        st.subheader("📊 DAMA classique vs Notre approche")
+        st.subheader("DAMA classique vs Notre approche")
 
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("""
             <div style="background: rgba(235,51,73,0.1); border: 1px solid rgba(235,51,73,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #eb3349; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score unique : "82% de qualité"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                <h4 style="color: #e53e3e; margin: 0 0 0.5rem 0;">Approche DAMA classique</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score unique : "82% de qualité"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
                     → Même donnée = même note partout
                 </p>
             </div>
@@ -1862,9 +1941,9 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         with col2:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #38ef7d; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                <h4 style="color: #38a169; margin: 0 0 0.5rem 0;">Notre approche probabiliste</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">
                     → Même donnée = risques différents selon l'usage
                 </p>
             </div>
@@ -1873,19 +1952,19 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         st.markdown("---")
 
         # Les 4 dimensions
-        st.subheader("🧠 Les 4 dimensions du risque")
+        st.subheader("Les 4 dimensions du risque")
 
         st.markdown("""
-        <p style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">
+        <p style="color: #4a6fa5; margin-bottom: 1rem;">
             Chaque attribut est analysé sur <strong>4 dimensions causales</strong> :
         </p>
         """, unsafe_allow_html=True)
 
         dims_help = [
-            {"code": "DB", "nom": "Structure", "icon": "🗄️", "question": "Le format/type est-il correct ?", "exemple": "VARCHAR au lieu de NUMBER", "color": "#667eea"},
-            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "question": "Les ETL ont-ils dégradé la donnée ?", "exemple": "Troncature, encodage cassé", "color": "#764ba2"},
-            {"code": "BR", "nom": "Règles métier", "icon": "📋", "question": "La valeur respecte-t-elle les règles ?", "exemple": "Salaire négatif, date future", "color": "#f093fb"},
-            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "question": "La donnée est-elle exploitable ?", "exemple": "Trop de valeurs manquantes", "color": "#38ef7d"},
+            {"code": "DB", "nom": "Structure", "icon": ":material/database:", "question": "Le format/type est-il correct ?", "exemple": "VARCHAR au lieu de NUMBER", "color": "#2c5282"},
+            {"code": "DP", "nom": "Traitements", "icon": ":material/sync_alt:", "question": "Les ETL ont-ils dégradé la donnée ?", "exemple": "Troncature, encodage cassé", "color": "#2a4365"},
+            {"code": "BR", "nom": "Règles métier", "icon": ":material/gavel:", "question": "La valeur respecte-t-elle les règles ?", "exemple": "Salaire négatif, date future", "color": "#805ad5"},
+            {"code": "UP", "nom": "Utilisabilité", "icon": ":material/visibility:", "question": "La donnée est-elle exploitable ?", "exemple": "Trop de valeurs manquantes", "color": "#38a169"},
         ]
 
         cols = st.columns(4)
@@ -1893,7 +1972,7 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             with cols[i]:
                 st.markdown(f"""
                 <div style="
-                    background: rgba(255,255,255,0.03);
+                    background: rgba(44, 82, 130, 0.05);
                     border: 1px solid {dim['color']}40;
                     border-radius: 12px;
                     padding: 1rem;
@@ -1902,18 +1981,18 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                 ">
                     <div style="font-size: 2rem; margin-bottom: 0.5rem;">{dim['icon']}</div>
                     <div style="color: {dim['color']}; font-weight: 600; font-size: 1.1rem;">{dim['code']} - {dim['nom']}</div>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin: 0.5rem 0;">{dim['question']}</p>
-                    <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; font-style: italic;">Ex: {dim['exemple']}</p>
+                    <p style="color: #4a6fa5; font-size: 0.85rem; margin: 0.5rem 0;">{dim['question']}</p>
+                    <p style="color: #718096; font-size: 0.75rem; font-style: italic;">Ex: {dim['exemple']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.markdown("---")
 
         # Pourquoi les pondérations
-        st.subheader("⚖️ Pourquoi les pondérations changent tout")
+        st.subheader("Pourquoi les ponderations changent tout")
 
         st.markdown("""
-        <p style="color: rgba(255,255,255,0.7);">
+        <p style="color: #4a6fa5;">
             Le <strong>même attribut</strong> a des risques différents selon l'usage car les pondérations varient :
         </p>
         """, unsafe_allow_html=True)
@@ -1927,19 +2006,19 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
         | **Audit** | 20% | 20% | 40% | 20% | Règles métier critiques (conformité) |
         """)
 
-        st.info("💡 **Résultat** : Un attribut avec P_DB=80% aura un score de 40% pour la Paie mais seulement 19% pour un Dashboard !")
+        st.info("**Resultat** : Un attribut avec P_DB=80% aura un score de 40% pour la Paie mais seulement 19% pour un Dashboard !")
 
         st.markdown("---")
 
         # Code couleur
-        st.subheader("🎨 Code couleur des risques")
+        st.subheader("Code couleur des risques")
 
         cols = st.columns(4)
         colors_help = [
-            {"color": "#38ef7d", "label": "< 15%", "status": "Faible", "action": "Monitoring"},
+            {"color": "#38a169", "label": "< 15%", "status": "Faible", "action": "Monitoring"},
             {"color": "#F2C94C", "label": "15-25%", "status": "Modéré", "action": "Surveillance"},
             {"color": "#F2994A", "label": "25-40%", "status": "Élevé", "action": "Action planifiée"},
-            {"color": "#eb3349", "label": "> 40%", "status": "Critique", "action": "Action immédiate"},
+            {"color": "#e53e3e", "label": "> 40%", "status": "Critique", "action": "Action immédiate"},
         ]
 
         for i, c in enumerate(colors_help):
@@ -1953,25 +2032,25 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     text-align: center;
                 ">
                     <div style="color: {c['color']}; font-size: 1.5rem; font-weight: 700;">{c['label']}</div>
-                    <div style="color: white; font-weight: 600;">{c['status']}</div>
-                    <div style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">{c['action']}</div>
+                    <div style="color: #1a365d; font-weight: 600;">{c['status']}</div>
+                    <div style="color: #6b8bb5; font-size: 0.85rem;">{c['action']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.markdown("---")
 
         # Les onglets
-        st.subheader("📑 Les onglets en un coup d'œil")
+        st.subheader("Les onglets en un coup d'oeil")
 
         onglets_help = [
-            {"icon": "🔍", "nom": "Scan", "desc": "Détecter les anomalies automatiquement", "quand": "Premier diagnostic"},
-            {"icon": "📊", "nom": "Dashboard", "desc": "Vue globale, heatmap des risques", "quand": "Présentation COMEX"},
-            {"icon": "🎯", "nom": "Vecteurs", "desc": "Détail des 4 dimensions par attribut", "quand": "Diagnostic technique"},
-            {"icon": "⚠️", "nom": "Priorités", "desc": "Top 5 des urgences à traiter", "quand": "Plan d'action"},
-            {"icon": "🎚️", "nom": "Élicitation", "desc": "Ajuster les pondérations par usage", "quand": "Personnalisation métier"},
-            {"icon": "🔄", "nom": "Lineage", "desc": "Impact des transformations ETL", "quand": "Debug pipeline"},
-            {"icon": "📈", "nom": "DAMA", "desc": "Comparaison avec approche classique", "quand": "Justification méthode"},
-            {"icon": "📋", "nom": "Reporting", "desc": "Rapport personnalisé par profil", "quand": "Communication"},
+            {"icon": ":material/search:", "nom": "Scan", "desc": "Détecter les anomalies automatiquement", "quand": "Premier diagnostic"},
+            {"icon": ":material/dashboard:", "nom": "Dashboard", "desc": "Vue globale, heatmap des risques", "quand": "Présentation COMEX"},
+            {"icon": ":material/target:", "nom": "Vecteurs", "desc": "Détail des 4 dimensions par attribut", "quand": "Diagnostic technique"},
+            {"icon": ":material/priority_high:", "nom": "Priorites", "desc": "Top 5 des urgences à traiter", "quand": "Plan d'action"},
+            {"icon": ":material/tune:", "nom": "Elicitation", "desc": "Ajuster les pondérations par usage", "quand": "Personnalisation métier"},
+            {"icon": ":material/account_tree:", "nom": "Lineage", "desc": "Impact des transformations ETL", "quand": "Debug pipeline"},
+            {"icon": ":material/compare:", "nom": "DAMA", "desc": "Comparaison avec approche classique", "quand": "Justification méthode"},
+            {"icon": ":material/gavel:", "nom": "Reporting", "desc": "Rapport personnalisé par profil", "quand": "Communication"},
         ]
 
         for i in range(0, len(onglets_help), 4):
@@ -1982,22 +2061,22 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                     with col:
                         st.markdown(f"""
                         <div style="
-                            background: rgba(255,255,255,0.03);
-                            border: 1px solid rgba(255,255,255,0.1);
+                            background: rgba(44, 82, 130, 0.05);
+                            border: 1px solid rgba(44, 82, 130, 0.15);
                             border-radius: 10px;
                             padding: 0.75rem;
                             margin-bottom: 0.5rem;
                         ">
                             <div style="font-size: 1.25rem;">{o['icon']} <strong>{o['nom']}</strong></div>
-                            <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin: 0.25rem 0;">{o['desc']}</p>
-                            <p style="color: rgba(255,255,255,0.5); font-size: 0.75rem; margin: 0;">→ {o['quand']}</p>
+                            <p style="color: #4a6fa5; font-size: 0.8rem; margin: 0.25rem 0;">{o['desc']}</p>
+                            <p style="color: #718096; font-size: 0.75rem; margin: 0;">→ {o['quand']}</p>
                         </div>
                         """, unsafe_allow_html=True)
 
         st.markdown("---")
 
         # 3 insights clés
-        st.subheader("🔑 Les 3 insights clés à retenir")
+        st.subheader("Les 3 insights cles a retenir")
 
         cols = st.columns(3)
         insights = [
@@ -2010,14 +2089,14 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
             with cols[i]:
                 st.markdown(f"""
                 <div style="
-                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+                    background: linear-gradient(135deg, rgba(44, 82, 130, 0.1) 0%, rgba(26, 54, 93, 0.08) 100%);
                     border: 1px solid rgba(102, 126, 234, 0.3);
                     border-radius: 12px;
                     padding: 1.25rem;
                     text-align: center;
                 ">
                     <div style="
-                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        background: linear-gradient(135deg, #2c5282, #1a365d);
                         width: 40px;
                         height: 40px;
                         border-radius: 50%;
@@ -2027,10 +2106,10 @@ Format : Markdown avec tableaux. Utilise UNIQUEMENT les chiffres fournis dans le
                         margin: 0 auto 0.75rem auto;
                         font-size: 1.25rem;
                         font-weight: 700;
-                        color: white;
+                        color: #1a365d;
                     ">{insight['num']}</div>
-                    <div style="color: white; font-weight: 600; font-size: 0.95rem;">{insight['titre']}</div>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">{insight['desc']}</p>
+                    <div style="color: #1a365d; font-weight: 600; font-size: 0.95rem;">{insight['titre']}</div>
+                    <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">{insight['desc']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -2038,19 +2117,19 @@ else:
     # ========================================================================
     # ONGLET ACCUEIL (avant analyse)
     # ========================================================================
-    with tabs[0]:  # 🏠 Accueil
+    with tabs[0]:  # Accueil
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 20px;
             padding: 2.5rem;
             text-align: center;
             margin: 1.5rem 0;
         ">
-            <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">📊</div>
-            <h2 style="color: white; margin-bottom: 0.75rem;">Bienvenue dans le Framework DQ</h2>
-            <p style="color: rgba(255,255,255,0.7); font-size: 1.05rem; max-width: 600px; margin: 0 auto 1rem auto;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem; font-weight: 600; color: #667eea;">DQ</div>
+            <h2 style="color: #1a365d; margin-bottom: 0.75rem;">Bienvenue dans le Framework DQ</h2>
+            <p style="color: #4a6fa5; font-size: 1.05rem; max-width: 600px; margin: 0 auto 1rem auto;">
                 Analysez la qualité de vos données avec une approche probabiliste basée sur les distributions Beta.
             </p>
         <div style="
@@ -2061,16 +2140,16 @@ else:
             margin-top: 1.5rem;
         ">
             <div style="text-align: center;">
-                <div style="font-size: 1.75rem;">1️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Upload dataset</p>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">1</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Upload dataset</p>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 1.75rem;">2️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Sélectionner colonnes</p>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">2</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Selectionner colonnes</p>
             </div>
             <div style="text-align: center;">
-                <div style="font-size: 1.75rem;">3️⃣</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem;">Lancer l'analyse</p>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">3</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem;">Lancer l'analyse</p>
             </div>
             </div>
         </div>
@@ -2078,42 +2157,52 @@ else:
 
         # Aperçu rapide des fonctionnalités
         st.markdown("---")
-        st.subheader("🚀 Ce que tu vas pouvoir faire")
+        st.subheader("Ce que tu vas pouvoir faire")
 
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("""
             <div style="background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                <div style="color: white; font-weight: 600;">Analyser</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Scores de risque contextualisés par usage</p>
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; color: #667eea;">01</div>
+                <div style="color: #1a365d; font-weight: 600;">Analyser</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Scores de risque contextualisés par usage</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div style="background: rgba(118,75,162,0.1); border: 1px solid rgba(118,75,162,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
-                <div style="color: white; font-weight: 600;">Prioriser</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Identifier les urgences à traiter</p>
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; color: #764ba2;">02</div>
+                <div style="color: #1a365d; font-weight: 600;">Prioriser</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Identifier les urgences à traiter</p>
             </div>
             """, unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem; text-align: center;">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
-                <div style="color: white; font-weight: 600;">Rapporter</div>
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: 0.5rem 0 0 0;">Générer des rapports IA personnalisés</p>
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem; font-weight: 600; color: #38ef7d;">03</div>
+                <div style="color: #1a365d; font-weight: 600;">Rapporter</div>
+                <p style="color: #6b8bb5; font-size: 0.85rem; margin: 0.5rem 0 0 0;">Générer des rapports IA personnalisés</p>
             </div>
             """, unsafe_allow_html=True)
 
-        st.info("💡 **Consulte l'onglet ❓ Aide** pour comprendre la méthodologie en détail")
+        st.info("Consultez l'onglet Aide pour comprendre la methodologie en detail")
 
         # Status API
         st.markdown("---")
         if not st.session_state.get("anthropic_api_key"):
-            st.warning("🔑 **Configure ta clé API** dans l'onglet ⚙️ Paramètres pour activer l'assistance IA")
+            st.warning("Configurez votre cle API dans l'onglet Parametres pour activer l'assistance IA")
         else:
-            st.success("✅ **API configurée** - Toutes les fonctionnalités IA sont actives !")
+            st.success("API configuree - Toutes les fonctionnalites IA sont actives")
+
+    # ========================================================================
+    # ONGLET DATA CONTRACTS (avant analyse)
+    # ========================================================================
+    with tabs[1]:  # Contracts
+        if CONTRACTS_OK:
+            render_data_contracts_tab()
+        else:
+            st.header("Data Contracts", anchor=False)
+            st.warning("Module Data Contracts non disponible")
 
     # ========================================================================
     # ONGLET DATA CONTRACTS (avant analyse)
@@ -2128,46 +2217,46 @@ else:
     # ========================================================================
     # ONGLET HISTORIQUE (avant analyse)
     # ========================================================================
-    with tabs[2]:  # 📜 Historique
+    with tabs[2]:  # Historique
         if AUDIT_OK:
             render_audit_tab()
         else:
-            st.header("📜 Historique")
+            st.header("Historique", anchor=False)
             st.warning("Module d'audit non disponible")
 
     # ========================================================================
     # ONGLET PARAMÈTRES (avant analyse)
     # ========================================================================
-    with tabs[3]:  # ⚙️ Paramètres
-        st.header("⚙️ Paramètres")
+    with tabs[3]:  # Parametres
+        st.header("Parametres", anchor=False)
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.25rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🔧 Configuration de l'application</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">Configuration de l'application</h3>
+            <p style="color: #2d4a7a; margin: 0;">
                 Configure ici ta clé API et tes préférences pour l'assistance IA.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
         # Section API Claude
-        st.subheader("🔑 API Claude (Anthropic)")
+        st.subheader("API Claude (Anthropic)")
 
         col1, col2 = st.columns([2, 1])
 
         with col1:
             st.markdown("""
             L'API Claude permet d'activer les fonctionnalités d'**assistance IA** :
-            - 💬 Explications contextuelles des résultats
-            - 📋 Génération de rapports personnalisés
-            - 🎭 Recommandations selon ton profil de risque
-            - 🧠 Synthèses intelligentes
+            - Explications contextuelles des resultats
+            - Generation de rapports personnalises
+            - Recommandations selon le profil de risque
+            - Syntheses intelligentes
             """)
 
             api_key_input_init = st.text_input(
@@ -2183,16 +2272,16 @@ else:
                 api_key_clean = api_key_input_init.strip()
                 if api_key_clean.startswith("sk-ant-"):
                     st.session_state.anthropic_api_key = api_key_clean
-                    st.success("✅ Clé API valide et enregistrée")
+                    st.success("Cle API valide et enregistree")
                 else:
-                    st.error("❌ Format invalide (doit commencer par 'sk-ant-')")
+                    st.error("Format invalide (doit commencer par 'sk-ant-')")
                     st.session_state.anthropic_api_key = ""
             else:
                 st.session_state.anthropic_api_key = ""
 
             st.markdown("---")
             st.markdown("""
-            **📌 Comment obtenir une clé API ?**
+            **Comment obtenir une cle API ?**
             1. Crée un compte sur [console.anthropic.com](https://console.anthropic.com)
             2. Va dans **Settings** → **API Keys**
             3. Clique sur **Create Key**
@@ -2201,9 +2290,9 @@ else:
 
         with col2:
             has_key = bool(st.session_state.get("anthropic_api_key"))
-            status_color = "#38ef7d" if has_key else "#eb3349"
+            status_color = "#38a169" if has_key else "#e53e3e"
             status_text = "Configurée" if has_key else "Non configurée"
-            status_icon = "✅" if has_key else "❌"
+            status_icon = "Actif" if has_key else "Inactif"
 
             st.markdown(f"""
             <div style="
@@ -2219,22 +2308,22 @@ else:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
-        st.subheader("ℹ️ À propos")
+        st.subheader("A propos")
         st.markdown("""
         <div style="
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(44, 82, 130, 0.05);
+            border: 1px solid rgba(44, 82, 130, 0.15);
             border-radius: 12px;
             padding: 1.5rem;
         ">
-            <h4 style="color: white; margin: 0 0 1rem 0;">🎯 Framework Probabiliste DQ</h4>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <h4 style="color: #1a365d; margin: 0 0 1rem 0;">DataQualityLab</h4>
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Version :</strong> 1.2.0
             </p>
-            <p style="color: rgba(255,255,255,0.7); margin: 0 0 0.5rem 0;">
+            <p style="color: #4a6fa5; margin: 0 0 0.5rem 0;">
                 <strong>Moteur IA :</strong> Claude Sonnet 4 (Anthropic)
             </p>
-            <p style="color: rgba(255,255,255,0.5); margin: 0; font-size: 0.85rem;">
+            <p style="color: #718096; margin: 0; font-size: 0.85rem;">
                 Outil de démonstration pour l'analyse de qualité des données avec approche probabiliste.
             </p>
         </div>
@@ -2243,101 +2332,101 @@ else:
     # ========================================================================
     # ONGLET AIDE (avant analyse)
     # ========================================================================
-    with tabs[4]:  # ❓ Aide
-        st.header("❓ Guide Utilisateur")
+    with tabs[4]:  # Aide
+        st.header("Guide Utilisateur", anchor=False)
 
         st.markdown("""
         <div style="
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            background: linear-gradient(135deg, rgba(44, 82, 130, 0.08) 0%, rgba(26, 54, 93, 0.05) 100%);
             border: 1px solid rgba(102, 126, 234, 0.3);
             border-radius: 16px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         ">
-            <h3 style="color: white; margin: 0 0 0.5rem 0;">🎯 En 30 secondes : C'est quoi ?</h3>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 1.1rem;">
+            <h3 style="color: #1a365d; margin: 0 0 0.5rem 0;">En 30 secondes : C'est quoi ?</h3>
+            <p style="color: #2d4a7a; margin: 0; font-size: 1.1rem;">
                 Un outil qui mesure la qualité de vos données <strong>ET leur impact selon l'usage</strong>
             </p>
         </div>
         """, unsafe_allow_html=True)
 
         # Comparaison DAMA vs Probabiliste
-        st.subheader("📊 DAMA classique vs Notre approche")
+        st.subheader("DAMA classique vs Notre approche")
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("""
             <div style="background: rgba(235,51,73,0.1); border: 1px solid rgba(235,51,73,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #eb3349; margin: 0 0 0.5rem 0;">❌ Approche DAMA classique</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score unique : "82% de qualité"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = même note partout</p>
+                <h4 style="color: #e53e3e; margin: 0 0 0.5rem 0;">Approche DAMA classique</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score unique : "82% de qualité"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = même note partout</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div style="background: rgba(56,239,125,0.1); border: 1px solid rgba(56,239,125,0.3); border-radius: 12px; padding: 1rem;">
-                <h4 style="color: #38ef7d; margin: 0 0 0.5rem 0;">✅ Notre approche probabiliste</h4>
-                <p style="color: rgba(255,255,255,0.7); margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
-                <p style="color: rgba(255,255,255,0.5); margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = risques différents selon l'usage</p>
+                <h4 style="color: #38a169; margin: 0 0 0.5rem 0;">Notre approche probabiliste</h4>
+                <p style="color: #4a6fa5; margin: 0;">Score contextualisé : "46% Paie, 12% Dashboard"</p>
+                <p style="color: #718096; margin: 0.5rem 0 0 0; font-size: 0.9rem;">→ Même donnée = risques différents selon l'usage</p>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown("---")
-        st.subheader("🧠 Les 4 dimensions du risque")
+        st.subheader("Les 4 dimensions du risque")
         dims_help_init = [
-            {"code": "DB", "nom": "Structure", "icon": "🗄️", "desc": "Format/type correct ?", "color": "#667eea"},
-            {"code": "DP", "nom": "Traitements", "icon": "⚙️", "desc": "ETL ont dégradé ?", "color": "#764ba2"},
-            {"code": "BR", "nom": "Règles métier", "icon": "📋", "desc": "Respecte les règles ?", "color": "#f093fb"},
-            {"code": "UP", "nom": "Utilisabilité", "icon": "👁️", "desc": "Exploitable ?", "color": "#38ef7d"},
+            {"code": "DB", "nom": "Structure", "icon": ":material/database:", "desc": "Format/type correct ?", "color": "#2c5282"},
+            {"code": "DP", "nom": "Traitements", "icon": ":material/sync_alt:", "desc": "ETL ont dégradé ?", "color": "#2a4365"},
+            {"code": "BR", "nom": "Règles métier", "icon": ":material/gavel:", "desc": "Respecte les règles ?", "color": "#805ad5"},
+            {"code": "UP", "nom": "Utilisabilité", "icon": ":material/visibility:", "desc": "Exploitable ?", "color": "#38a169"},
         ]
         cols = st.columns(4)
         for i, dim in enumerate(dims_help_init):
             with cols[i]:
                 st.markdown(f"""
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid {dim['color']}40; border-radius: 12px; padding: 0.75rem; text-align: center;">
+                <div style="background: rgba(44, 82, 130, 0.05); border: 1px solid {dim['color']}40; border-radius: 12px; padding: 0.75rem; text-align: center;">
                     <div style="font-size: 1.5rem;">{dim['icon']}</div>
                     <div style="color: {dim['color']}; font-weight: 600;">{dim['code']} - {dim['nom']}</div>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 0.8rem; margin: 0.25rem 0 0 0;">{dim['desc']}</p>
+                    <p style="color: #6b8bb5; font-size: 0.8rem; margin: 0.25rem 0 0 0;">{dim['desc']}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
         st.markdown("---")
-        st.subheader("🎨 Code couleur des risques")
+        st.subheader("Code couleur des risques")
         cols = st.columns(4)
         colors_init = [
-            {"color": "#38ef7d", "label": "< 15%", "status": "Faible"},
+            {"color": "#38a169", "label": "< 15%", "status": "Faible"},
             {"color": "#F2C94C", "label": "15-25%", "status": "Modéré"},
             {"color": "#F2994A", "label": "25-40%", "status": "Élevé"},
-            {"color": "#eb3349", "label": "> 40%", "status": "Critique"},
+            {"color": "#e53e3e", "label": "> 40%", "status": "Critique"},
         ]
         for i, c in enumerate(colors_init):
             with cols[i]:
                 st.markdown(f"""
                 <div style="background: {c['color']}20; border: 2px solid {c['color']}; border-radius: 12px; padding: 0.75rem; text-align: center;">
                     <div style="color: {c['color']}; font-size: 1.25rem; font-weight: 700;">{c['label']}</div>
-                    <div style="color: white; font-weight: 600;">{c['status']}</div>
+                    <div style="color: #1a365d; font-weight: 600;">{c['status']}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-        st.info("💡 **Pour commencer** : Upload ton fichier dans la sidebar et lance l'analyse !")
+        st.info("Pour commencer : chargez un fichier dans la sidebar et lancez l'analyse")
 
 # Footer moderne
 st.markdown("---")
 st.markdown("""
 <div style="
-    background: rgba(255,255,255,0.03);
+    background: rgba(44, 82, 130, 0.05);
     border-radius: 16px;
     padding: 1.5rem;
     margin-top: 2rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(44, 82, 130, 0.15);
 ">
-    <p style="text-align: center; color: rgba(255,255,255,0.5); margin: 0; font-size: 0.9rem;">
-        Framework Probabiliste DQ • Propulsé par Claude AI
+    <p style="text-align: center; color: #718096; margin: 0; font-size: 0.9rem;">
+        DataQualityLab • Propulsé par Claude AI
     </p>
 </div>
 """, unsafe_allow_html=True)
 
 c1,c2,c3 = st.columns(3)
 t = st.session_state.ai_tokens_used
-c1.metric("🤖 Tokens IA", f"{t:,}")
-c2.metric("💰 Coût session", f"${(t/1e6)*9:.4f}")
-c3.metric("📊 Explications", len(st.session_state.ai_explanations))
+c1.metric("Tokens IA", f"{t:,}")
+c2.metric("Cout session", f"${(t/1e6)*9:.4f}")
+c3.metric("Explications", len(st.session_state.ai_explanations))

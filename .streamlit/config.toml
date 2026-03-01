@@ -1,13 +1,13 @@
 [theme]
-primaryColor = "#667eea"
-backgroundColor = "#0e1117"
-secondaryBackgroundColor = "#1e2130"
-textColor = "#ffffff"
+# Design Professionnel Jaune/Bleu
+primaryColor = "#2c5282"
+backgroundColor = "#FFF9E6"
+secondaryBackgroundColor = "#FEF3C7"
+textColor = "#1a365d"
 font = "sans serif"
 
 [server]
 maxUploadSize = 200
-enableCORS = false
 enableXsrfProtection = true
 
 [browser]

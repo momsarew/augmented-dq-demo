@@ -5,7 +5,7 @@
 # Mis à jour: 2026-02-05
 
 # Framework Web
-streamlit==1.53.1
+streamlit>=1.41.0
 
 # Data Processing
 pandas==2.3.3
@@ -20,6 +20,9 @@ openpyxl==3.1.5
 
 # AI
 anthropic==0.76.0
+
+# YAML (ODCS export)
+PyYAML>=6.0.1
 
 # PDF Export
 reportlab==4.4.9

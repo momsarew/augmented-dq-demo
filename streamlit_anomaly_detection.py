@@ -17,6 +17,7 @@ from datetime import datetime
 
 from extended_anomaly_catalog import ExtendedCatalogManager, CoreAnomaly, Dimension, Criticality
 from adaptive_scan_engine import AdaptiveScanEngine
+from rules_catalog_loader import catalog as _catalog
 
 
 def render_anomaly_detection_tab():
@@ -45,8 +46,8 @@ def render_anomaly_detection_tab():
     with sub_tab1:
         st.subheader("Scanner Dataset")
         
-        st.info("""
-        ✅ **15 détecteurs réels** opérationnels (60 catalogués)
+        st.info(f"""
+        ✅ **15 détecteurs réels** opérationnels ({len(engine.catalog_manager.catalog)} catalogués)
         🧠 **Apprentissage adaptatif** : Le moteur s'améliore à chaque scan
         ⚡ **3 budgets** : QUICK (top 5) | STANDARD (top 10) | DEEP (tous)
         """)
@@ -374,47 +375,76 @@ def render_anomaly_detection_tab():
                 with col4:
                     st.metric("Score Priorité", f"{anomaly.get_priority_score():.1f}")
         
-        # Ajouter anomalie
+        # Ajouter anomalies par CSV
         st.markdown("---")
-        st.markdown("#### ➕ Ajouter Anomalie")
-        
-        with st.expander("Formulaire ajout anomalie"):
-            with st.form("add_anomaly_form"):
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    new_id = st.text_input("ID", placeholder="EX: BR#16")
-                    new_name = st.text_input("Nom", placeholder="EX: Règle métier spécifique")
-                    new_desc = st.text_area("Description", placeholder="Détails règle...")
-                    new_dim = st.selectbox("Dimension", options=['DB', 'DP', 'BR', 'UP'])
-                
-                with col2:
-                    new_crit = st.selectbox("Criticité", options=['CRITIQUE', 'ÉLEVÉ', 'MOYEN', 'FAIBLE'])
-                    new_woodall = st.selectbox("Woodall", options=['SAST', 'SAMT', 'MAST', 'MR', 'SR', 'MDS'])
-                    new_sql = st.text_area("SQL Template", placeholder="SELECT * FROM...")
-                    new_example = st.text_input("Exemple", placeholder="Cas d'usage concret")
-                
-                submitted = st.form_submit_button("✅ Ajouter au référentiel")
-                
-                if submitted:
-                    if not new_id or not new_name:
-                        st.error("❌ ID et Nom sont obligatoires")
+        st.markdown("#### ➕ Ajouter Anomalies (import CSV)")
+
+        with st.expander("Importer un CSV d'anomalies"):
+            st.markdown("""
+            **Colonnes obligatoires** : `anomaly_id`, `name`, `description`, `dimension`, `detection`, `criticality`
+            **Colonnes optionnelles** : `woodall`, `algorithm`, `business_risk`, `frequency`, `default_rule_type`
+            """)
+
+            csv_template = _catalog.generate_csv_template()
+            st.download_button(
+                label="📄 Télécharger le template CSV",
+                data=csv_template,
+                file_name="anomalies_template.csv",
+                mime="text/csv",
+                key="scan_csv_template",
+            )
+
+            csv_file = st.file_uploader(
+                "📁 Charger un CSV d'anomalies",
+                type=["csv"],
+                key="scan_anomaly_csv_upload",
+            )
+
+            if csv_file is not None:
+                try:
+                    import_df = pd.read_csv(csv_file, dtype=str).fillna("")
+                    st.markdown(f"**Aperçu** — {len(import_df)} anomalies trouvées :")
+                    st.dataframe(import_df, use_container_width=True, hide_index=True)
+
+                    errors = _catalog.validate_import_df(import_df)
+                    if errors:
+                        for err in errors:
+                            st.error(f"❌ {err}")
                     else:
-                        # TODO: Implémenter ajout avec détecteur
-                        st.warning("⚠️ Fonction ajout en cours d'implémentation - Nécessite création détecteur Python")
-                        st.info(f"""
-                        Pour ajouter {new_id}, créer fonction détecteur :
-                        
-                        ```python
-                        def detect_{new_id.lower().replace('#', '_')}(df, **params):
-                            # Logique détection
-                            return {{
-                                'detected': True/False,
-                                'affected_rows': count,
-                                'sample': []
-                            }}
-                        ```
-                        """)
+                        existing = set(_catalog.anomalies.keys())
+                        new_ids = set(import_df["anomaly_id"].str.strip()) - existing
+                        update_ids = set(import_df["anomaly_id"].str.strip()) & existing
+
+                        if new_ids:
+                            st.info(f"🆕 {len(new_ids)} nouvelles anomalies : {', '.join(sorted(new_ids))}")
+                        if update_ids:
+                            st.warning(f"♻️ {len(update_ids)} anomalies déjà existantes : {', '.join(sorted(update_ids))}")
+
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            overwrite = st.checkbox("Écraser les anomalies existantes", value=False, key="scan_overwrite")
+                        with col_b:
+                            if st.button("✅ Importer dans le catalogue", type="primary", key="scan_import_btn"):
+                                result = _catalog.import_from_dataframe(import_df, overwrite=overwrite)
+                                if result["errors"]:
+                                    for err in result["errors"]:
+                                        st.error(f"❌ {err}")
+                                else:
+                                    msg_parts = []
+                                    if result["added"] > 0:
+                                        msg_parts.append(f"🆕 {result['added']} ajoutées")
+                                    if result["updated"] > 0:
+                                        msg_parts.append(f"♻️ {result['updated']} mises à jour")
+                                    if result["skipped"] > 0:
+                                        msg_parts.append(f"⏭️ {result['skipped']} ignorées (déjà existantes)")
+                                    st.success(f"✅ Import réussi — {' · '.join(msg_parts)}")
+                                    st.info(f"📊 Le référentiel contient maintenant **{len(_catalog.anomalies)} anomalies**")
+                                    # Recharger le catalogue dans le moteur
+                                    engine.catalog_manager = ExtendedCatalogManager()
+                                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ Erreur de lecture CSV : {e}")
     
     # ========================================================================
     # TAB 3 : APPRENTISSAGE

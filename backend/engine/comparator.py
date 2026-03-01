@@ -228,7 +228,7 @@ class Comparator:
                 })
             
             # Check violations BR masquées
-            if vector.get('P_BR', 0) > 0.20 and dama_score['accuracy'] > 0.75:
+            if vector.get('P_BR', 0) > 0.20 and (dama_score.get('accuracy') or 0) > 0.75:
                 problemes.append({
                     "attribut": attr,
                     "type": "BR_masqué",
