@@ -1128,6 +1128,7 @@ def _build_odcs_quality_entry(rule: dict, col_name: str = "", dataset_name: str 
         entry["metric"] = metric_name
 
     t = dataset_name  # alias table pour les requêtes SQL
+    c = col_name      # alias colonne
 
     # Ajouter les paramètres spécifiques selon le type
     rt = rule.get("type", "")
@@ -1147,55 +1148,57 @@ def _build_odcs_quality_entry(rule: dict, col_name: str = "", dataset_name: str 
     elif rt == "fill_rate":
         entry["mustBeGreaterThan"] = rule.get("min_fill_rate", 70)
         entry["unit"] = "percent"
-    # ── Requêtes SQL pour règles Semi/Manuel (exploitabilité ODCS) ──
+    # ── Requêtes SQL paramétrées pour règles Semi/Manuel ──
+    # Placeholders: {column} = colonne courante, {table} = dataset
+    # Le programme consommateur résout via query.replace("{column}", col).replace("{table}", tbl)
     elif rt == "fuzzy_duplicates" and col_name:
         entry["query"] = (
-            f"SELECT a.{col_name}, b.{col_name}, "
-            f"LEVENSHTEIN(a.{col_name}, b.{col_name}) AS dist "
-            f"FROM {t} a JOIN {t} b ON a.rowid < b.rowid "
-            f"WHERE dist <= 2 AND a.{col_name} <> b.{col_name}")
+            "SELECT a.{column}, b.{column}, "
+            "LEVENSHTEIN(a.{column}, b.{column}) AS dist "
+            "FROM {table} a JOIN {table} b ON a.rowid < b.rowid "
+            "WHERE dist <= 2 AND a.{column} <> b.{column}")
         entry["mustBeLessThan"] = 0
         entry["unit"] = "rows"
     elif rt == "synonyms" and col_name:
         entry["query"] = (
-            f"SELECT LOWER(TRIM({col_name})) AS norm, "
-            f"GROUP_CONCAT(DISTINCT {col_name}) AS variantes, "
-            f"COUNT(DISTINCT {col_name}) AS nb "
-            f"FROM {t} GROUP BY norm HAVING nb > 1")
+            "SELECT LOWER(TRIM({column})) AS norm, "
+            "GROUP_CONCAT(DISTINCT {column}) AS variantes, "
+            "COUNT(DISTINCT {column}) AS nb "
+            "FROM {table} GROUP BY norm HAVING nb > 1")
         entry["mustBeLessThan"] = 0
         entry["unit"] = "groups"
     elif rt == "unit_heterogeneity" and col_name:
         entry["query"] = (
-            f"SELECT MIN({col_name}) AS min_val, MAX({col_name}) AS max_val, "
-            f"MAX({col_name})/NULLIF(MIN({col_name}),0) AS amplitude "
-            f"FROM {t} WHERE {col_name} > 0 HAVING amplitude > 100")
+            "SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, "
+            "MAX({column})/NULLIF(MIN({column}),0) AS amplitude "
+            "FROM {table} WHERE {column} > 0 HAVING amplitude > 100")
         entry["mustBeLessThan"] = 100
         entry["unit"] = "amplitude_ratio"
     elif rt == "format_consistency" and col_name:
         entry["query"] = (
-            f"SELECT {col_name}, LENGTH({col_name}) AS len FROM {t} "
-            f"WHERE {col_name} IS NOT NULL "
-            f"AND {col_name} NOT REGEXP '^[0-9]{{4}}-[0-9]{{2}}-[0-9]{{2}}$'")
+            "SELECT {column}, LENGTH({column}) AS len FROM {table} "
+            "WHERE {column} IS NOT NULL "
+            "AND {column} NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'")
         entry["mustBeLessThan"] = 0
         entry["unit"] = "rows"
     elif rt == "missing_rows" and col_name:
         entry["query"] = (
-            f"SELECT COUNT(DISTINCT {col_name}) AS nb_present FROM {t} "
-            f"-- Comparer avec le nombre attendu dans l'univers de référence")
+            "SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} "
+            "-- Comparer avec le nombre attendu dans l'univers de référence")
         entry["mustBeGreaterThan"] = 0
         entry["unit"] = "rows"
     elif rt == "date_format_ambiguity" and col_name:
         entry["query"] = (
-            f"SELECT {col_name} FROM {t} "
-            f"WHERE CAST(SUBSTR({col_name},6,2) AS INT) <= 12 "
-            f"AND CAST(SUBSTR({col_name},9,2) AS INT) <= 12 "
-            f"AND SUBSTR({col_name},6,2) <> SUBSTR({col_name},9,2)")
+            "SELECT {column} FROM {table} "
+            "WHERE CAST(SUBSTR({column},6,2) AS INT) <= 12 "
+            "AND CAST(SUBSTR({column},9,2) AS INT) <= 12 "
+            "AND SUBSTR({column},6,2) <> SUBSTR({column},9,2)")
         entry["mustBeLessThan"] = 0
         entry["unit"] = "rows"
     elif rt == "cartesian_join_risk" and col_name:
         entry["query"] = (
-            f"SELECT {col_name}, COUNT(*) AS nb FROM {t} "
-            f"GROUP BY {col_name} HAVING nb > 1")
+            "SELECT {column}, COUNT(*) AS nb FROM {table} "
+            "GROUP BY {column} HAVING nb > 1")
         entry["mustBeLessThan"] = 0
         entry["unit"] = "rows"
     elif rt == "temporal_order":
@@ -1203,32 +1206,43 @@ def _build_odcs_quality_entry(rule: dict, col_name: str = "", dataset_name: str 
         ec = rule.get("end_col", "")
         if ec:
             entry["query"] = (
-                f"SELECT {sc}, {ec} FROM {t} "
-                f"WHERE {sc} > {ec} AND {sc} IS NOT NULL AND {ec} IS NOT NULL")
+                "SELECT {start_column}, {end_column} FROM {table} "
+                "WHERE {start_column} > {end_column} "
+                "AND {start_column} IS NOT NULL AND {end_column} IS NOT NULL")
             entry["mustBeLessThan"] = 0
             entry["unit"] = "rows"
+            entry["queryParams"] = {"start_column": sc, "end_column": ec}
     elif rt == "conditional_required":
         cc = rule.get("condition_col", "")
         cv = rule.get("condition_val", "")
         if cc and col_name:
             entry["query"] = (
-                f"SELECT * FROM {t} "
-                f"WHERE {cc} = '{cv}' AND {col_name} IS NULL")
+                "SELECT * FROM {table} "
+                "WHERE {condition_column} = '{condition_value}' "
+                "AND {column} IS NULL")
             entry["mustBeLessThan"] = 0
             entry["unit"] = "rows"
+            entry["queryParams"] = {"condition_column": cc, "condition_value": cv}
     elif rt == "derived_calc":
-        entry["query"] = f"-- Vérifier: {rule.get('description', '')}"
+        sources = rule.get("sources", [])
+        formula = rule.get("formula", "")
+        entry["query"] = (
+            "SELECT * FROM {table} "
+            "WHERE {column} IS NOT NULL "
+            "-- Vérifier formule: " + formula)
         entry["mustBeLessThan"] = 0
         entry["unit"] = "rows"
+        if sources:
+            entry["queryParams"] = {"sources": sources, "formula": formula}
     elif rt == "granularity_max" and col_name:
         entry["query"] = (
-            f"SELECT COUNT(DISTINCT {col_name}) * 100.0 / COUNT(*) AS pct_unique "
-            f"FROM {t}")
+            "SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique "
+            "FROM {table}")
         entry["mustBeLessThan"] = rule.get("max_unique_ratio", 0.9) * 100
         entry["unit"] = "percent"
     elif rt == "granularity_min" and col_name:
         entry["query"] = (
-            f"SELECT COUNT(DISTINCT {col_name}) AS nb_unique FROM {t}")
+            "SELECT COUNT(DISTINCT {column}) AS nb_unique FROM {table}")
         entry["mustBeGreaterThan"] = rule.get("min_unique", 3)
         entry["unit"] = "distinct_values"
 

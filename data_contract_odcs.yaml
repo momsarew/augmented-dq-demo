@@ -1,6 +1,6 @@
 apiVersion: v3.1.0
 kind: DataContract
-id: 062b0cd5-4196-4751-95b1-ff96c395e101
+id: b95d4729-3a68-49f1-a977-cacd28b38584
 name: Data Contract — referentiel_rh_complet
 version: 1.0.0
 status: active
@@ -68,8 +68,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier synonymes/variantes même concept
-      query: SELECT LOWER(TRIM(matricule_id)) AS norm, GROUP_CONCAT(DISTINCT matricule_id) AS variantes, COUNT(DISTINCT matricule_id)
-        AS nb FROM referentiel_rh_complet GROUP BY norm HAVING nb > 1
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
       mustBeLessThan: 0
       unit: groups
       customProperties:
@@ -80,8 +80,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT matricule_id) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu
-        dans l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -102,7 +102,7 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Risque jointure cartésienne si PK non unique
-      query: SELECT matricule_id, COUNT(*) AS nb FROM referentiel_rh_complet GROUP BY matricule_id HAVING nb > 1
+      query: SELECT {column}, COUNT(*) AS nb FROM {table} GROUP BY {column} HAVING nb > 1
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -113,7 +113,7 @@ schema:
         woodallClass: MR
     - type: custom
       description: Granularité excessive (100% uniques)
-      query: SELECT COUNT(DISTINCT matricule_id) * 100.0 / COUNT(*) AS pct_unique FROM referentiel_rh_complet
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
       mustBeLessThan: 90.0
       unit: percent
       customProperties:
@@ -171,8 +171,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Doublons fuzzy (variations syntaxiques)
-      query: SELECT a.nom, b.nom, LEVENSHTEIN(a.nom, b.nom) AS dist FROM referentiel_rh_complet a JOIN referentiel_rh_complet
-        b ON a.rowid < b.rowid WHERE dist <= 2 AND a.nom <> b.nom
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -183,8 +183,8 @@ schema:
         woodallClass: SAMT, SR, MR, MDS
     - type: custom
       description: Vérifier synonymes/variantes même concept
-      query: SELECT LOWER(TRIM(nom)) AS norm, GROUP_CONCAT(DISTINCT nom) AS variantes, COUNT(DISTINCT nom) AS nb FROM referentiel_rh_complet
-        GROUP BY norm HAVING nb > 1
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
       mustBeLessThan: 0
       unit: groups
       customProperties:
@@ -195,8 +195,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT nom) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu dans
-        l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -217,7 +217,7 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Granularité excessive (100% uniques)
-      query: SELECT COUNT(DISTINCT nom) * 100.0 / COUNT(*) AS pct_unique FROM referentiel_rh_complet
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
       mustBeLessThan: 90.0
       unit: percent
       customProperties:
@@ -285,8 +285,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Doublons fuzzy (variations syntaxiques)
-      query: SELECT a.email, b.email, LEVENSHTEIN(a.email, b.email) AS dist FROM referentiel_rh_complet a JOIN referentiel_rh_complet
-        b ON a.rowid < b.rowid WHERE dist <= 2 AND a.email <> b.email
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -297,8 +297,8 @@ schema:
         woodallClass: SAMT, SR, MR, MDS
     - type: custom
       description: Vérifier synonymes/variantes même concept
-      query: SELECT LOWER(TRIM(email)) AS norm, GROUP_CONCAT(DISTINCT email) AS variantes, COUNT(DISTINCT email) AS nb FROM
-        referentiel_rh_complet GROUP BY norm HAVING nb > 1
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
       mustBeLessThan: 0
       unit: groups
       customProperties:
@@ -309,8 +309,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT email) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu dans
-        l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -331,7 +331,7 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Granularité excessive (100% uniques)
-      query: SELECT COUNT(DISTINCT email) * 100.0 / COUNT(*) AS pct_unique FROM referentiel_rh_complet
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
       mustBeLessThan: 90.0
       unit: percent
       customProperties:
@@ -390,8 +390,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Doublons fuzzy (variations syntaxiques)
-      query: SELECT a.date_embauche, b.date_embauche, LEVENSHTEIN(a.date_embauche, b.date_embauche) AS dist FROM referentiel_rh_complet
-        a JOIN referentiel_rh_complet b ON a.rowid < b.rowid WHERE dist <= 2 AND a.date_embauche <> b.date_embauche
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -402,8 +402,8 @@ schema:
         woodallClass: SAMT, SR, MR, MDS
     - type: custom
       description: Vérifier synonymes/variantes même concept
-      query: SELECT LOWER(TRIM(date_embauche)) AS norm, GROUP_CONCAT(DISTINCT date_embauche) AS variantes, COUNT(DISTINCT
-        date_embauche) AS nb FROM referentiel_rh_complet GROUP BY norm HAVING nb > 1
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
       mustBeLessThan: 0
       unit: groups
       customProperties:
@@ -414,8 +414,7 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier cohérence formats dates
-      query: SELECT date_embauche, LENGTH(date_embauche) AS len FROM referentiel_rh_complet WHERE date_embauche IS NOT NULL
-        AND date_embauche NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      query: SELECT {column}, LENGTH({column}) AS len FROM {table} WHERE {column} IS NOT NULL AND {column} NOT REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -426,8 +425,8 @@ schema:
         woodallClass: MAST
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT date_embauche) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu
-        dans l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -448,8 +447,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier parsing dates (DD/MM vs MM/DD)
-      query: SELECT date_embauche FROM referentiel_rh_complet WHERE CAST(SUBSTR(date_embauche,6,2) AS INT) <= 12 AND CAST(SUBSTR(date_embauche,9,2)
-        AS INT) <= 12 AND SUBSTR(date_embauche,6,2) <> SUBSTR(date_embauche,9,2)
+      query: SELECT {column} FROM {table} WHERE CAST(SUBSTR({column},6,2) AS INT) <= 12 AND CAST(SUBSTR({column},9,2) AS INT)
+        <= 12 AND SUBSTR({column},6,2) <> SUBSTR({column},9,2)
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -460,10 +459,13 @@ schema:
         woodallClass: SAST, MDS
     - type: custom
       description: date_embauche doit être ≤ date_sortie
-      query: SELECT date_embauche, date_sortie FROM referentiel_rh_complet WHERE date_embauche > date_sortie AND date_embauche
-        IS NOT NULL AND date_sortie IS NOT NULL
+      query: SELECT {start_column}, {end_column} FROM {table} WHERE {start_column} > {end_column} AND {start_column} IS NOT
+        NULL AND {end_column} IS NOT NULL
       mustBeLessThan: 0
       unit: rows
+      queryParams:
+        start_column: date_embauche
+        end_column: date_sortie
       customProperties:
         anomalyId: BR#1
         causalDimension: BR
@@ -472,7 +474,7 @@ schema:
         woodallClass: MAST
     - type: custom
       description: Granularité excessive (100% uniques)
-      query: SELECT COUNT(DISTINCT date_embauche) * 100.0 / COUNT(*) AS pct_unique FROM referentiel_rh_complet
+      query: SELECT COUNT(DISTINCT {column}) * 100.0 / COUNT(*) AS pct_unique FROM {table}
       mustBeLessThan: 90.0
       unit: percent
       customProperties:
@@ -542,8 +544,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT date_sortie) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu
-        dans l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -554,9 +556,12 @@ schema:
         woodallClass: SR, MR
     - type: custom
       description: SI statut=Inactif ALORS date_sortie NOT NULL
-      query: SELECT * FROM referentiel_rh_complet WHERE statut = 'Inactif' AND date_sortie IS NULL
+      query: SELECT * FROM {table} WHERE {condition_column} = '{condition_value}' AND {column} IS NULL
       mustBeLessThan: 0
       unit: rows
+      queryParams:
+        condition_column: statut
+        condition_value: Inactif
       customProperties:
         anomalyId: BR#5
         causalDimension: BR
@@ -628,8 +633,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier homogénéité des unités
-      query: SELECT MIN(salaire) AS min_val, MAX(salaire) AS max_val, MAX(salaire)/NULLIF(MIN(salaire),0) AS amplitude FROM
-        referentiel_rh_complet WHERE salaire > 0 HAVING amplitude > 100
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
       mustBeLessThan: 100
       unit: amplitude_ratio
       customProperties:
@@ -640,8 +645,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT salaire) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu dans
-        l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -702,8 +707,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier homogénéité des unités
-      query: SELECT MIN(age) AS min_val, MAX(age) AS max_val, MAX(age)/NULLIF(MIN(age),0) AS amplitude FROM referentiel_rh_complet
-        WHERE age > 0 HAVING amplitude > 100
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
       mustBeLessThan: 100
       unit: amplitude_ratio
       customProperties:
@@ -714,8 +719,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT age) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu dans
-        l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -735,9 +740,13 @@ schema:
         woodallClass: MAST
     - type: custom
       description: 'Formule: age = (now - date_embauche) / 365.25'
-      query: '-- Vérifier: Formule: age = (now - date_embauche) / 365.25'
+      query: 'SELECT * FROM {table} WHERE {column} IS NOT NULL -- Vérifier formule: age_from_birthdate'
       mustBeLessThan: 0
       unit: rows
+      queryParams:
+        sources:
+        - date_embauche
+        formula: age_from_birthdate
       customProperties:
         anomalyId: DP#1
         causalDimension: DP
@@ -779,8 +788,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Doublons fuzzy (variations syntaxiques)
-      query: SELECT a.statut, b.statut, LEVENSHTEIN(a.statut, b.statut) AS dist FROM referentiel_rh_complet a JOIN referentiel_rh_complet
-        b ON a.rowid < b.rowid WHERE dist <= 2 AND a.statut <> b.statut
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -791,8 +800,8 @@ schema:
         woodallClass: SAMT, SR, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT statut) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu dans
-        l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -847,8 +856,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Doublons fuzzy (variations syntaxiques)
-      query: SELECT a.departement, b.departement, LEVENSHTEIN(a.departement, b.departement) AS dist FROM referentiel_rh_complet
-        a JOIN referentiel_rh_complet b ON a.rowid < b.rowid WHERE dist <= 2 AND a.departement <> b.departement
+      query: SELECT a.{column}, b.{column}, LEVENSHTEIN(a.{column}, b.{column}) AS dist FROM {table} a JOIN {table} b ON a.rowid
+        < b.rowid WHERE dist <= 2 AND a.{column} <> b.{column}
       mustBeLessThan: 0
       unit: rows
       customProperties:
@@ -859,8 +868,8 @@ schema:
         woodallClass: SAMT, SR, MR, MDS
     - type: custom
       description: Vérifier synonymes/variantes même concept
-      query: SELECT LOWER(TRIM(departement)) AS norm, GROUP_CONCAT(DISTINCT departement) AS variantes, COUNT(DISTINCT departement)
-        AS nb FROM referentiel_rh_complet GROUP BY norm HAVING nb > 1
+      query: SELECT LOWER(TRIM({column})) AS norm, GROUP_CONCAT(DISTINCT {column}) AS variantes, COUNT(DISTINCT {column})
+        AS nb FROM {table} GROUP BY norm HAVING nb > 1
       mustBeLessThan: 0
       unit: groups
       customProperties:
@@ -871,8 +880,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT departement) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu
-        dans l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -934,8 +943,8 @@ schema:
         woodallClass: SAST
     - type: custom
       description: Vérifier homogénéité des unités
-      query: SELECT MIN(taux_prime) AS min_val, MAX(taux_prime) AS max_val, MAX(taux_prime)/NULLIF(MIN(taux_prime),0) AS amplitude
-        FROM referentiel_rh_complet WHERE taux_prime > 0 HAVING amplitude > 100
+      query: SELECT MIN({column}) AS min_val, MAX({column}) AS max_val, MAX({column})/NULLIF(MIN({column}),0) AS amplitude
+        FROM {table} WHERE {column} > 0 HAVING amplitude > 100
       mustBeLessThan: 100
       unit: amplitude_ratio
       customProperties:
@@ -946,8 +955,8 @@ schema:
         woodallClass: SAMT, MR, MDS
     - type: custom
       description: Vérifier complétude vs univers attendu
-      query: SELECT COUNT(DISTINCT taux_prime) AS nb_present FROM referentiel_rh_complet -- Comparer avec le nombre attendu
-        dans l'univers de référence
+      query: SELECT COUNT(DISTINCT {column}) AS nb_present FROM {table} -- Comparer avec le nombre attendu dans l'univers
+        de référence
       mustBeGreaterThan: 0
       unit: rows
       customProperties:
@@ -1091,4 +1100,4 @@ customProperties:
         criticality: CRITIQUE
         message: 2 valeurs hors [0.08, 0.18]
         affectedRows: 2
-contractCreatedTs: '2026-03-01T01:06:20Z'
+contractCreatedTs: '2026-03-01T01:17:41Z'
