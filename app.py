@@ -857,8 +857,7 @@ if st.session_state.analysis_done:
                     text-align: center;
                     min-height: 120px;
                 ">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">{profil['nom'].split()[0]}</div>
-                    <div style="color: #1a365d; font-weight: 600; font-size: 0.85rem;">{profil['nom'].split(maxsplit=1)[1]}</div>
+                    <div style="color: #1a365d; font-weight: 600; font-size: 0.85rem;">{profil['nom']}</div>
                     <div style="color: #718096; font-size: 0.7rem; margin-top: 0.25rem;">×{profil['multiplicateur']}</div>
                 </div>
                 """, unsafe_allow_html=True)
