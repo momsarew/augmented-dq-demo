@@ -5,7 +5,7 @@
 # Mis à jour: 2026-02-05
 
 # Framework Web
-streamlit==1.53.1
+streamlit>=1.41.0
 
 # Data Processing
 pandas==2.3.3
